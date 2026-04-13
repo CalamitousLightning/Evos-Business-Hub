@@ -1,0 +1,142 @@
+/* =========================
+   GLOBAL RESET
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* =========================
+   BODY (DARK PREMIUM BASE)
+========================= */
+body {
+  font-family: "Inter", Arial, sans-serif;
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  color: #e5e7eb;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =========================
+   SCROLLBAR (CLEAN)
+========================= */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+/* =========================
+   CONTAINER (GLASS EFFECT)
+========================= */
+.container {
+  max-width: 420px;
+  margin: 80px auto;
+  padding: 20px;
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+/* =========================
+   INPUTS
+========================= */
+input {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #020617;
+  color: white;
+  transition: 0.2s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+}
+
+/* =========================
+   BUTTONS
+========================= */
+button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #38bdf8, #3b82f6);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* hover = glow effect */
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+}
+
+/* click effect */
+button:active {
+  transform: scale(0.98);
+}
+
+/* =========================
+   SELECT DROPDOWN
+========================= */
+select {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #020617;
+  color: white;
+  cursor: pointer;
+}
+
+/* =========================
+   CARD (REUSABLE)
+========================= */
+.card {
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 14px;
+  padding: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* =========================
+   TEXT STYLES
+========================= */
+h1, h2, h3, h4 {
+  color: #f1f5f9;
+}
+
+p {
+  color: #9ca3af;
+}
+
+/* =========================
+   SMOOTH ANIMATIONS
+========================= */
+.fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
