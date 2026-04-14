@@ -414,24 +414,22 @@ def register(data: RegisterRequest):
 @app.post("/auth/login")
 def login(data: LoginRequest):
 
-    username = data.username.strip().lower()
-    password = str(data.password).strip()
+    username = data.username.strip()
 
     user_res = supabase.table("users") \
         .select("*") \
-        .eq("username", username) \
+        .ilike("username", username) \
         .execute()
 
     if not user_res.data:
         return {
-            "status": "user_not_found"
+            "status": "user_not_found",
+            "debug": username
         }
 
     user = user_res.data[0]
 
-    stored_password = str(user["password"]).strip()
-
-    if password != stored_password:
+    if str(data.password).strip() != str(user["password"]).strip():
         return {
             "status": "wrong_password"
         }
