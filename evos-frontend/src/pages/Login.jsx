@@ -1,25 +1,33 @@
 import { useState } from "react";
 import { loginUser } from "../api";
 
-export default function Login({ setUserEmail, setPage }) {
-  const [email, setEmail] = useState("");
+export default function Login({ setUser, setPage }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
     try {
-      const res = await loginUser({ email });
+      const res = await loginUser({
+        username,
+        password,
+      });
 
-      if (res.data.status !== "ok") {
-        alert("User not found");
+      const data = res.data;
+
+      if (data.status !== "ok") {
+        alert("Invalid credentials");
         return;
       }
 
-      // 🔥 SAVE USER
-      localStorage.setItem("email", email);
-      setUserEmail(email);
+      // 🔥 SAVE FULL USER (NOT EMAIL ONLY)
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setUser(data.user);
 
-      setPage("shop"); // redirect
+      // redirect
+      setPage("shop");
 
     } catch (err) {
+      console.log(err);
       alert("Login failed");
     }
   };
@@ -29,8 +37,16 @@ export default function Login({ setUserEmail, setPage }) {
       <h2>Login</h2>
 
       <input
-        placeholder="Enter email"
-        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+
+      <input
+        placeholder="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
       />
 
       <button onClick={handleLogin}>Login</button>

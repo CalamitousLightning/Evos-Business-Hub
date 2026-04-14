@@ -78,11 +78,11 @@ def get_prices():
 # ORDERS
 # =========================
 @app.get("/orders/me")
-def get_user_orders(email: str = Query(...)):
+def get_user_orders(user_id: int = Query(...)):
 
     orders = supabase.table("orders") \
         .select("*") \
-        .eq("email", email) \
+        .eq("user_id", user_id) \
         .execute()
 
     return {
@@ -94,10 +94,10 @@ def get_user_orders(email: str = Query(...)):
 @app.post("/orders/create")
 def create_order(data: CreateOrderRequest):
 
-    # prevent duplicate pending
+    # prevent duplicate pending orders
     existing = supabase.table("orders") \
         .select("*") \
-        .eq("email", data.email) \
+        .eq("user_id", data.user_id) \
         .eq("network", data.network) \
         .eq("bundle", data.bundle) \
         .eq("status", "pending_payment") \
@@ -118,6 +118,17 @@ def create_order(data: CreateOrderRequest):
 
     price = price_res.data[0]["price"]
 
+    # get user email (needed for Paystack)
+    user_res = supabase.table("users") \
+        .select("*") \
+        .eq("id", data.user_id) \
+        .execute()
+
+    if not user_res.data:
+        raise HTTPException(404, "User not found")
+
+    user = user_res.data[0]
+
     # paystack init
     paystack = requests.post(
         "https://api.paystack.co/transaction/initialize",
@@ -126,7 +137,7 @@ def create_order(data: CreateOrderRequest):
             "Content-Type": "application/json"
         },
         json={
-            "email": data.email,
+            "email": user["email"],
             "amount": int(price * 100),
             "callback_url": "http://localhost:5173/orders"
         }
@@ -137,13 +148,13 @@ def create_order(data: CreateOrderRequest):
 
     ref = paystack["data"]["reference"]
 
-    # save order
+    # save order (NOW PROPERLY LINKED TO USER)
     supabase.table("orders").insert({
+        "user_id": data.user_id,
         "network": data.network,
         "bundle": data.bundle,
         "price": price,
         "phone_number": data.phone,
-        "email": data.email,
         "paystack_ref": ref,
         "status": "pending_payment"
     }).execute()
@@ -153,8 +164,40 @@ def create_order(data: CreateOrderRequest):
         "reference": ref
     }
 
-
 # =========================
+# PAYSTACK WEBHOOK
+# =========================
+def calculate_rank(order_count: int):
+    if order_count >= 50:
+        return 5
+    elif order_count >= 20:
+        return 4
+    elif order_count >= 10:
+        return 3
+    elif order_count >= 5:
+        return 2
+    return 1
+
+def increment_user_orders(user_id: int):
+    user = supabase.table("users") \
+        .select("order_count") \
+        .eq("id", user_id) \
+        .execute()
+
+    if not user.data:
+        return
+
+    current = user.data[0]["order_count"] or 0
+    new_count = current + 1
+
+    supabase.table("users") \
+        .update({
+            "order_count": new_count,
+            "rank": calculate_rank(new_count)
+        }) \
+        .eq("id", user_id) \
+        .execute()
+
 # PAYSTACK WEBHOOK
 # =========================
 @app.post("/webhook/paystack")
@@ -192,6 +235,15 @@ async def paystack_webhook(request: Request):
         .eq("paystack_ref", reference) \
         .execute()
 
+    # =========================
+    # 🔥 NEW: update user stats
+    # =========================
+    try:
+        if order.get("user_id"):
+            increment_user_orders(order["user_id"])
+    except Exception:
+        pass
+
     # call datamart
     try:
         dm = requests.post(
@@ -226,6 +278,23 @@ async def paystack_webhook(request: Request):
             .execute()
 
         return {"status": "datamart failed", "error": str(e)}
+
+
+@app.get("/users/me")
+def get_user(user_id: int):
+
+    user = supabase.table("users") \
+        .select("*") \
+        .eq("id", user_id) \
+        .execute()
+
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    return {
+        "status": "success",
+        "user": user.data[0]
+    }
 
 
 # =========================
@@ -300,32 +369,44 @@ def sync_order(reference: str):
 # AUTH (SIMPLE)
 # =========================
 @app.post("/auth/register")
-def register(data: AuthRequest):
+def register(data: RegisterRequest):
 
-    user = supabase.table("users") \
+    # check username exists
+    existing = supabase.table("users") \
         .select("*") \
-        .eq("email", data.email) \
+        .eq("username", data.username) \
         .execute()
 
-    if user.data:
-        return {"status": "exists"}
+    if existing.data:
+        return {"status": "username_taken"}
 
+    # insert user
     supabase.table("users").insert({
-        "email": data.email
+        "username": data.username,
+        "full_name": data.full_name,
+        "email": data.email,
+        "phone": data.phone,
+        "password": data.password,
+        "referred_by": data.referred_by,
+        "order_count": 0,
+        "rank": 1
     }).execute()
 
     return {"status": "created"}
 
-
 @app.post("/auth/login")
-def login(data: AuthRequest):
+def login(data: LoginRequest):
 
     user = supabase.table("users") \
         .select("*") \
-        .eq("email", data.email) \
+        .eq("username", data.username) \
+        .eq("password", data.password) \
         .execute()
 
     if not user.data:
-        return {"status": "not found"}
+        return {"status": "invalid_credentials"}
 
-    return {"status": "ok", "email": data.email}
+    return {
+        "status": "ok",
+        "user": user.data[0]
+    }
