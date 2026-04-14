@@ -414,16 +414,16 @@ def register(data: RegisterRequest):
 @app.post("/auth/login")
 def login(data: LoginRequest):
 
-    user = supabase.table("users") \
+    user_res = supabase.table("users") \
         .select("*") \
         .eq("username", data.username) \
         .eq("password", data.password) \
         .execute()
 
-    if not user.data:
-        return {"status": "invalid_credentials"}
+    if not user_res.data:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
     return {
         "status": "ok",
-        "user": user.data[0]
+        "user": user_res.data[0]
     }
