@@ -10,7 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt
 from passlib.hash import bcrypt
 from datetime import datetime, timedelta
-
+from passlib.context import CryptContext
+from pydantic import BaseModel
 
 
 load_dotenv()
@@ -41,10 +42,6 @@ PAYSTACK_SECRET = os.getenv("PAYSTACK_SECRET_KEY")
 
 DATAMART_API_KEY = os.getenv("DATAMART_API_KEY")
 DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
-
-SECRET_KEY = "EVOS_SUPER_SECRET_KEY_CHANGE_THIS"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # =========================
 # SUPABASE
@@ -78,6 +75,14 @@ NETWORK_MAP = {
 }
 
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str):
+    return pwd_context.hash(password)
+
+def verify_password(plain, hashed):
+    return pwd_context.verify(plain, hashed)
+
 def extract_capacity(bundle: str):
     return bundle.replace("GB", "").strip()
 
@@ -91,16 +96,6 @@ def verify_signature(body: bytes, signature: str, secret: str):
 
     return hmac.compare_digest(computed, signature)
 
-def hash_password(password: str):
-    return bcrypt.hash(password)
-
-
-def create_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # =========================
 # PRICES
@@ -407,65 +402,71 @@ def sync_order(reference: str):
 @app.post("/auth/register")
 def register(data: RegisterRequest):
 
-    username = data.username.strip().lower()
-
+    # check username exists
     existing = supabase.table("users") \
         .select("*") \
-        .eq("username", username) \
+        .eq("username", data.username) \
         .execute()
 
     if existing.data:
         return {"status": "username_taken"}
 
-    hashed_pw = hash_password(data.password)
+    # check email exists
+    email_check = supabase.table("users") \
+        .select("*") \
+        .eq("email", data.email) \
+        .execute()
 
-    # referral code (simple version)
-    import random, string
-    referral_code = "REF-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    if email_check.data:
+        return {"status": "email_taken"}
 
+    # create referral code
+    referral_code = f"{data.username.lower()}_{data.phone[-4:]}"
+
+    # insert user
     supabase.table("users").insert({
-        "username": username,
+        "username": data.username,
         "full_name": data.full_name,
         "email": data.email,
         "phone": data.phone,
-        "password": hashed_pw,
-        "referral_code": referral_code,
+        "password": hash_password(data.password),
         "referred_by": data.referred_by,
+        "referral_code": referral_code,
         "order_count": 0,
         "rank": 1
     }).execute()
 
-    return {"status": "created"}
+    return {
+        "status": "created",
+        "referral_code": referral_code
+    }
 
-
-    
 @app.post("/auth/login")
 def login(data: LoginRequest):
 
-    username = data.username.strip().lower()
-    password = data.password.strip()
-
     user_res = supabase.table("users") \
         .select("*") \
-        .eq("username", username) \
+        .eq("username", data.username) \
         .execute()
 
     if not user_res.data:
-        return {"status": "user_not_found"}
+        raise HTTPException(status_code=404, detail="User not found")
 
     user = user_res.data[0]
 
-    if not verify_password(password, user["password"]):
-        return {"status": "wrong_password"}
-
-    token = create_token({
-        "user_id": user["id"],
-        "username": user["username"],
-        "rank": user["rank"]
-    })
+    # verify password securely
+    if not verify_password(data.password, user["password"]):
+        return {
+            "status": "wrong_password"
+        }
 
     return {
         "status": "ok",
-        "token": token,
-        "user": user
+        "user": {
+            "username": user["username"],
+            "email": user["email"],
+            "full_name": user["full_name"],
+            "referral_code": user["referral_code"],
+            "rank": user["rank"]
+        }
     }
