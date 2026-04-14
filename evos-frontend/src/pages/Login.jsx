@@ -10,7 +10,6 @@ export default function Login({ setUser, setPage }) {
   const handleLogin = async () => {
     setError("");
 
-    // basic frontend validation
     if (!username || !password) {
       setError("Please fill in all fields");
       return;
@@ -26,25 +25,34 @@ export default function Login({ setUser, setPage }) {
 
       const data = res.data;
 
-      console.log("LOGIN RESPONSE:", data); // DEBUG (important)
+      console.log("LOGIN RESPONSE:", data);
 
+      // ❌ handle backend failures
       if (data.status !== "ok") {
         setError(
           data.status === "user_not_found"
             ? "User not found"
             : data.status === "wrong_password"
             ? "Wrong password"
-            : "Invalid credentials"
+            : "Login failed"
         );
         return;
       }
 
-      // save user safely
+      // 🔐 SAVE TOKEN (IMPORTANT FOR EVOS AUTH)
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+
+      // 👤 SAVE USER
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("username", data.user.username);
 
       setUser(data.user);
+
+      // 🚀 NAVIGATE
       setPage("shop");
+
     } catch (err) {
       console.log("LOGIN ERROR:", err);
 
@@ -78,11 +86,7 @@ export default function Login({ setUser, setPage }) {
         autoComplete="current-password"
       />
 
-      {error && (
-        <div style={styles.error}>
-          {error}
-        </div>
-      )}
+      {error && <div style={styles.error}>{error}</div>}
 
       <button
         onClick={handleLogin}

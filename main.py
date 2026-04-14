@@ -7,6 +7,11 @@ from pydantic import BaseModel
 import hmac
 import hashlib
 from fastapi.middleware.cors import CORSMiddleware
+from jose import jwt
+from passlib.hash import bcrypt
+from datetime import datetime, timedelta
+
+
 
 load_dotenv()
 
@@ -36,6 +41,10 @@ PAYSTACK_SECRET = os.getenv("PAYSTACK_SECRET_KEY")
 
 DATAMART_API_KEY = os.getenv("DATAMART_API_KEY")
 DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
+
+SECRET_KEY = "EVOS_SUPER_SECRET_KEY_CHANGE_THIS"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # =========================
 # SUPABASE
@@ -82,6 +91,16 @@ def verify_signature(body: bytes, signature: str, secret: str):
 
     return hmac.compare_digest(computed, signature)
 
+def hash_password(password: str):
+    return bcrypt.hash(password)
+
+
+def create_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # =========================
 # PRICES
@@ -388,22 +407,29 @@ def sync_order(reference: str):
 @app.post("/auth/register")
 def register(data: RegisterRequest):
 
-    # check username exists
+    username = data.username.strip().lower()
+
     existing = supabase.table("users") \
         .select("*") \
-        .eq("username", data.username) \
+        .eq("username", username) \
         .execute()
 
     if existing.data:
         return {"status": "username_taken"}
 
-    # insert user
+    hashed_pw = hash_password(data.password)
+
+    # referral code (simple version)
+    import random, string
+    referral_code = "REF-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
     supabase.table("users").insert({
-        "username": data.username,
+        "username": username,
         "full_name": data.full_name,
         "email": data.email,
         "phone": data.phone,
-        "password": data.password,
+        "password": hashed_pw,
+        "referral_code": referral_code,
         "referred_by": data.referred_by,
         "order_count": 0,
         "rank": 1
@@ -411,30 +437,35 @@ def register(data: RegisterRequest):
 
     return {"status": "created"}
 
+
+    
 @app.post("/auth/login")
 def login(data: LoginRequest):
 
-    username = data.username.strip()
+    username = data.username.strip().lower()
+    password = data.password.strip()
 
     user_res = supabase.table("users") \
         .select("*") \
-        .ilike("username", username) \
+        .eq("username", username) \
         .execute()
 
     if not user_res.data:
-        return {
-            "status": "user_not_found",
-            "debug": username
-        }
+        return {"status": "user_not_found"}
 
     user = user_res.data[0]
 
-    if str(data.password).strip() != str(user["password"]).strip():
-        return {
-            "status": "wrong_password"
-        }
+    if not verify_password(password, user["password"]):
+        return {"status": "wrong_password"}
+
+    token = create_token({
+        "user_id": user["id"],
+        "username": user["username"],
+        "rank": user["rank"]
+    })
 
     return {
         "status": "ok",
+        "token": token,
         "user": user
     }
