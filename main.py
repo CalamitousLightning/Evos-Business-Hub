@@ -414,22 +414,26 @@ def register(data: RegisterRequest):
 @app.post("/auth/login")
 def login(data: LoginRequest):
 
+    username = data.username.strip().lower()
+    password = str(data.password).strip()
+
     user_res = supabase.table("users") \
         .select("*") \
-        .eq("username", data.username) \
+        .eq("username", username) \
         .execute()
 
     if not user_res.data:
-        raise HTTPException(status_code=404, detail="User not found")
+        return {
+            "status": "user_not_found"
+        }
 
     user = user_res.data[0]
 
-    # 🔥 FORCE MATCH (DEBUG MODE)
-    if data.password != user["password"]:
+    stored_password = str(user["password"]).strip()
+
+    if password != stored_password:
         return {
-            "status": "wrong_password",
-            "expected": user["password"],   # DEBUG (remove later)
-            "got": data.password
+            "status": "wrong_password"
         }
 
     return {
