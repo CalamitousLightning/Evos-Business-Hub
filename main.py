@@ -6,10 +6,25 @@ from supabase import create_client, Client
 from pydantic import BaseModel
 import hmac
 import hashlib
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI()  # ✅ MUST COME FIRST
+
+# =========================
+# CORS
+# =========================
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://evosdata.netlify.app",
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # =========================
 # ENV
@@ -31,16 +46,18 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # =========================
 # MODELS
 # =========================
-class CreateOrderRequest(BaseModel):
-    network: str
-    bundle: str
+class RegisterRequest(BaseModel):
+    username: str
+    full_name: str
+    email: str
     phone: str
-    email: str
+    password: str
+    referred_by: str | None = None
 
 
-class AuthRequest(BaseModel):
-    email: str
-
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 # =========================
 # HELPERS
