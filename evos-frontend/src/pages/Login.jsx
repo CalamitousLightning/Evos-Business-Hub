@@ -1,19 +1,13 @@
 import { useState } from "react";
-import API from "../api";
+import { loginUser } from "../api";
 
 export default function Login({ setUser, setPage }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     try {
-      setError("");
-
-      setLoading(true);
-
-      const res = await API.post("/auth/login", {
+      const res = await loginUser({
         username,
         password,
       });
@@ -21,28 +15,26 @@ export default function Login({ setUser, setPage }) {
       const data = res.data;
 
       if (data.status !== "ok") {
-        setError("Invalid credentials");
+        alert("Invalid credentials");
         return;
       }
 
+      // 🔥 SAVE FULL USER (NOT EMAIL ONLY)
       localStorage.setItem("user", JSON.stringify(data.user));
       setUser(data.user);
 
+      // redirect
       setPage("shop");
 
     } catch (err) {
       console.log(err);
-      setError(err.response?.data?.detail || "Login failed. Try again.");
-    } finally {
-      setLoading(false);
+      alert("Login failed");
     }
   };
 
   return (
     <div style={styles.card}>
       <h2>Login</h2>
-
-      {error && <div style={styles.error}>{error}</div>}
 
       <input
         placeholder="Username"
@@ -57,9 +49,7 @@ export default function Login({ setUser, setPage }) {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button onClick={handleLogin} disabled={loading}>
-        {loading ? "Logging in..." : "Login"}
-      </button>
+      <button onClick={handleLogin}>Login</button>
     </div>
   );
 }
@@ -71,11 +61,5 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "10px",
-  },
-  error: {
-    background: "#7f1d1d",
-    color: "white",
-    padding: "8px",
-    borderRadius: "6px",
   },
 };
