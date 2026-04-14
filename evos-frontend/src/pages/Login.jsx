@@ -4,9 +4,12 @@ import { loginUser } from "../api";
 export default function Login({ setUser, setPage }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     try {
+      setLoading(true);
+
       const res = await loginUser({
         username,
         password,
@@ -16,19 +19,22 @@ export default function Login({ setUser, setPage }) {
 
       if (data.status !== "ok") {
         alert("Invalid credentials");
+        setLoading(false);
         return;
       }
 
-      // 🔥 SAVE FULL USER (NOT EMAIL ONLY)
+      // save user
       localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("username", data.user.username);
+
       setUser(data.user);
 
-      // redirect
       setPage("shop");
-
     } catch (err) {
       console.log(err);
-      alert("Login failed");
+      alert(err.response?.data?.detail || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,7 +55,9 @@ export default function Login({ setUser, setPage }) {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button onClick={handleLogin}>Login</button>
+      <button onClick={handleLogin} disabled={loading}>
+        {loading ? "Logging in..." : "Login"}
+      </button>
     </div>
   );
 }
