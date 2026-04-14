@@ -417,13 +417,22 @@ def login(data: LoginRequest):
     user_res = supabase.table("users") \
         .select("*") \
         .eq("username", data.username) \
-        .eq("password", data.password) \
         .execute()
 
     if not user_res.data:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user = user_res.data[0]
+
+    # 🔥 FORCE MATCH (DEBUG MODE)
+    if data.password != user["password"]:
+        return {
+            "status": "wrong_password",
+            "expected": user["password"],   # DEBUG (remove later)
+            "got": data.password
+        }
 
     return {
         "status": "ok",
-        "user": user_res.data[0]
+        "user": user
     }
