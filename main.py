@@ -1,7 +1,20 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+
 import os
+import requests
+import hmac
+import hashlib
+from datetime import datetime, timedelta
+
 from dotenv import load_dotenv
+from supabase import create_client, Client
+
+from pydantic import BaseModel, Field
+
+from jose import jwt
+from passlib.hash import bcrypt
+from passlib.context import CryptContext
 
 load_dotenv()
 
