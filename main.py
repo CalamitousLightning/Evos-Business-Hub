@@ -591,11 +591,11 @@ def register(data: RegisterRequest):
         # =========================
         # HASH PASSWORD (SAFE)
         # =========================
-try:
-    hashed_password = pwd_context.hash(str(data.password))
-except Exception as e:
-    print("HASH ERROR:", repr(e))
-    raise HTTPException(status_code=500, detail="Password hashing failed")
+        try:
+            hashed_password = pwd_context.hash(str(data.password))
+        except Exception as e:
+            print("HASH ERROR:", repr(e))
+            raise HTTPException(status_code=500, detail="Password hashing failed")
 
         # =========================
         # REFERRAL CODE
