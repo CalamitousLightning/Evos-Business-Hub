@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from supabase import create_client, Client
-
+import re
 from pydantic import BaseModel, Field
 
 from pydantic import BaseModel, Field, EmailStr
