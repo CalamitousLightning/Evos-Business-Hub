@@ -11,57 +11,98 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // 🔐 AUTH
-  const [userEmail, setUserEmail] = useState("");
+  // =========================
+  // 🔐 SINGLE AUTH STATE (FIXED)
+  // =========================
+  const [user, setUser] = useState(null);
 
-  // 🌙 THEME (NEW)
+  // 🌙 THEME
   const [theme, setTheme] = useState("dark");
 
+  // =========================
+  // LOAD FROM LOCALSTORAGE
+  // =========================
   useEffect(() => {
-    const email = localStorage.getItem("email");
-    if (email) setUserEmail(email);
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
 
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) setTheme(savedTheme);
   }, []);
 
+  // =========================
+  // THEME TOGGLE
+  // =========================
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
   };
 
+  // =========================
+  // LOGOUT FIXED
+  // =========================
   const logout = () => {
+    localStorage.removeItem("user");
     localStorage.removeItem("email");
-    setUserEmail("");
+
+    setUser(null);
     setPage("home");
   };
 
+  // =========================
+  // NAVIGATION
+  // =========================
   const navigate = (p) => {
     setPage(p);
     setMenuOpen(false);
   };
 
+  // =========================
+  // PAGE ROUTER
+  // =========================
   const renderPage = () => {
     switch (page) {
       case "home":
         return <Home setPage={setPage} theme={theme} />;
+
       case "shop":
-        return <Shop userEmail={userEmail} theme={theme} />;
+        return <Shop user={user} theme={theme} />;
+
       case "orders":
-        return <Orders userEmail={userEmail} theme={theme} />;
+        return <Orders user={user} theme={theme} />;
+
       case "login":
-        return <Login setUserEmail={setUserEmail} setPage={setPage} theme={theme} />;
+        return (
+          <Login
+            setUser={setUser}
+            setPage={setPage}
+            theme={theme}
+          />
+        );
+
       case "register":
         return <Register setPage={setPage} theme={theme} />;
+
       case "dashboard":
-        return <Dashboard userEmail={userEmail} setPage={setPage} theme={theme} />;
+        return (
+          <Dashboard
+            user={user}
+            setPage={setPage}
+            theme={theme}
+          />
+        );
+
       case "success":
         return <Success theme={theme} />;
+
       default:
         return <Home setPage={setPage} theme={theme} />;
     }
   };
+
   const isDark = theme === "dark";
 
   return (
@@ -79,7 +120,6 @@ export default function App() {
           background: isDark
             ? "rgba(15, 23, 42, 0.9)"
             : "rgba(255,255,255,0.9)",
-          color: isDark ? "#e5e7eb" : "#111827",
         }}
       >
         <div style={styles.logo} onClick={() => navigate("home")}>
@@ -87,12 +127,10 @@ export default function App() {
         </div>
 
         <div style={styles.navRight}>
-          {/* 🌙 THEME TOGGLE */}
           <button onClick={toggleTheme} style={styles.themeBtn}>
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
-          {/* MENU */}
           <div style={styles.toggle} onClick={() => setMenuOpen(!menuOpen)}>
             ☰
           </div>
@@ -119,7 +157,7 @@ export default function App() {
             Dashboard
           </button>
 
-          {userEmail ? (
+          {user ? (
             <button onClick={logout} style={styles.logout}>
               Logout
             </button>
@@ -164,7 +202,6 @@ const styles = {
     position: "sticky",
     top: 0,
     zIndex: 1000,
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
   },
 
   logo: {
@@ -200,7 +237,6 @@ const styles = {
     flexDirection: "column",
     gap: "10px",
     padding: "15px",
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
   },
 
   menuBtn: {
@@ -220,7 +256,6 @@ const styles = {
     color: "#0b1220",
     fontWeight: "bold",
     cursor: "pointer",
-    textAlign: "left",
   },
 
   logout: {
@@ -230,7 +265,6 @@ const styles = {
     background: "#ef4444",
     color: "white",
     cursor: "pointer",
-    textAlign: "left",
   },
 
   container: {
