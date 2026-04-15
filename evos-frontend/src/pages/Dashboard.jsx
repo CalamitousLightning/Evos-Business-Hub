@@ -1,32 +1,44 @@
 import { useEffect, useState } from "react";
 
-export default function Dashboard({ setPage, userEmail }) {
+export default function Dashboard({ setPage, user }) {
   const [dark, setDark] = useState(true);
 
-  // 🔐 simple auth check
+  // 🔐 AUTH GUARD (FIXED)
   useEffect(() => {
-    if (!userEmail) {
+    if (!user) {
       setPage("login");
     }
-  }, [userEmail, setPage]);
+  }, [user, setPage]);
 
-  // 🔥 LOAD DATAMART WIDGET PROPERLY
+  // 🔥 DATAMART WIDGET (FIXED - prevents duplicate scripts)
   useEffect(() => {
+    const container = document.getElementById("tracker");
+
+    if (!container) return;
+
+    // clear old script safely
+    container.innerHTML = "";
+
     const script = document.createElement("script");
     script.src = "https://api.datamartgh.shop/widgets/delivery-tracker.js";
     script.async = true;
 
-    script.setAttribute("data-api-key", "YOUR_API_KEY"); // 🔥 PUT YOUR KEY
+    script.setAttribute("data-api-key", "YOUR_API_KEY");
     script.setAttribute("data-theme", dark ? "dark" : "light");
     script.setAttribute("data-container", "tracker");
 
-    document.getElementById("tracker")?.appendChild(script);
+    container.appendChild(script);
 
     return () => {
-      const tracker = document.getElementById("tracker");
-      if (tracker) tracker.innerHTML = ""; // cleanup
+      container.innerHTML = "";
     };
   }, [dark]);
+
+  const logout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("email");
+    setPage("login");
+  };
 
   return (
     <div style={dark ? styles.darkContainer : styles.lightContainer}>
@@ -45,13 +57,7 @@ export default function Dashboard({ setPage, userEmail }) {
           📡 Track Orders
         </button>
 
-        <button
-          style={styles.navBtn}
-          onClick={() => {
-            localStorage.removeItem("email");
-            setPage("login");
-          }}
-        >
+        <button style={styles.navBtn} onClick={logout}>
           🚪 Logout
         </button>
 
@@ -68,7 +74,7 @@ export default function Dashboard({ setPage, userEmail }) {
         <h2 style={styles.title}>Dashboard</h2>
 
         <p style={styles.subtitle}>
-          Welcome back, {userEmail}
+          Welcome back, {user?.username || user?.email}
         </p>
 
         {/* ACTIONS */}
