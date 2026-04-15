@@ -463,7 +463,7 @@ def register(data: RegisterRequest):
         # HASH PASSWORD (SAFE GUARD)
         # =========================
         try:
-            hashed_password = hash_password(data.password)
+            hashed_password = pwd_context.hash(data.password)
         except Exception as e:
             print("HASH ERROR:", str(e))
             raise HTTPException(status_code=500, detail="Password hashing failed")
@@ -543,7 +543,7 @@ def login(data: LoginRequest):
             if not stored_password:
                 return {"status": "invalid_credentials"}
 
-            if not verify_password(data.password, stored_password):
+            if not pwd_context.verify(data.password, stored_password):
                 return {"status": "invalid_credentials"}
 
         except Exception as e:
