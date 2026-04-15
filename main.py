@@ -12,6 +12,9 @@ from supabase import create_client, Client
 
 from pydantic import BaseModel, Field
 
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional
+
 from jose import jwt
 from passlib.hash import bcrypt
 from passlib.context import CryptContext
@@ -57,8 +60,9 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # =========================
 
 
+
 # =========================
-# REQUEST MODEL
+# REGISTER MODEL
 # =========================
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=20)
@@ -66,13 +70,11 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     phone: str = Field(min_length=10, max_length=15)
     password: str = Field(min_length=6)
-    referred_by: str | None = None
-
-
+    referred_by: Optional[str] = None
 
 
 # =========================
-# REQUEST MODEL
+# LOGIN MODEL
 # =========================
 class LoginRequest(BaseModel):
     username: str = Field(min_length=3)
@@ -421,18 +423,20 @@ def sync_order(reference: str):
 def register(data: RegisterRequest):
 
     try:
+        import re  # 🔥 ensure available here
+
         # =========================
-        # 🔧 NORMALIZE INPUT
+        # NORMALIZE INPUT
         # =========================
         username = data.username.strip().lower()
         email = data.email.strip().lower()
-        phone = re.sub(r"\D", "", data.phone)  # remove non-digits
+        phone = re.sub(r"\D", "", data.phone)
 
         if len(phone) < 10:
             raise HTTPException(status_code=400, detail="Invalid phone number")
 
         # =========================
-        # 🔍 CHECK USERNAME
+        # CHECK USERNAME
         # =========================
         existing_user = supabase.table("users") \
             .select("id") \
@@ -444,7 +448,7 @@ def register(data: RegisterRequest):
             return {"status": "username_taken"}
 
         # =========================
-        # 🔍 CHECK EMAIL
+        # CHECK EMAIL
         # =========================
         existing_email = supabase.table("users") \
             .select("id") \
@@ -456,17 +460,21 @@ def register(data: RegisterRequest):
             return {"status": "email_taken"}
 
         # =========================
-        # 🔐 HASH PASSWORD
+        # HASH PASSWORD (SAFE GUARD)
         # =========================
-        hashed_password = hash_password(data.password)
+        try:
+            hashed_password = hash_password(data.password)
+        except Exception as e:
+            print("HASH ERROR:", str(e))
+            raise HTTPException(status_code=500, detail="Password hashing failed")
 
         # =========================
-        # 🎟️ REFERRAL CODE
+        # REFERRAL CODE
         # =========================
         referral_code = f"{username}_{phone[-4:]}" if len(phone) >= 4 else username
 
         # =========================
-        # 💾 INSERT USER
+        # INSERT USER
         # =========================
         insert = supabase.table("users").insert({
             "username": username,
@@ -497,7 +505,6 @@ def register(data: RegisterRequest):
         print("REGISTER ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Server error")
 
-
 # =========================
 # LOGIN ROUTE
 # =========================
@@ -506,50 +513,61 @@ def login(data: LoginRequest):
 
     try:
         # =========================
-        # 🔧 NORMALIZE INPUT
+        # SAFE INPUT HANDLING
         # =========================
-        username = data.username.strip().lower()
+        username = (data.username or "").strip().lower()
+
+        if not username:
+            raise HTTPException(status_code=400, detail="Username required")
 
         # =========================
-        # 🔍 FIND USER
+        # FIND USER (SAFE QUERY)
         # =========================
         user_res = supabase.table("users") \
             .select("*") \
             .or_(f"username.eq.{username},email.eq.{username}") \
             .limit(1) \
             .execute()
-       
+
         if not user_res.data:
-            # do NOT reveal if user exists
             return {"status": "invalid_credentials"}
 
         user = user_res.data[0]
 
         # =========================
-        # 🔐 VERIFY PASSWORD
+        # VERIFY PASSWORD (SAFE GUARD)
         # =========================
-        stored_password = user.get("password")
+        try:
+            stored_password = user.get("password")
 
-        if not stored_password or not verify_password(data.password, stored_password):
-            return {"status": "invalid_credentials"}
+            if not stored_password:
+                return {"status": "invalid_credentials"}
+
+            if not verify_password(data.password, stored_password):
+                return {"status": "invalid_credentials"}
+
+        except Exception as e:
+            print("PASSWORD VERIFY ERROR:", str(e))
+            raise HTTPException(status_code=500, detail="Auth error")
 
         # =========================
-        # ✅ SUCCESS RESPONSE
+        # SUCCESS RESPONSE
         # =========================
         return {
             "status": "ok",
             "user": {
-                "username": user["username"],
-                "email": user["email"],
-                "full_name": user["full_name"],
+                "username": user.get("username"),
+                "email": user.get("email"),
+                "full_name": user.get("full_name"),
                 "referral_code": user.get("referral_code"),
                 "rank": user.get("rank", 1)
             }
         }
 
+    except HTTPException:
+        raise
+
     except Exception as e:
         print("LOGIN ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Server error")
-
-
-
+        
