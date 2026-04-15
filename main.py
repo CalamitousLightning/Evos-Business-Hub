@@ -110,7 +110,11 @@ NETWORK_MAP = {
 # =========================
 # PASSWORD SECURITY
 # =========================
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    bcrypt__rounds=12,
+    deprecated="auto"
+)
 
 
 def hash_password(password: str) -> str:
@@ -587,11 +591,11 @@ def register(data: RegisterRequest):
         # =========================
         # HASH PASSWORD (SAFE)
         # =========================
-        try:
-            hashed_password = pwd_context.hash(data.password)
-        except Exception as e:
-            print("HASH ERROR:", str(e))
-            raise HTTPException(status_code=500, detail="Password hashing failed")
+try:
+    hashed_password = pwd_context.hash(str(data.password))
+except Exception as e:
+    print("HASH ERROR:", repr(e))
+    raise HTTPException(status_code=500, detail="Password hashing failed")
 
         # =========================
         # REFERRAL CODE
