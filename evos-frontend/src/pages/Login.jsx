@@ -27,30 +27,20 @@ export default function Login({ setUser, setPage }) {
 
       console.log("LOGIN RESPONSE:", data);
 
-      // ❌ handle backend failures
+      // ❌ HANDLE FAILURE
       if (data.status !== "ok") {
-        setError(
-          data.status === "user_not_found"
-            ? "User not found"
-            : data.status === "wrong_password"
-            ? "Wrong password"
-            : "Login failed"
-        );
+        setError("Invalid username/email or password");
         return;
       }
 
-      // 🔐 SAVE TOKEN (IMPORTANT FOR EVOS AUTH)
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
-
-      // 👤 SAVE USER
+      // ✅ SAVE USER DATA
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("username", data.user.username);
+      localStorage.setItem("email", data.user.email); // 🔥 IMPORTANT
 
       setUser(data.user);
 
-      // 🚀 NAVIGATE
+      // 🚀 REDIRECT
       setPage("shop");
 
     } catch (err) {
@@ -71,10 +61,9 @@ export default function Login({ setUser, setPage }) {
 
       <input
         style={styles.input}
-        placeholder="Username"
+        placeholder="Username or Email"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        autoComplete="username"
       />
 
       <input
@@ -83,7 +72,6 @@ export default function Login({ setUser, setPage }) {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        autoComplete="current-password"
       />
 
       {error && <div style={styles.error}>{error}</div>}
