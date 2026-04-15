@@ -45,4 +45,4 @@ evos-frontend/dist
 # 🔧 EDITOR FILES
 # ================================
 .vscode/
-.idea/
+.idea/.env

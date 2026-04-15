@@ -1,30 +1,49 @@
 import axios from "axios";
 
 // =========================
-// BASE CONFIG
+// BASE CONFIG (PRODUCTION SAFE)
 // =========================
 const API = axios.create({
   baseURL: "https://evos-business-hub.onrender.com",
-  timeout: 15000, // prevent infinite loading
+  timeout: 20000, // slightly higher for Render cold starts
   headers: {
     "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
+
+// =========================
+// GLOBAL ERROR DEBUG (IMPORTANT)
+// =========================
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error("API ERROR:", {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+    return Promise.reject(error);
+  }
+);
 
 // =========================
 // AUTH
 // =========================
 export const registerUser = (data) =>
   API.post("/auth/register", {
-    ...data,
-    email: data.email?.trim().toLowerCase(),
     username: data.username?.trim().toLowerCase(),
+    email: data.email?.trim().toLowerCase(),
+    full_name: data.full_name,
+    phone: data.phone,
+    password: data.password,
+    referred_by: data.referred_by || null,
   });
 
 export const loginUser = (data) =>
   API.post("/auth/login", {
-    ...data,
     username: data.username?.trim().toLowerCase(),
+    password: data.password,
   });
 
 // =========================
@@ -38,10 +57,9 @@ export const getPrices = () => API.get("/prices");
 export const createOrder = (data) =>
   API.post("/orders/create", {
     ...data,
-    email: data.email?.trim().toLowerCase(),
   });
 
-export const getOrders = (email) =>
-  API.get(`/orders/me?email=${encodeURIComponent(email)}`);
+export const getOrders = (user_id) =>
+  API.get(`/orders/me?user_id=${user_id}`);
 
 export default API;

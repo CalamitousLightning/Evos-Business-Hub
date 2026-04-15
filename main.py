@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 import os
+import re
 import requests
 import hmac
 import hashlib
@@ -9,14 +10,11 @@ from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from supabase import create_client, Client
-import re
-from pydantic import BaseModel, Field
 
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 
 from jose import jwt
-from passlib.hash import bcrypt
 from passlib.context import CryptContext
 
 load_dotenv()
@@ -24,7 +22,7 @@ load_dotenv()
 app = FastAPI()
 
 # =========================
-# PRODUCTION CORS (STRICT + CLEAN)
+# PRODUCTION CORS (CLEAN)
 # =========================
 
 ALLOWED_ORIGINS = [
@@ -35,9 +33,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],   # MUST be * for preflight (OPTIONS)
-    allow_headers=["*"],   # REQUIRED for Authorization + JSON requests
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
 # =========================
 # ENV
 # =========================
@@ -50,20 +49,35 @@ DATAMART_API_KEY = os.getenv("DATAMART_API_KEY")
 DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
 
 # =========================
-# SUPABASE
+# SAFETY CHECK (PRODUCTION SAFE)
+# =========================
+required_envs = {
+    "SUPABASE_URL": SUPABASE_URL,
+    "SUPABASE_KEY": SUPABASE_KEY,
+    "PAYSTACK_SECRET_KEY": PAYSTACK_SECRET,
+    "DATAMART_API_KEY": DATAMART_API_KEY,
+}
+
+missing = [k for k, v in required_envs.items() if not v]
+if missing:
+    raise Exception(f"Missing environment variables: {', '.join(missing)}")
+
+# =========================
+# SUPABASE INIT
 # =========================
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# =========================
+# GLOBAL TIMEOUT CONFIG
+# =========================
+REQUEST_TIMEOUT = 10
+
 
 
 # =========================
 # MODELS
 # =========================
 
-
-
-# =========================
-# REGISTER MODEL
-# =========================
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=20)
     full_name: str = Field(min_length=2, max_length=50)
@@ -73,44 +87,69 @@ class RegisterRequest(BaseModel):
     referred_by: Optional[str] = None
 
 
-# =========================
-# LOGIN MODEL
-# =========================
 class LoginRequest(BaseModel):
     username: str = Field(min_length=3)
     password: str = Field(min_length=6)
 
-
+class CreateOrderRequest(BaseModel):
+    user_id: int
+    network: str
+    bundle: str
+    phone: str
+    
 # =========================
 # HELPERS
 # =========================
+
 NETWORK_MAP = {
     "MTN": "YELLO",
     "TELECEL": "TELECEL",
     "AIRTELTIGO": "AT_PREMIUM"
 }
 
-
+# =========================
+# PASSWORD SECURITY
+# =========================
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def hash_password(password: str):
-    return pwd_context.hash(password)
 
-def verify_password(plain, hashed):
-    return pwd_context.verify(plain, hashed)
+def hash_password(password: str) -> str:
+    try:
+        return pwd_context.hash(password)
+    except Exception as e:
+        print("HASH ERROR:", str(e))
+        raise HTTPException(status_code=500, detail="Password hashing failed")
 
-def extract_capacity(bundle: str):
+
+def verify_password(plain: str, hashed: str) -> bool:
+    try:
+        return pwd_context.verify(plain, hashed)
+    except Exception as e:
+        print("VERIFY ERROR:", str(e))
+        return False
+
+
+# =========================
+# UTILITIES
+# =========================
+def extract_capacity(bundle: str) -> str:
+    if not bundle:
+        return ""
     return bundle.replace("GB", "").strip()
 
 
-def verify_signature(body: bytes, signature: str, secret: str):
-    computed = hmac.new(
-        secret.encode(),
-        body,
-        hashlib.sha256
-    ).hexdigest()
+def verify_signature(body: bytes, signature: str, secret: str) -> bool:
+    try:
+        computed = hmac.new(
+            secret.encode(),
+            body,
+            hashlib.sha256
+        ).hexdigest()
 
-    return hmac.compare_digest(computed, signature)
+        return hmac.compare_digest(computed, signature or "")
+    except Exception as e:
+        print("SIGNATURE ERROR:", str(e))
+        return False
 
 
 # =========================
@@ -118,102 +157,145 @@ def verify_signature(body: bytes, signature: str, secret: str):
 # =========================
 @app.get("/prices")
 def get_prices():
-    return supabase.table("prices").select("*").execute().data
+    try:
+        data = supabase.table("prices").select("*").execute().data
+        return {"status": "success", "data": data or []}
+    except Exception as e:
+        print("PRICES ERROR:", str(e))
+        raise HTTPException(status_code=500, detail="Failed to load prices")
+
 
 
 # =========================
 # ORDERS
 # =========================
+
 @app.get("/orders/me")
 def get_user_orders(user_id: int = Query(...)):
+    try:
+        orders = supabase.table("orders") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .execute()
 
-    orders = supabase.table("orders") \
-        .select("*") \
-        .eq("user_id", user_id) \
-        .execute()
+        return {
+            "status": "success",
+            "orders": orders.data or []
+        }
 
-    return {
-        "status": "success",
-        "orders": orders.data or []
-    }
+    except Exception as e:
+        print("GET ORDERS ERROR:", str(e))
+        raise HTTPException(status_code=500, detail="Failed to fetch orders")
 
 
+# =========================
+# CREATE ORDER (PRODUCTION SAFE)
+# =========================
 @app.post("/orders/create")
 def create_order(data: CreateOrderRequest):
 
-    # prevent duplicate pending orders
-    existing = supabase.table("orders") \
-        .select("*") \
-        .eq("user_id", data.user_id) \
-        .eq("network", data.network) \
-        .eq("bundle", data.bundle) \
-        .eq("status", "pending_payment") \
-        .execute()
+    try:
+        # =========================
+        # PREVENT DUPLICATES
+        # =========================
+        existing = supabase.table("orders") \
+            .select("id") \
+            .eq("user_id", data.user_id) \
+            .eq("network", data.network) \
+            .eq("bundle", data.bundle) \
+            .eq("status", "pending_payment") \
+            .limit(1) \
+            .execute()
 
-    if existing.data:
-        raise HTTPException(400, "Pending order already exists")
+        if existing.data:
+            raise HTTPException(400, "Pending order already exists")
 
-    # get price
-    price_res = supabase.table("prices") \
-        .select("*") \
-        .eq("network", data.network) \
-        .eq("bundle", data.bundle) \
-        .execute()
+        # =========================
+        # GET PRICE (SAFE)
+        # =========================
+        price_res = supabase.table("prices") \
+            .select("price") \
+            .eq("network", data.network) \
+            .eq("bundle", data.bundle) \
+            .limit(1) \
+            .execute()
 
-    if not price_res.data:
-        raise HTTPException(400, "Invalid bundle")
+        if not price_res.data:
+            raise HTTPException(400, "Invalid bundle")
 
-    price = price_res.data[0]["price"]
+        price = price_res.data[0]["price"]
 
-    # get user email (needed for Paystack)
-    user_res = supabase.table("users") \
-        .select("*") \
-        .eq("id", data.user_id) \
-        .execute()
+        # =========================
+        # GET USER
+        # =========================
+        user_res = supabase.table("users") \
+            .select("email") \
+            .eq("id", data.user_id) \
+            .limit(1) \
+            .execute()
 
-    if not user_res.data:
-        raise HTTPException(404, "User not found")
+        if not user_res.data:
+            raise HTTPException(404, "User not found")
 
-    user = user_res.data[0]
+        user = user_res.data[0]
 
-    # paystack init
-    paystack = requests.post(
-        "https://api.paystack.co/transaction/initialize",
-        headers={
-            "Authorization": f"Bearer {PAYSTACK_SECRET}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "email": user["email"],
-            "amount": int(price * 100),
-            "callback_url": "http://localhost:5173/orders"
+        # =========================
+        # PAYSTACK INIT (SAFE)
+        # =========================
+        try:
+            paystack = requests.post(
+                "https://api.paystack.co/transaction/initialize",
+                headers={
+                    "Authorization": f"Bearer {PAYSTACK_SECRET}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "email": user["email"],
+                    "amount": int(price * 100),
+                    "callback_url": "https://evosdata.netlify.app/orders"
+                },
+                timeout=REQUEST_TIMEOUT
+            ).json()
+
+        except requests.exceptions.RequestException as e:
+            print("PAYSTACK ERROR:", str(e))
+            raise HTTPException(status_code=500, detail="Payment service error")
+
+        if not paystack.get("status"):
+            raise HTTPException(400, "Payment init failed")
+
+        ref = paystack["data"]["reference"]
+
+        # =========================
+        # SAVE ORDER
+        # =========================
+        supabase.table("orders").insert({
+            "user_id": data.user_id,
+            "network": data.network,
+            "bundle": data.bundle,
+            "price": price,
+            "phone_number": data.phone,
+            "paystack_ref": ref,
+            "status": "pending_payment"
+        }).execute()
+
+        return {
+            "payment_url": paystack["data"]["authorization_url"],
+            "reference": ref
         }
-    ).json()
 
-    if not paystack.get("status"):
-        raise HTTPException(400, "Payment init failed")
+    except HTTPException:
+        raise
 
-    ref = paystack["data"]["reference"]
+    except Exception as e:
+        print("CREATE ORDER ERROR:", str(e))
+        raise HTTPException(status_code=500, detail="Server error")
 
-    # save order (NOW PROPERLY LINKED TO USER)
-    supabase.table("orders").insert({
-        "user_id": data.user_id,
-        "network": data.network,
-        "bundle": data.bundle,
-        "price": price,
-        "phone_number": data.phone,
-        "paystack_ref": ref,
-        "status": "pending_payment"
-    }).execute()
-
-    return {
-        "payment_url": paystack["data"]["authorization_url"],
-        "reference": ref
-    }
 
 # =========================
-# PAYSTACK WEBHOOK
+# PAYSTACK HELPERS
 # =========================
+
 def calculate_rank(order_count: int):
     if order_count >= 50:
         return 5
@@ -225,123 +307,127 @@ def calculate_rank(order_count: int):
         return 2
     return 1
 
+
 def increment_user_orders(user_id: int):
-    user = supabase.table("users") \
-        .select("order_count") \
-        .eq("id", user_id) \
-        .execute()
+    try:
+        user = supabase.table("users") \
+            .select("order_count") \
+            .eq("id", user_id) \
+            .limit(1) \
+            .execute()
 
-    if not user.data:
-        return
+        if not user.data:
+            return
 
-    current = user.data[0]["order_count"] or 0
-    new_count = current + 1
+        current = user.data[0].get("order_count") or 0
+        new_count = current + 1
 
-    supabase.table("users") \
-        .update({
-            "order_count": new_count,
-            "rank": calculate_rank(new_count)
-        }) \
-        .eq("id", user_id) \
-        .execute()
+        supabase.table("users") \
+            .update({
+                "order_count": new_count,
+                "rank": calculate_rank(new_count)
+            }) \
+            .eq("id", user_id) \
+            .execute()
 
+    except Exception as e:
+        print("INCREMENT USER ERROR:", str(e))
+
+
+# =========================
 # PAYSTACK WEBHOOK
 # =========================
 @app.post("/webhook/paystack")
 async def paystack_webhook(request: Request):
 
-    body = await request.body()
-    signature = request.headers.get("x-paystack-signature")
-
-    if not verify_signature(body, signature, PAYSTACK_SECRET):
-        return {"status": "invalid signature"}
-
-    payload = await request.json()
-
-    if payload.get("event") != "charge.success":
-        return {"status": "ignored"}
-
-    reference = payload["data"]["reference"]
-
-    order_res = supabase.table("orders") \
-        .select("*") \
-        .eq("paystack_ref", reference) \
-        .execute()
-
-    if not order_res.data:
-        return {"status": "not found"}
-
-    order = order_res.data[0]
-
-    if order["status"] != "pending_payment":
-        return {"status": "already processed"}
-
-    # mark paid
-    supabase.table("orders") \
-        .update({"status": "paid"}) \
-        .eq("paystack_ref", reference) \
-        .execute()
-
-    # =========================
-    # 🔥 NEW: update user stats
-    # =========================
     try:
+        body = await request.body()
+        signature = request.headers.get("x-paystack-signature")
+
+        if not signature or not verify_signature(body, signature, PAYSTACK_SECRET):
+            return {"status": "invalid signature"}
+
+        payload = await request.json()
+
+        if payload.get("event") != "charge.success":
+            return {"status": "ignored"}
+
+        reference = payload["data"]["reference"]
+
+        # =========================
+        # GET ORDER
+        # =========================
+        order_res = supabase.table("orders") \
+            .select("*") \
+            .eq("paystack_ref", reference) \
+            .limit(1) \
+            .execute()
+
+        if not order_res.data:
+            return {"status": "not found"}
+
+        order = order_res.data[0]
+
+        if order["status"] != "pending_payment":
+            return {"status": "already processed"}
+
+        # =========================
+        # MARK PAID
+        # =========================
+        supabase.table("orders") \
+            .update({"status": "paid"}) \
+            .eq("paystack_ref", reference) \
+            .execute()
+
+        # =========================
+        # UPDATE USER STATS (SAFE)
+        # =========================
         if order.get("user_id"):
             increment_user_orders(order["user_id"])
-    except Exception:
-        pass
 
-    # call datamart
-    try:
-        dm = requests.post(
-            f"{DATAMART_BASE}/purchase",
-            headers={"X-API-Key": DATAMART_API_KEY},
-            json={
-                "phoneNumber": order["phone_number"],
-                "network": NETWORK_MAP[order["network"]],
-                "capacity": extract_capacity(order["bundle"]),
-                "gateway": "wallet"
-            },
-            timeout=15
-        ).json()
+        # =========================
+        # CALL DATAMART (SAFE + TIMEOUT)
+        # =========================
+        try:
+            dm_response = requests.post(
+                f"{DATAMART_BASE}/purchase",
+                headers={"X-API-Key": DATAMART_API_KEY},
+                json={
+                    "phoneNumber": order["phone_number"],
+                    "network": NETWORK_MAP.get(order["network"]),
+                    "capacity": extract_capacity(order["bundle"]),
+                    "gateway": "wallet"
+                },
+                timeout=REQUEST_TIMEOUT
+            )
 
-        dm_ref = dm.get("data", {}).get("orderReference")
+            dm = dm_response.json()
 
-        supabase.table("orders") \
-            .update({
-                "status": "processing",
-                "datamart_ref": dm_ref
-            }) \
-            .eq("paystack_ref", reference) \
-            .execute()
+            dm_ref = dm.get("data", {}).get("orderReference")
 
-        return {"status": "success"}
+            supabase.table("orders") \
+                .update({
+                    "status": "processing",
+                    "datamart_ref": dm_ref
+                }) \
+                .eq("paystack_ref", reference) \
+                .execute()
+
+            return {"status": "success"}
+
+        except Exception as e:
+            print("DATAMART ERROR:", str(e))
+
+            supabase.table("orders") \
+                .update({"status": "failed"}) \
+                .eq("paystack_ref", reference) \
+                .execute()
+
+            return {"status": "datamart failed"}
 
     except Exception as e:
-
-        supabase.table("orders") \
-            .update({"status": "failed"}) \
-            .eq("paystack_ref", reference) \
-            .execute()
-
-        return {"status": "datamart failed", "error": str(e)}
-
-
-@app.get("/users/me")
-def get_user(user_id: int):
-
-    user = supabase.table("users") \
-        .select("*") \
-        .eq("id", user_id) \
-        .execute()
-
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    return {
-        "status": "success",
-        "user": user.data[0]
-    }
+        print("PAYSTACK WEBHOOK ERROR:", str(e))
+        return {"status": "error"}
 
 
 # =========================
@@ -350,30 +436,38 @@ def get_user(user_id: int):
 @app.post("/webhook/datamart")
 async def datamart_webhook(request: Request):
 
-    body = await request.body()
-    signature = request.headers.get("X-DataMart-Signature")
+    try:
+        body = await request.body()
+        signature = request.headers.get("X-DataMart-Signature")
 
-    if not verify_signature(body, signature, DATAMART_API_KEY):
-        raise HTTPException(401, "Invalid signature")
+        if not signature or not verify_signature(body, signature, DATAMART_API_KEY):
+            raise HTTPException(401, "Invalid signature")
 
-    payload = await request.json()
+        payload = await request.json()
 
-    data = payload["data"]
-    order_ref = data["orderReference"]
-    status = data["status"]
+        data = payload.get("data", {})
+        order_ref = data.get("orderReference")
+        status = data.get("status")
 
-    final_status = (
-        "successful" if status in ["completed", "success", "delivered"]
-        else "processing" if status in ["processing", "pending"]
-        else "failed"
-    )
+        if not order_ref:
+            return {"received": True}
 
-    supabase.table("orders") \
-        .update({"status": final_status}) \
-        .eq("datamart_ref", order_ref) \
-        .execute()
+        final_status = (
+            "successful" if status in ["completed", "success", "delivered"]
+            else "processing" if status in ["processing", "pending"]
+            else "failed"
+        )
 
-    return {"received": True}
+        supabase.table("orders") \
+            .update({"status": final_status}) \
+            .eq("datamart_ref", order_ref) \
+            .execute()
+
+        return {"received": True}
+
+    except Exception as e:
+        print("DATAMART WEBHOOK ERROR:", str(e))
+        return {"received": False}
 
 
 # =========================
@@ -382,39 +476,73 @@ async def datamart_webhook(request: Request):
 @app.post("/orders/sync/{reference}")
 def sync_order(reference: str):
 
-    order = supabase.table("orders") \
-        .select("*") \
-        .eq("paystack_ref", reference) \
-        .execute().data
+    try:
+        order_res = supabase.table("orders") \
+            .select("*") \
+            .eq("paystack_ref", reference) \
+            .limit(1) \
+            .execute()
 
-    if not order:
-        raise HTTPException(404, "Not found")
+        if not order_res.data:
+            raise HTTPException(404, "Not found")
 
-    order = order[0]
+        order = order_res.data[0]
 
-    if not order.get("datamart_ref"):
-        return {"status": "not processed yet"}
+        if not order.get("datamart_ref"):
+            return {"status": "not processed yet"}
 
-    dm = requests.get(
-        f"{DATAMART_BASE}/order-status/{order['datamart_ref']}",
-        headers={"X-API-Key": DATAMART_API_KEY}
-    ).json()
+        dm = requests.get(
+            f"{DATAMART_BASE}/order-status/{order['datamart_ref']}",
+            headers={"X-API-Key": DATAMART_API_KEY},
+            timeout=REQUEST_TIMEOUT
+        ).json()
 
-    status = dm["data"]["orderStatus"]
+        status = dm.get("data", {}).get("orderStatus")
 
-    final = "successful" if status == "completed" else "processing"
+        final = "successful" if status == "completed" else "processing"
 
-    supabase.table("orders") \
-        .update({"status": final}) \
-        .eq("paystack_ref", reference) \
-        .execute()
+        supabase.table("orders") \
+            .update({"status": final}) \
+            .eq("paystack_ref", reference) \
+            .execute()
 
-    return {"status": final}
+        return {"status": final}
+
+    except Exception as e:
+        print("SYNC ERROR:", str(e))
+        raise HTTPException(500, "Sync failed")
 
 
 # =========================
-# AUTH (SIMPLE)
+# USER PROFILE
 # =========================
+@app.get("/users/me")
+def get_user(user_id: int):
+
+    try:
+        user = supabase.table("users") \
+            .select("*") \
+            .eq("id", user_id) \
+            .limit(1) \
+            .execute()
+
+        if not user.data:
+            raise HTTPException(404, "User not found")
+
+        return {
+            "status": "success",
+            "user": user.data[0]
+        }
+
+    except Exception as e:
+        print("GET USER ERROR:", str(e))
+        raise HTTPException(500, "Failed to fetch user")
+
+
+# =========================
+# AUTH (PRODUCTION SAFE)
+# =========================
+
 
 # =========================
 # REGISTER ROUTE
@@ -423,20 +551,20 @@ def sync_order(reference: str):
 def register(data: RegisterRequest):
 
     try:
-        import re  # 🔥 ensure available here
+        import re
 
         # =========================
         # NORMALIZE INPUT
         # =========================
-        username = data.username.strip().lower()
-        email = data.email.strip().lower()
-        phone = re.sub(r"\D", "", data.phone)
+        username = (data.username or "").strip().lower()
+        email = (data.email or "").strip().lower()
+        phone = re.sub(r"\D", "", data.phone or "")
 
         if len(phone) < 10:
             raise HTTPException(status_code=400, detail="Invalid phone number")
 
         # =========================
-        # CHECK USERNAME
+        # CHECK USER EXISTS (FAST)
         # =========================
         existing_user = supabase.table("users") \
             .select("id") \
@@ -447,9 +575,6 @@ def register(data: RegisterRequest):
         if existing_user.data:
             return {"status": "username_taken"}
 
-        # =========================
-        # CHECK EMAIL
-        # =========================
         existing_email = supabase.table("users") \
             .select("id") \
             .eq("email", email) \
@@ -460,7 +585,7 @@ def register(data: RegisterRequest):
             return {"status": "email_taken"}
 
         # =========================
-        # HASH PASSWORD (SAFE GUARD)
+        # HASH PASSWORD (SAFE)
         # =========================
         try:
             hashed_password = pwd_context.hash(data.password)
@@ -505,6 +630,7 @@ def register(data: RegisterRequest):
         print("REGISTER ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Server error")
 
+
 # =========================
 # LOGIN ROUTE
 # =========================
@@ -512,19 +638,16 @@ def register(data: RegisterRequest):
 def login(data: LoginRequest):
 
     try:
-        # =========================
-        # SAFE INPUT HANDLING
-        # =========================
         username = (data.username or "").strip().lower()
 
         if not username:
             raise HTTPException(status_code=400, detail="Username required")
 
         # =========================
-        # FIND USER (SAFE QUERY)
+        # FIND USER (OPTIMIZED)
         # =========================
         user_res = supabase.table("users") \
-            .select("*") \
+            .select("username,email,full_name,password,referral_code,rank") \
             .or_(f"username.eq.{username},email.eq.{username}") \
             .limit(1) \
             .execute()
@@ -535,23 +658,23 @@ def login(data: LoginRequest):
         user = user_res.data[0]
 
         # =========================
-        # VERIFY PASSWORD (SAFE GUARD)
+        # PASSWORD CHECK (SAFE)
         # =========================
+        stored_password = user.get("password")
+
+        if not stored_password:
+            return {"status": "invalid_credentials"}
+
         try:
-            stored_password = user.get("password")
-
-            if not stored_password:
-                return {"status": "invalid_credentials"}
-
             if not pwd_context.verify(data.password, stored_password):
                 return {"status": "invalid_credentials"}
 
         except Exception as e:
             print("PASSWORD VERIFY ERROR:", str(e))
-            raise HTTPException(status_code=500, detail="Auth error")
+            return {"status": "invalid_credentials"}
 
         # =========================
-        # SUCCESS RESPONSE
+        # SUCCESS
         # =========================
         return {
             "status": "ok",
@@ -570,4 +693,3 @@ def login(data: LoginRequest):
     except Exception as e:
         print("LOGIN ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Server error")
-        
