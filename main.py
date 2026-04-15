@@ -21,28 +21,20 @@ load_dotenv()
 app = FastAPI()
 
 # =========================
-# PRODUCTION CORS (SECURE)
+# PRODUCTION CORS (STRICT + CLEAN)
 # =========================
+
 ALLOWED_ORIGINS = [
     "https://evosdata.netlify.app"
 ]
-
-# Optional: allow localhost ONLY if explicitly needed (remove in final lock)
-if os.getenv("ENVIRONMENT") != "production":
-    ALLOWED_ORIGINS.append("http://localhost:5173")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "Accept"
-    ],
+    allow_methods=["*"],   # MUST be * for preflight (OPTIONS)
+    allow_headers=["*"],   # REQUIRED for Authorization + JSON requests
 )
-
 # =========================
 # ENV
 # =========================
