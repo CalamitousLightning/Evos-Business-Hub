@@ -1,37 +1,33 @@
-from fastapi import FastAPI, Request, HTTPException, Query
-import requests
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
-from supabase import create_client, Client
-from pydantic import BaseModel
-import hmac
-import hashlib
-from fastapi.middleware.cors import CORSMiddleware
-from jose import jwt
-from passlib.hash import bcrypt
-from datetime import datetime, timedelta
-from passlib.context import CryptContext
-from pydantic import BaseModel
-from pydantic import BaseModel, Field
-from fastapi import HTTPException
-
 
 load_dotenv()
 
-app = FastAPI()  # ✅ MUST COME FIRST
+app = FastAPI()
 
 # =========================
-# CORS
+# PRODUCTION CORS (SECURE)
 # =========================
+ALLOWED_ORIGINS = [
+    "https://evosdata.netlify.app"
+]
+
+# Optional: allow localhost ONLY if explicitly needed (remove in final lock)
+if os.getenv("ENVIRONMENT") != "production":
+    ALLOWED_ORIGINS.append("http://localhost:5173")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://evosdata.netlify.app",
-        "http://localhost:5173"
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept"
+    ],
 )
 
 # =========================
