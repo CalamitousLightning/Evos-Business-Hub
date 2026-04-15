@@ -4,6 +4,7 @@ import { loginUser } from "../api";
 export default function Login({ setUser, setPage }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,22 +24,32 @@ export default function Login({ setUser, setPage }) {
         password: password.trim(),
       });
 
-      const data = res.data;
+      const data = res?.data;
 
       console.log("LOGIN RESPONSE:", data);
 
-      if (data.status !== "ok") {
-        setError("Invalid username/email or password");
+      // backend valid but failed login
+      if (!data || data.status !== "ok") {
+        setError("Invalid username or password");
         return;
       }
 
-      // ✅ SAVE USER
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("username", data.user.username);
-      localStorage.setItem("email", data.user.email);
+      const user = data.user;
 
-      setUser(data.user);
-      setPage("shop");
+      // =========================
+      // SAFE STORAGE
+      // =========================
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("username", user.username || "");
+      localStorage.setItem("email", user.email || "");
+
+      // update global state
+      setUser(user);
+
+      // =========================
+      // ROUTE TO DASHBOARD (NOT SHOP)
+      // =========================
+      setPage("dashboard");
 
     } catch (err) {
       console.log("LOGIN ERROR:", err);
@@ -46,7 +57,7 @@ export default function Login({ setUser, setPage }) {
       setError(
         err?.response?.data?.detail ||
         err?.response?.data?.status ||
-        "Server error. Please try again."
+        "Server error. Try again."
       );
     } finally {
       setLoading(false);
@@ -89,7 +100,10 @@ export default function Login({ setUser, setPage }) {
 
         <p style={styles.footer}>
           Don’t have an account?{" "}
-          <span style={styles.link} onClick={() => setPage("register")}>
+          <span
+            style={styles.link}
+            onClick={() => setPage("register")}
+          >
             Register
           </span>
         </p>
@@ -104,8 +118,9 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "#0f172a", // dark navy
+    background: "#0f172a",
   },
+
   card: {
     width: "100%",
     maxWidth: "380px",
@@ -117,37 +132,39 @@ const styles = {
     flexDirection: "column",
     gap: "14px",
   },
+
   title: {
     textAlign: "center",
-    marginBottom: "10px",
     color: "#111",
   },
+
   input: {
     padding: "12px",
     borderRadius: "8px",
     border: "1px solid #ddd",
     outline: "none",
-    fontSize: "14px",
   },
+
   button: {
     padding: "12px",
     borderRadius: "8px",
     border: "none",
-    background: "#2563eb", // blue
+    background: "#2563eb",
     color: "white",
     fontWeight: "bold",
-    transition: "0.2s",
   },
+
   error: {
     color: "#dc2626",
     fontSize: "13px",
     textAlign: "center",
   },
+
   footer: {
     textAlign: "center",
     fontSize: "13px",
-    marginTop: "10px",
   },
+
   link: {
     color: "#2563eb",
     cursor: "pointer",
