@@ -13,6 +13,8 @@ export default function Shop() {
   const [error, setError] = useState("");
 
   const email = localStorage.getItem("email");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user_id = user?.id;
 
   // ======================
   // LOAD PRICES
@@ -21,16 +23,29 @@ export default function Shop() {
     const loadPrices = async () => {
       try {
         const res = await API.get("/prices");
-        setPrices(res.data || []);
+
+        // SAFE ARRAY HANDLING
+        if (Array.isArray(res.data)) {
+          setPrices(res.data);
+        } else if (Array.isArray(res.data?.prices)) {
+          setPrices(res.data.prices);
+        } else {
+          setPrices([]);
+        }
+
       } catch (err) {
         console.log("Failed to load prices");
+        setPrices([]);
       }
     };
 
     loadPrices();
   }, []);
 
-  const bundles = prices.filter((p) => p.network === network);
+  // SAFE FILTER
+  const bundles = Array.isArray(prices)
+    ? prices.filter((p) => p.network === network)
+    : [];
 
   // ======================
   // BUY ORDER
@@ -49,16 +64,20 @@ export default function Shop() {
         return;
       }
 
+      if (!user_id) {
+        setError("User session missing. Login again.");
+        return;
+      }
+
       setLoading(true);
 
       const res = await API.post("/orders/create", {
+        user_id,
         network,
         bundle,
         phone,
-        email,
       });
 
-      // slight UX delay (feels premium)
       setTimeout(() => {
         window.location.href = res.data.payment_url;
       }, 600);
@@ -79,9 +98,7 @@ export default function Shop() {
 
       <div style={styles.wrapper}>
 
-        {/* =======================
-            STEP 1 - NETWORK
-        ======================= */}
+        {/* STEP 1 */}
         {step === 1 && (
           <div style={styles.box}>
             <h3 style={styles.step}>Select Network</h3>
@@ -105,9 +122,7 @@ export default function Shop() {
           </div>
         )}
 
-        {/* =======================
-            STEP 2 - BUNDLES
-        ======================= */}
+        {/* STEP 2 */}
         {step === 2 && (
           <div style={styles.box}>
             <button style={styles.back} onClick={() => setStep(1)}>
@@ -141,9 +156,7 @@ export default function Shop() {
           </div>
         )}
 
-        {/* =======================
-            STEP 3 - CHECKOUT
-        ======================= */}
+        {/* STEP 3 */}
         {step === 3 && (
           <div style={styles.box}>
             <button style={styles.back} onClick={() => setStep(2)}>
@@ -188,9 +201,7 @@ export default function Shop() {
   );
 }
 
-/* =====================
-   STYLES (POLISHED)
-===================== */
+/* ===================== */
 const styles = {
   container: {
     padding: "20px",
