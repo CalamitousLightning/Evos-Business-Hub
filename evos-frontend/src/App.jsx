@@ -67,61 +67,27 @@ export default function App() {
     switch (page) {
       case "home":
         return <Home setPage={setPage} theme={theme} />;
-
       case "shop":
         return <Shop user={user} theme={theme} />;
-
       case "orders":
         return <Orders user={user} theme={theme} />;
-
       case "login":
-        return (
-          <Login
-            setUser={setUser}
-            setPage={setPage}
-            theme={theme}
-          />
-        );
-
+        return <Login setUser={setUser} setPage={setPage} theme={theme} />;
       case "register":
         return <Register setPage={setPage} theme={theme} />;
-
       case "dashboard":
-        return (
-          <Dashboard
-            user={user}
-            setPage={setPage}
-            theme={theme}
-          />
-        );
-
+        return <Dashboard user={user} setPage={setPage} theme={theme} />;
       case "success":
         return <Success theme={theme} />;
-
       default:
         return <Home setPage={setPage} theme={theme} />;
     }
   };
 
-  const isDark = theme === "dark";
-
   return (
-    <div
-      style={{
-        ...styles.app,
-        background: isDark ? "#0b1220" : "#f9fafb",
-        color: isDark ? "#e5e7eb" : "#111827",
-      }}
-    >
+    <div style={getAppStyle(theme)}>
       {/* NAVBAR */}
-      <nav
-        style={{
-          ...styles.nav,
-          background: isDark
-            ? "rgba(15, 23, 42, 0.9)"
-            : "rgba(255,255,255,0.9)",
-        }}
-      >
+      <nav style={getNavStyle(theme)}>
         <div style={styles.logo} onClick={() => navigate("home")}>
           EVOS HUB
         </div>
@@ -139,12 +105,7 @@ export default function App() {
 
       {/* DROPDOWN */}
       {menuOpen && (
-        <div
-          style={{
-            ...styles.dropdown,
-            background: isDark ? "#111827" : "#ffffff",
-          }}
-        >
+        <div style={getDropdownStyle(theme)}>
           <button onClick={() => navigate("shop")} style={styles.menuBtn}>
             Buy Data
           </button>
@@ -182,6 +143,7 @@ export default function App() {
     </div>
   );
 }
+
 
 /* =======================
   STYLES (UPGRADED UI SYSTEM)
