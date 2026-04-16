@@ -46,48 +46,48 @@ export default function Dashboard({ setPage, user }) {
 
   const isDark = dark;
 
+  const bg = isDark ? "#0f172a" : "#f8fafc";
   const cardBg = isDark ? "#1e293b" : "#ffffff";
-  const textSoft = isDark ? "#94a3b8" : "#64748b";
+  const text = isDark ? "#e5e7eb" : "#111827";
+  const soft = isDark ? "#94a3b8" : "#64748b";
+  const header = isDark ? "#111827" : "#0ea5e9";
 
   return (
     <div
       style={{
         ...styles.container,
-        background: isDark ? "#0b1220" : "#f8fafc",
-        color: isDark ? "#e5e7eb" : "#111827",
+        background: bg,
+        color: text,
       }}
     >
-      {/* TOP HEADER */}
+      {/* HEADER */}
       <div
         style={{
           ...styles.header,
-          background: isDark ? "#111827" : "#0ea5e9",
+          background: header,
         }}
       >
         <div style={styles.brand}>Dashboard</div>
 
-        <div style={styles.headerRight}>
-         
-
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            style={styles.iconBtn}
-          >
-            ☰
-          </button>
-        </div>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          style={styles.menuBtn}
+        >
+          ☰
+        </button>
       </div>
 
       {/* SIDEBAR */}
       <div
         style={{
           ...styles.sidebar,
-          background: isDark ? "#111827" : "#0ea5e9",
+          background: header,
           left: menuOpen ? "0" : "-280px",
         }}
       >
-        <div style={styles.sideTop}>
-          <div style={styles.sideLogo}>Menu</div>
+        <div style={styles.sideTitle}>EVOS HUB</div>
+        <div style={styles.sideSmall}>
+          Powered by Evos Technologies
         </div>
 
         <div style={styles.navWrap}>
@@ -110,16 +110,16 @@ export default function Dashboard({ setPage, user }) {
           >
             📡 Orders
           </button>
-          
-           <button
-            onClick={() => setDark(!dark)}
-            style={styles.iconBtn}
-          >
-            {dark ? "☀️" : "🌙"}
-          </button>
 
           <button
             style={styles.navBtn}
+            onClick={() => setDark(!dark)}
+          >
+            {dark ? "☀️ Light Mode" : "🌙 Dark Mode"}
+          </button>
+
+          <button
+            style={styles.logoutBtn}
             onClick={logout}
           >
             🚪 Logout
@@ -137,63 +137,47 @@ export default function Dashboard({ setPage, user }) {
 
       {/* MAIN */}
       <div style={styles.main}>
-        {/* TITLE ROW */}
-        <div style={styles.titleRow}>
+        {/* WELCOME */}
+        <div style={styles.hero}>
           <div>
-            <h2 style={styles.title}> 
-            <p
-              style={{
-                ...styles.subtitle,
-                color: textSoft,
-              }}
-            >
-              Welcome back,{" "}
+            <h1 style={styles.heroTitle}>Welcome back</h1>
+            <p style={{ ...styles.heroText, color: soft }}>
               <strong>
                 {user?.username || user?.email}
               </strong>
             </p>
-            </h2>
           </div>
-
-          <button
-            onClick={() => setDark(!dark)}
-            style={{
-              ...styles.smallThemeBtn,
-              background: isDark ? "#1e293b" : "#ffffff",
-              color: isDark ? "#ffffff" : "#111827",
-            }}
-          >
-            {dark ? "☀️" : "🌙"}
-          </button>
         </div>
 
         {/* STATS */}
         <div style={styles.statsGrid}>
           <div style={{ ...styles.card, background: cardBg }}>
-            <h3>📅 Orders Today</h3>
-            <h1>{stats.today}</h1>
+            <p style={{ color: soft }}>📅 Orders Today</p>
+            <h2 style={styles.bigNumber}>{stats.today}</h2>
           </div>
 
           <div style={{ ...styles.card, background: cardBg }}>
-            <h3>✅ Successful</h3>
-            <h1>{stats.success}</h1>
+            <p style={{ color: soft }}>✅ Successful</p>
+            <h2 style={styles.bigNumber}>{stats.success}</h2>
           </div>
 
           <div style={{ ...styles.card, background: cardBg }}>
-            <h3>⏳ Pending</h3>
-            <h1>{stats.pending}</h1>
+            <p style={{ color: soft }}>⏳ Pending</p>
+            <h2 style={styles.bigNumber}>{stats.pending}</h2>
           </div>
         </div>
 
         {/* ACTIONS */}
+        <div style={styles.sectionTitle}>Quick Actions</div>
+
         <div style={styles.grid}>
           <div
             style={{ ...styles.card, background: cardBg }}
             onClick={() => setPage("shop")}
           >
             <h3>Buy Data</h3>
-            <p style={{ color: textSoft }}>
-              Purchase MTN, Telecel, AirtelTigo bundles
+            <p style={{ color: soft }}>
+              Purchase MTN, Telecel & AirtelTigo bundles
             </p>
           </div>
 
@@ -202,14 +186,20 @@ export default function Dashboard({ setPage, user }) {
             onClick={() => setPage("orders")}
           >
             <h3>Track Orders</h3>
-            <p style={{ color: textSoft }}>
-              View all transactions and delivery status
+            <p style={{ color: soft }}>
+              Monitor transactions and delivery
             </p>
           </div>
         </div>
 
         {/* TRACKER */}
-        <div style={{ ...styles.card, background: cardBg }}>
+        <div
+          style={{
+            ...styles.card,
+            background: cardBg,
+            marginTop: "16px",
+          }}
+        >
           <h3 style={{ marginBottom: "12px" }}>
             Live Delivery Tracker
           </h3>
@@ -217,12 +207,7 @@ export default function Dashboard({ setPage, user }) {
         </div>
 
         {/* FOOTER */}
-        <div
-          style={{
-            ...styles.footer,
-            color: textSoft,
-          }}
-        >
+        <div style={{ ...styles.footer, color: soft }}>
           © Copyright 2026, Evos Technologies
         </div>
       </div>
@@ -237,12 +222,11 @@ export default function Dashboard({ setPage, user }) {
 const styles = {
   container: {
     minHeight: "100vh",
-    position: "relative",
     transition: "0.3s ease",
   },
 
   header: {
-    height: "72px",
+    height: "70px",
     padding: "0 18px",
     display: "flex",
     alignItems: "center",
@@ -250,29 +234,23 @@ const styles = {
     position: "sticky",
     top: 0,
     zIndex: 1000,
-    boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+    boxShadow: "0 10px 20px rgba(0,0,0,0.08)",
   },
 
   brand: {
     color: "white",
     fontWeight: "800",
-    fontSize: "20px",
-    letterSpacing: "0.5px",
+    fontSize: "22px",
   },
 
-  headerRight: {
-    display: "flex",
-    gap: "10px",
-  },
-
-  iconBtn: {
+  menuBtn: {
     width: "44px",
     height: "44px",
     border: "none",
     borderRadius: "14px",
     background: "rgba(255,255,255,0.18)",
     color: "white",
-    fontSize: "18px",
+    fontSize: "20px",
     cursor: "pointer",
   },
 
@@ -280,21 +258,25 @@ const styles = {
     position: "fixed",
     top: 0,
     left: "-280px",
-    width: "250px",
+    width: "260px",
     height: "100vh",
     padding: "22px",
-    zIndex: 1100,
+    zIndex: 1200,
     transition: "0.3s ease",
+    boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
   },
 
-  sideTop: {
-    marginBottom: "25px",
-  },
-
-  sideLogo: {
+  sideTitle: {
     color: "white",
-    fontWeight: "800",
     fontSize: "24px",
+    fontWeight: "800",
+    marginBottom: "6px",
+  },
+
+  sideSmall: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: "13px",
+    marginBottom: "24px",
   },
 
   navWrap: {
@@ -307,7 +289,18 @@ const styles = {
     padding: "13px",
     border: "none",
     borderRadius: "14px",
-    background: "rgba(255,255,255,0.18)",
+    background: "rgba(255,255,255,0.16)",
+    color: "white",
+    fontWeight: "700",
+    textAlign: "left",
+    cursor: "pointer",
+  },
+
+  logoutBtn: {
+    padding: "13px",
+    border: "none",
+    borderRadius: "14px",
+    background: "#ef4444",
     color: "white",
     fontWeight: "700",
     textAlign: "left",
@@ -318,42 +311,34 @@ const styles = {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.45)",
-    zIndex: 1050,
+    zIndex: 1100,
   },
 
   main: {
     padding: "18px",
-    maxWidth: "700px",
+    maxWidth: "760px",
     margin: "0 auto",
   },
 
-  titleRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: "12px",
+  hero: {
     marginBottom: "18px",
   },
 
-  title: {
-    fontSize: "30px",
+  heroTitle: {
+    fontSize: "28px",
     fontWeight: "800",
-    marginBottom: "6px",
+    marginBottom: "4px",
   },
 
-  subtitle: {
+  heroText: {
     fontSize: "15px",
-    lineHeight: "1.4",
   },
 
-  smallThemeBtn: {
-    border: "none",
-    width: "46px",
-    height: "46px",
-    borderRadius: "14px",
-    cursor: "pointer",
-    fontSize: "18px",
-    boxShadow: "0 8px 20px rgba(0,0,0,0.06)",
+  sectionTitle: {
+    fontSize: "15px",
+    fontWeight: "700",
+    marginBottom: "12px",
+    marginTop: "6px",
   },
 
   statsGrid: {
@@ -367,7 +352,6 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "1fr",
     gap: "14px",
-    marginBottom: "18px",
   },
 
   card: {
@@ -375,13 +359,18 @@ const styles = {
     borderRadius: "18px",
     boxShadow: "0 10px 24px rgba(0,0,0,0.06)",
     cursor: "pointer",
-    transition: "0.2s ease",
+  },
+
+  bigNumber: {
+    fontSize: "34px",
+    fontWeight: "800",
+    marginTop: "8px",
   },
 
   footer: {
     textAlign: "center",
     fontSize: "13px",
     marginTop: "24px",
-    paddingBottom: "20px",
+    paddingBottom: "24px",
   },
 };
