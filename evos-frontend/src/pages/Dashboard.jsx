@@ -5,9 +5,9 @@ export default function Dashboard({ setPage, user }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [stats] = useState({
-    today: 12,
-    success: 9,
-    pending: 3,
+    today: 0,
+    success: 0,
+    pending: 0,
   });
 
   // AUTH GUARD
