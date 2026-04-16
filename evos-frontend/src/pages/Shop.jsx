@@ -24,11 +24,11 @@ export default function Shop() {
       try {
         const res = await API.get("/prices");
 
-        // SAFE ARRAY HANDLING
-        if (Array.isArray(res.data)) {
-          setPrices(res.data);
-        } else if (Array.isArray(res.data?.prices)) {
-          setPrices(res.data.prices);
+        // ✅ YOUR BACKEND RETURNS {status, data}
+        const data = res.data?.data;
+
+        if (Array.isArray(data)) {
+          setPrices(data);
         } else {
           setPrices([]);
         }
@@ -54,13 +54,13 @@ export default function Shop() {
     try {
       setError("");
 
-      if (!phone) {
-        setError("Enter phone number");
+      if (!network || !bundle) {
+        setError("Select network and bundle");
         return;
       }
 
-      if (!email) {
-        setError("Please login first");
+      if (!phone) {
+        setError("Enter phone number");
         return;
       }
 
@@ -78,9 +78,15 @@ export default function Shop() {
         phone,
       });
 
+      if (!res.data?.payment_url) {
+        setError("Payment link not received");
+        setLoading(false);
+        return;
+      }
+
       setTimeout(() => {
         window.location.href = res.data.payment_url;
-      }, 600);
+      }, 500);
 
     } catch (err) {
       setLoading(false);
@@ -196,6 +202,7 @@ export default function Shop() {
             </button>
           </div>
         )}
+
       </div>
     </div>
   );
