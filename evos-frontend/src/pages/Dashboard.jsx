@@ -64,15 +64,10 @@ export default function Dashboard({ setPage, user }) {
           background: isDark ? "#111827" : "#0ea5e9",
         }}
       >
-        <div style={styles.brand}>EVOS HUB</div>
+        <div style={styles.brand}>Dashboard</div>
 
         <div style={styles.headerRight}>
-          <button
-            onClick={() => setDark(!dark)}
-            style={styles.iconBtn}
-          >
-            {dark ? "☀️" : "🌙"}
-          </button>
+         
 
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -115,6 +110,13 @@ export default function Dashboard({ setPage, user }) {
           >
             📡 Orders
           </button>
+          
+           <button
+            onClick={() => setDark(!dark)}
+            style={styles.iconBtn}
+          >
+            {dark ? "☀️" : "🌙"}
+          </button>
 
           <button
             style={styles.navBtn}
@@ -138,8 +140,7 @@ export default function Dashboard({ setPage, user }) {
         {/* TITLE ROW */}
         <div style={styles.titleRow}>
           <div>
-            <h2 style={styles.title}>Dashboard</h2>
-
+            <h2 style={styles.title}> 
             <p
               style={{
                 ...styles.subtitle,
@@ -151,6 +152,7 @@ export default function Dashboard({ setPage, user }) {
                 {user?.username || user?.email}
               </strong>
             </p>
+            </h2>
           </div>
 
           <button
