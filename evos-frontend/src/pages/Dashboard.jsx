@@ -4,7 +4,6 @@ export default function Dashboard({ setPage, user }) {
   const [dark, setDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // demo stats
   const [stats] = useState({
     today: 12,
     success: 9,
@@ -13,9 +12,7 @@ export default function Dashboard({ setPage, user }) {
 
   // AUTH GUARD
   useEffect(() => {
-    if (!user) {
-      setPage("login");
-    }
+    if (!user) setPage("login");
   }, [user, setPage]);
 
   // TRACKER SCRIPT
@@ -49,6 +46,9 @@ export default function Dashboard({ setPage, user }) {
 
   const isDark = dark;
 
+  const cardBg = isDark ? "#1e293b" : "#ffffff";
+  const textSoft = isDark ? "#94a3b8" : "#64748b";
+
   return (
     <div
       style={{
@@ -60,13 +60,13 @@ export default function Dashboard({ setPage, user }) {
       {/* TOP HEADER */}
       <div
         style={{
-          ...styles.mobileHeader,
+          ...styles.header,
           background: isDark ? "#111827" : "#0ea5e9",
         }}
       >
-        <div style={styles.headerBrand}>EVOS HUB</div>
+        <div style={styles.brand}>EVOS HUB</div>
 
-        <div style={styles.headerActions}>
+        <div style={styles.headerRight}>
           <button
             onClick={() => setDark(!dark)}
             style={styles.iconBtn}
@@ -83,7 +83,7 @@ export default function Dashboard({ setPage, user }) {
         </div>
       </div>
 
-      {/* SIDEBAR / DRAWER */}
+      {/* SIDEBAR */}
       <div
         style={{
           ...styles.sidebar,
@@ -91,14 +91,8 @@ export default function Dashboard({ setPage, user }) {
           left: menuOpen ? "0" : "-280px",
         }}
       >
-        <div style={styles.logoBox}>
-          <div style={styles.logo}>EVOS</div>
-          <small style={{ color: "white" }}>
-            Powered by Evos Technologies
-          </small>
-          <small style={{ color: "white", opacity: 0.8 }}>
-            (Evosgpt, SOE)
-          </small>
+        <div style={styles.sideTop}>
+          <div style={styles.sideLogo}>Menu</div>
         </div>
 
         <div style={styles.navWrap}>
@@ -141,45 +135,49 @@ export default function Dashboard({ setPage, user }) {
 
       {/* MAIN */}
       <div style={styles.main}>
-        <h2 style={styles.title}>Dashboard</h2>
+        {/* TITLE ROW */}
+        <div style={styles.titleRow}>
+          <div>
+            <h2 style={styles.title}>Dashboard</h2>
 
-        <p
-          style={{
-            ...styles.subtitle,
-            color: isDark ? "#94a3b8" : "#64748b",
-          }}
-        >
-          Welcome back, {user?.username || user?.email}
-        </p>
+            <p
+              style={{
+                ...styles.subtitle,
+                color: textSoft,
+              }}
+            >
+              Welcome back,{" "}
+              <strong>
+                {user?.username || user?.email}
+              </strong>
+            </p>
+          </div>
+
+          <button
+            onClick={() => setDark(!dark)}
+            style={{
+              ...styles.smallThemeBtn,
+              background: isDark ? "#1e293b" : "#ffffff",
+              color: isDark ? "#ffffff" : "#111827",
+            }}
+          >
+            {dark ? "☀️" : "🌙"}
+          </button>
+        </div>
 
         {/* STATS */}
         <div style={styles.statsGrid}>
-          <div
-            style={{
-              ...styles.card,
-              background: isDark ? "#1e293b" : "#ffffff",
-            }}
-          >
+          <div style={{ ...styles.card, background: cardBg }}>
             <h3>📅 Orders Today</h3>
             <h1>{stats.today}</h1>
           </div>
 
-          <div
-            style={{
-              ...styles.card,
-              background: isDark ? "#1e293b" : "#ffffff",
-            }}
-          >
+          <div style={{ ...styles.card, background: cardBg }}>
             <h3>✅ Successful</h3>
             <h1>{stats.success}</h1>
           </div>
 
-          <div
-            style={{
-              ...styles.card,
-              background: isDark ? "#1e293b" : "#ffffff",
-            }}
-          >
+          <div style={{ ...styles.card, background: cardBg }}>
             <h3>⏳ Pending</h3>
             <h1>{stats.pending}</h1>
           </div>
@@ -188,40 +186,42 @@ export default function Dashboard({ setPage, user }) {
         {/* ACTIONS */}
         <div style={styles.grid}>
           <div
-            style={{
-              ...styles.card,
-              background: isDark ? "#1e293b" : "#ffffff",
-            }}
+            style={{ ...styles.card, background: cardBg }}
             onClick={() => setPage("shop")}
           >
             <h3>Buy Data</h3>
-            <p>Purchase MTN, Telecel, AirtelTigo bundles</p>
+            <p style={{ color: textSoft }}>
+              Purchase MTN, Telecel, AirtelTigo bundles
+            </p>
           </div>
 
           <div
-            style={{
-              ...styles.card,
-              background: isDark ? "#1e293b" : "#ffffff",
-            }}
+            style={{ ...styles.card, background: cardBg }}
             onClick={() => setPage("orders")}
           >
             <h3>Track Orders</h3>
-            <p>View all transactions and delivery status</p>
+            <p style={{ color: textSoft }}>
+              View all transactions and delivery status
+            </p>
           </div>
         </div>
 
         {/* TRACKER */}
-        <div
-          style={{
-            ...styles.card,
-            background: isDark ? "#1e293b" : "#ffffff",
-          }}
-        >
+        <div style={{ ...styles.card, background: cardBg }}>
           <h3 style={{ marginBottom: "12px" }}>
             Live Delivery Tracker
           </h3>
-
           <div id="tracker"></div>
+        </div>
+
+        {/* FOOTER */}
+        <div
+          style={{
+            ...styles.footer,
+            color: textSoft,
+          }}
+        >
+          © Copyright 2026, Evos Technologies
         </div>
       </div>
     </div>
@@ -236,10 +236,11 @@ const styles = {
   container: {
     minHeight: "100vh",
     position: "relative",
+    transition: "0.3s ease",
   },
 
-  mobileHeader: {
-    height: "70px",
+  header: {
+    height: "72px",
     padding: "0 18px",
     display: "flex",
     alignItems: "center",
@@ -247,27 +248,29 @@ const styles = {
     position: "sticky",
     top: 0,
     zIndex: 1000,
+    boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
   },
 
-  headerBrand: {
+  brand: {
     color: "white",
-    fontSize: "28px",
     fontWeight: "800",
+    fontSize: "20px",
+    letterSpacing: "0.5px",
   },
 
-  headerActions: {
+  headerRight: {
     display: "flex",
     gap: "10px",
   },
 
   iconBtn: {
-    width: "46px",
-    height: "46px",
+    width: "44px",
+    height: "44px",
     border: "none",
     borderRadius: "14px",
     background: "rgba(255,255,255,0.18)",
     color: "white",
-    fontSize: "20px",
+    fontSize: "18px",
     cursor: "pointer",
   },
 
@@ -275,29 +278,21 @@ const styles = {
     position: "fixed",
     top: 0,
     left: "-280px",
-    width: "260px",
+    width: "250px",
     height: "100vh",
     padding: "22px",
     zIndex: 1100,
     transition: "0.3s ease",
   },
 
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.45)",
-    zIndex: 1050,
-  },
-
-  logoBox: {
+  sideTop: {
     marginBottom: "25px",
   },
 
-  logo: {
-    fontSize: "28px",
-    fontWeight: "800",
+  sideLogo: {
     color: "white",
-    marginBottom: "8px",
+    fontWeight: "800",
+    fontSize: "24px",
   },
 
   navWrap: {
@@ -313,22 +308,50 @@ const styles = {
     background: "rgba(255,255,255,0.18)",
     color: "white",
     fontWeight: "700",
-    cursor: "pointer",
     textAlign: "left",
+    cursor: "pointer",
+  },
+
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.45)",
+    zIndex: 1050,
   },
 
   main: {
     padding: "18px",
+    maxWidth: "700px",
+    margin: "0 auto",
+  },
+
+  titleRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "12px",
+    marginBottom: "18px",
   },
 
   title: {
-    fontSize: "28px",
+    fontSize: "30px",
     fontWeight: "800",
     marginBottom: "6px",
   },
 
   subtitle: {
-    marginBottom: "18px",
+    fontSize: "15px",
+    lineHeight: "1.4",
+  },
+
+  smallThemeBtn: {
+    border: "none",
+    width: "46px",
+    height: "46px",
+    borderRadius: "14px",
+    cursor: "pointer",
+    fontSize: "18px",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.06)",
   },
 
   statsGrid: {
@@ -348,7 +371,15 @@ const styles = {
   card: {
     padding: "18px",
     borderRadius: "18px",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+    boxShadow: "0 10px 24px rgba(0,0,0,0.06)",
     cursor: "pointer",
+    transition: "0.2s ease",
+  },
+
+  footer: {
+    textAlign: "center",
+    fontSize: "13px",
+    marginTop: "24px",
+    paddingBottom: "20px",
   },
 };
