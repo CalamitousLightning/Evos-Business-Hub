@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { getOrders } from "../api";
 
-
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const user = localStorage.getItem("email");
+  // ✅ USE REAL USER ID INSTEAD OF EMAIL
+  const userId = localStorage.getItem("user_id");
 
   // 🔥 STATUS COLOR MAP
   const getColor = (status) => {
@@ -20,14 +20,25 @@ export default function Orders() {
 
   // 🔥 FETCH ORDERS
   const loadOrders = async () => {
-    if (!user) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setError("");
-      const res = await getOrders(user);
-      setOrders(res.data.orders || []);
+
+      const res = await getOrders(userId);
+
+      // ✅ BACKEND RETURNS { status, orders }
+      if (Array.isArray(res.data.orders)) {
+        setOrders(res.data.orders);
+      } else {
+        setOrders([]);
+      }
     } catch (err) {
       console.error(err);
+      setOrders([]);
       setError("Failed to load orders");
     } finally {
       setLoading(false);
@@ -35,43 +46,38 @@ export default function Orders() {
   };
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
     loadOrders();
 
     const interval = setInterval(loadOrders, 5000);
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [userId]);
 
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>My Orders</h1>
 
       {/* NOT LOGGED IN */}
-      {!user && (
+      {!userId && (
         <p style={styles.info}>
           Please login to view your orders.
         </p>
       )}
 
       {/* LOADING */}
-      {loading && user && (
+      {loading && userId && (
         <p style={styles.info}>Loading orders...</p>
       )}
 
       {/* ERROR */}
       {error && <p style={styles.error}>{error}</p>}
 
-      {/* EMPTY STATE */}
-      {!loading && orders.length === 0 && user && (
+      {/* EMPTY */}
+      {!loading && userId && orders.length === 0 && !error && (
         <p style={styles.info}>No orders yet.</p>
       )}
 
-      {/* ORDERS LIST */}
+      {/* ORDERS */}
       <div style={styles.grid}>
         {orders.map((o, i) => (
           <div key={i} style={styles.card}>
@@ -82,7 +88,10 @@ export default function Orders() {
             </p>
 
             <p>GH₵ {o.price}</p>
-            <p style={styles.phone}>{o.phone}</p>
+
+            <p style={styles.phone}>
+              {o.phone_number}
+            </p>
           </div>
         ))}
       </div>
@@ -94,29 +103,35 @@ const styles = {
   container: {
     padding: "20px",
   },
+
   title: {
     textAlign: "center",
     marginBottom: "20px",
   },
+
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
     gap: "15px",
   },
+
   card: {
     padding: "15px",
     borderRadius: "12px",
     background: "#ffffff",
     boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
   },
+
   phone: {
     fontSize: "12px",
     color: "#6b7280",
   },
+
   info: {
     textAlign: "center",
     color: "#6b7280",
   },
+
   error: {
     textAlign: "center",
     color: "red",
