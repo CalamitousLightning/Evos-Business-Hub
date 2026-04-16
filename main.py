@@ -17,6 +17,8 @@ from typing import Optional
 from jose import jwt
 from passlib.context import CryptContext
 
+from datetime import datetime, timedelta
+
 load_dotenv()
 
 app = FastAPI()
@@ -200,20 +202,29 @@ def create_order(data: CreateOrderRequest):
 
     try:
         # =========================
-        # PREVENT DUPLICATES
+        # PREVENT DUPLICATES (WITH EXPIRY)
         # =========================
+
         existing = supabase.table("orders") \
-            .select("id") \
+            .select("id, created_at") \
             .eq("user_id", data.user_id) \
             .eq("network", data.network) \
             .eq("bundle", data.bundle) \
             .eq("status", "pending_payment") \
+            .order("created_at", desc=True) \
             .limit(1) \
             .execute()
 
         if existing.data:
-            raise HTTPException(400, "Pending order already exists")
+            order = existing.data[0]
 
+            created_at = datetime.fromisoformat(order["created_at"])
+
+            # EXPIRE AFTER 10 MINUTES
+            if datetime.utcnow() - created_at < timedelta(minutes=10):
+                raise HTTPException(400, "Pending order already exists")
+
+                       
         # =========================
         # GET PRICE (SAFE)
         # =========================
