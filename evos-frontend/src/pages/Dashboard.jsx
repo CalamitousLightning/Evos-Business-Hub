@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 
 export default function Dashboard({ setPage, user }) {
-  const [dark, setDark] = useState(false); // default light mode
+  const [dark, setDark] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // demo stats (replace later with API values)
+  // demo stats
   const [stats] = useState({
     today: 12,
     success: 9,
@@ -25,7 +26,8 @@ export default function Dashboard({ setPage, user }) {
     container.innerHTML = "";
 
     const script = document.createElement("script");
-    script.src = "https://api.datamartgh.shop/widgets/delivery-tracker.js";
+    script.src =
+      "https://api.datamartgh.shop/widgets/delivery-tracker.js";
     script.async = true;
 
     script.setAttribute("data-api-key", "YOUR_API_KEY");
@@ -55,39 +57,87 @@ export default function Dashboard({ setPage, user }) {
         color: isDark ? "#e5e7eb" : "#111827",
       }}
     >
-      {/* SIDEBAR / TOP NAV MOBILE */}
+      {/* TOP HEADER */}
+      <div
+        style={{
+          ...styles.mobileHeader,
+          background: isDark ? "#111827" : "#0ea5e9",
+        }}
+      >
+        <div style={styles.headerBrand}>EVOS HUB</div>
+
+        <div style={styles.headerActions}>
+          <button
+            onClick={() => setDark(!dark)}
+            style={styles.iconBtn}
+          >
+            {dark ? "☀️" : "🌙"}
+          </button>
+
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            style={styles.iconBtn}
+          >
+            ☰
+          </button>
+        </div>
+      </div>
+
+      {/* SIDEBAR / DRAWER */}
       <div
         style={{
           ...styles.sidebar,
           background: isDark ? "#111827" : "#0ea5e9",
+          left: menuOpen ? "0" : "-280px",
         }}
       >
         <div style={styles.logoBox}>
           <div style={styles.logo}>EVOS</div>
-          <small style={{ color: "white" }}>Hub</small>
+          <small style={{ color: "white" }}>
+            Powered by Evos Technologies
+          </small>
+          <small style={{ color: "white", opacity: 0.8 }}>
+            (Evosgpt, SOE)
+          </small>
         </div>
 
         <div style={styles.navWrap}>
-          <button style={styles.navBtn} onClick={() => setPage("shop")}>
+          <button
+            style={styles.navBtn}
+            onClick={() => {
+              setPage("shop");
+              setMenuOpen(false);
+            }}
+          >
             📦 Buy Data
           </button>
 
-          <button style={styles.navBtn} onClick={() => setPage("orders")}>
+          <button
+            style={styles.navBtn}
+            onClick={() => {
+              setPage("orders");
+              setMenuOpen(false);
+            }}
+          >
             📡 Orders
           </button>
 
-          <button style={styles.navBtn} onClick={logout}>
-            🚪 Logout
-          </button>
-
           <button
-            style={styles.themeBtn}
-            onClick={() => setDark(!dark)}
+            style={styles.navBtn}
+            onClick={logout}
           >
-            {dark ? "☀️ Light" : "🌙 Dark"}
+            🚪 Logout
           </button>
         </div>
       </div>
+
+      {/* OVERLAY */}
+      {menuOpen && (
+        <div
+          style={styles.overlay}
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
 
       {/* MAIN */}
       <div style={styles.main}>
@@ -104,38 +154,73 @@ export default function Dashboard({ setPage, user }) {
 
         {/* STATS */}
         <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
+          <div
+            style={{
+              ...styles.card,
+              background: isDark ? "#1e293b" : "#ffffff",
+            }}
+          >
             <h3>📅 Orders Today</h3>
             <h1>{stats.today}</h1>
           </div>
 
-          <div style={styles.statCard}>
+          <div
+            style={{
+              ...styles.card,
+              background: isDark ? "#1e293b" : "#ffffff",
+            }}
+          >
             <h3>✅ Successful</h3>
             <h1>{stats.success}</h1>
           </div>
 
-          <div style={styles.statCard}>
+          <div
+            style={{
+              ...styles.card,
+              background: isDark ? "#1e293b" : "#ffffff",
+            }}
+          >
             <h3>⏳ Pending</h3>
             <h1>{stats.pending}</h1>
           </div>
         </div>
 
-        {/* ACTION CARDS */}
+        {/* ACTIONS */}
         <div style={styles.grid}>
-          <div style={styles.card} onClick={() => setPage("shop")}>
+          <div
+            style={{
+              ...styles.card,
+              background: isDark ? "#1e293b" : "#ffffff",
+            }}
+            onClick={() => setPage("shop")}
+          >
             <h3>Buy Data</h3>
             <p>Purchase MTN, Telecel, AirtelTigo bundles</p>
           </div>
 
-          <div style={styles.card} onClick={() => setPage("orders")}>
+          <div
+            style={{
+              ...styles.card,
+              background: isDark ? "#1e293b" : "#ffffff",
+            }}
+            onClick={() => setPage("orders")}
+          >
             <h3>Track Orders</h3>
             <p>View all transactions and delivery status</p>
           </div>
         </div>
 
         {/* TRACKER */}
-        <div style={styles.trackerBox}>
-          <h3 style={{ marginBottom: "12px" }}>Live Delivery Tracker</h3>
+        <div
+          style={{
+            ...styles.card,
+            background: isDark ? "#1e293b" : "#ffffff",
+          }}
+        >
+          <h3 style={{ marginBottom: "12px" }}>
+            Live Delivery Tracker
+          </h3>
+
           <div id="tracker"></div>
         </div>
       </div>
@@ -150,62 +235,90 @@ export default function Dashboard({ setPage, user }) {
 const styles = {
   container: {
     minHeight: "100vh",
+    position: "relative",
+  },
+
+  mobileHeader: {
+    height: "70px",
+    padding: "0 18px",
     display: "flex",
-    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    position: "sticky",
+    top: 0,
+    zIndex: 1000,
+  },
+
+  headerBrand: {
+    color: "white",
+    fontSize: "28px",
+    fontWeight: "800",
+  },
+
+  headerActions: {
+    display: "flex",
+    gap: "10px",
+  },
+
+  iconBtn: {
+    width: "46px",
+    height: "46px",
+    border: "none",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.18)",
+    color: "white",
+    fontSize: "20px",
+    cursor: "pointer",
   },
 
   sidebar: {
-    width: "240px",
-    minHeight: "100vh",
-    padding: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "18px",
+    position: "fixed",
+    top: 0,
+    left: "-280px",
+    width: "260px",
+    height: "100vh",
+    padding: "22px",
+    zIndex: 1100,
+    transition: "0.3s ease",
+  },
+
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.45)",
+    zIndex: 1050,
   },
 
   logoBox: {
-    textAlign: "center",
-    marginBottom: "10px",
+    marginBottom: "25px",
   },
 
   logo: {
-    fontSize: "26px",
+    fontSize: "28px",
     fontWeight: "800",
     color: "white",
-    letterSpacing: "1px",
+    marginBottom: "8px",
   },
 
   navWrap: {
     display: "flex",
     flexDirection: "column",
-    gap: "10px",
+    gap: "12px",
   },
 
   navBtn: {
-    padding: "12px",
-    borderRadius: "12px",
+    padding: "13px",
     border: "none",
+    borderRadius: "14px",
     background: "rgba(255,255,255,0.18)",
     color: "white",
-    cursor: "pointer",
-    fontWeight: "600",
-  },
-
-  themeBtn: {
-    padding: "12px",
-    borderRadius: "12px",
-    border: "none",
-    background: "white",
-    color: "#111827",
-    cursor: "pointer",
     fontWeight: "700",
-    marginTop: "8px",
+    cursor: "pointer",
+    textAlign: "left",
   },
 
   main: {
-    flex: 1,
-    padding: "24px",
-    minWidth: "0",
+    padding: "18px",
   },
 
   title: {
@@ -215,42 +328,27 @@ const styles = {
   },
 
   subtitle: {
-    marginBottom: "20px",
+    marginBottom: "18px",
   },
 
   statsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))",
-    gap: "15px",
-    marginBottom: "22px",
-  },
-
-  statCard: {
-    background: "white",
-    padding: "18px",
-    borderRadius: "16px",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
+    gridTemplateColumns: "1fr",
+    gap: "14px",
+    marginBottom: "18px",
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))",
-    gap: "15px",
-    marginBottom: "22px",
+    gridTemplateColumns: "1fr",
+    gap: "14px",
+    marginBottom: "18px",
   },
 
   card: {
-    background: "white",
-    padding: "20px",
-    borderRadius: "16px",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
+    padding: "18px",
+    borderRadius: "18px",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
     cursor: "pointer",
-  },
-
-  trackerBox: {
-    background: "white",
-    padding: "20px",
-    borderRadius: "16px",
-    boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
   },
 };
