@@ -1,22 +1,27 @@
 import { useEffect, useState } from "react";
 
 export default function Dashboard({ setPage, user }) {
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState(false); // default light mode
 
-  // 🔐 AUTH GUARD (FIXED)
+  // demo stats (replace later with API values)
+  const [stats] = useState({
+    today: 12,
+    success: 9,
+    pending: 3,
+  });
+
+  // AUTH GUARD
   useEffect(() => {
     if (!user) {
       setPage("login");
     }
   }, [user, setPage]);
 
-  // 🔥 DATAMART WIDGET (FIXED - prevents duplicate scripts)
+  // TRACKER SCRIPT
   useEffect(() => {
     const container = document.getElementById("tracker");
-
     if (!container) return;
 
-    // clear old script safely
     container.innerHTML = "";
 
     const script = document.createElement("script");
@@ -40,44 +45,82 @@ export default function Dashboard({ setPage, user }) {
     setPage("login");
   };
 
+  const isDark = dark;
+
   return (
-    <div style={dark ? styles.darkContainer : styles.lightContainer}>
-      {/* SIDEBAR */}
-      <div style={styles.sidebar}>
+    <div
+      style={{
+        ...styles.container,
+        background: isDark ? "#0b1220" : "#f8fafc",
+        color: isDark ? "#e5e7eb" : "#111827",
+      }}
+    >
+      {/* SIDEBAR / TOP NAV MOBILE */}
+      <div
+        style={{
+          ...styles.sidebar,
+          background: isDark ? "#111827" : "#0ea5e9",
+        }}
+      >
         <div style={styles.logoBox}>
           <div style={styles.logo}>EVOS</div>
-          <small>Hub</small>
+          <small style={{ color: "white" }}>Hub</small>
         </div>
 
-        <button style={styles.navBtn} onClick={() => setPage("shop")}>
-          📦 Buy Data
-        </button>
+        <div style={styles.navWrap}>
+          <button style={styles.navBtn} onClick={() => setPage("shop")}>
+            📦 Buy Data
+          </button>
 
-        <button style={styles.navBtn} onClick={() => setPage("orders")}>
-          📡 Track Orders
-        </button>
+          <button style={styles.navBtn} onClick={() => setPage("orders")}>
+            📡 Orders
+          </button>
 
-        <button style={styles.navBtn} onClick={logout}>
-          🚪 Logout
-        </button>
+          <button style={styles.navBtn} onClick={logout}>
+            🚪 Logout
+          </button>
 
-        <button
-          style={styles.toggle}
-          onClick={() => setDark(!dark)}
-        >
-          {dark ? "🌙 Dark" : "☀️ Light"}
-        </button>
+          <button
+            style={styles.themeBtn}
+            onClick={() => setDark(!dark)}
+          >
+            {dark ? "☀️ Light" : "🌙 Dark"}
+          </button>
+        </div>
       </div>
 
       {/* MAIN */}
       <div style={styles.main}>
         <h2 style={styles.title}>Dashboard</h2>
 
-        <p style={styles.subtitle}>
+        <p
+          style={{
+            ...styles.subtitle,
+            color: isDark ? "#94a3b8" : "#64748b",
+          }}
+        >
           Welcome back, {user?.username || user?.email}
         </p>
 
-        {/* ACTIONS */}
+        {/* STATS */}
+        <div style={styles.statsGrid}>
+          <div style={styles.statCard}>
+            <h3>📅 Orders Today</h3>
+            <h1>{stats.today}</h1>
+          </div>
+
+          <div style={styles.statCard}>
+            <h3>✅ Successful</h3>
+            <h1>{stats.success}</h1>
+          </div>
+
+          <div style={styles.statCard}>
+            <h3>⏳ Pending</h3>
+            <h1>{stats.pending}</h1>
+          </div>
+        </div>
+
+        {/* ACTION CARDS */}
         <div style={styles.grid}>
           <div style={styles.card} onClick={() => setPage("shop")}>
             <h3>Buy Data</h3>
@@ -86,16 +129,13 @@ export default function Dashboard({ setPage, user }) {
 
           <div style={styles.card} onClick={() => setPage("orders")}>
             <h3>Track Orders</h3>
-            <p>View live status of all your transactions</p>
+            <p>View all transactions and delivery status</p>
           </div>
         </div>
 
         {/* TRACKER */}
         <div style={styles.trackerBox}>
-          <h3 style={{ marginBottom: "10px" }}>
-            Live Delivery Tracker
-          </h3>
-
+          <h3 style={{ marginBottom: "12px" }}>Live Delivery Tracker</h3>
           <div id="tracker"></div>
         </div>
       </div>
@@ -103,95 +143,114 @@ export default function Dashboard({ setPage, user }) {
   );
 }
 
-/* ================= STYLES ================= */
+/* =======================
+   STYLES
+======================= */
 
 const styles = {
-  darkContainer: {
-    display: "flex",
+  container: {
     minHeight: "100vh",
-    background: "#0b1220",
-    color: "white",
-  },
-
-  lightContainer: {
     display: "flex",
-    minHeight: "100vh",
-    background: "#f3f4f6",
-    color: "#111",
+    flexWrap: "wrap",
   },
 
   sidebar: {
-    width: "220px",
+    width: "240px",
+    minHeight: "100vh",
     padding: "20px",
-    background: "#111827",
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px",
+  },
+
+  logoBox: {
+    textAlign: "center",
+    marginBottom: "10px",
+  },
+
+  logo: {
+    fontSize: "26px",
+    fontWeight: "800",
+    color: "white",
+    letterSpacing: "1px",
+  },
+
+  navWrap: {
     display: "flex",
     flexDirection: "column",
     gap: "10px",
   },
 
-  logoBox: {
-    marginBottom: "20px",
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-
-  logo: {
-    fontSize: "24px",
-    color: "#38bdf8",
-  },
-
   navBtn: {
     padding: "12px",
-    borderRadius: "10px",
+    borderRadius: "12px",
     border: "none",
-    cursor: "pointer",
-    background: "#1f2937",
+    background: "rgba(255,255,255,0.18)",
     color: "white",
+    cursor: "pointer",
+    fontWeight: "600",
   },
 
-  toggle: {
-    marginTop: "20px",
-    padding: "10px",
-    borderRadius: "10px",
+  themeBtn: {
+    padding: "12px",
+    borderRadius: "12px",
     border: "none",
+    background: "white",
+    color: "#111827",
     cursor: "pointer",
-    background: "#374151",
-    color: "white",
+    fontWeight: "700",
+    marginTop: "8px",
   },
 
   main: {
     flex: 1,
-    padding: "25px",
+    padding: "24px",
+    minWidth: "0",
   },
 
   title: {
-    fontSize: "24px",
-    marginBottom: "5px",
+    fontSize: "28px",
+    fontWeight: "800",
+    marginBottom: "6px",
   },
 
   subtitle: {
-    opacity: 0.7,
     marginBottom: "20px",
+  },
+
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))",
+    gap: "15px",
+    marginBottom: "22px",
+  },
+
+  statCard: {
+    background: "white",
+    padding: "18px",
+    borderRadius: "16px",
+    boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))",
     gap: "15px",
-    marginBottom: "30px",
+    marginBottom: "22px",
   },
 
   card: {
+    background: "white",
     padding: "20px",
-    borderRadius: "15px",
-    background: "#1f2937",
+    borderRadius: "16px",
+    boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
     cursor: "pointer",
   },
 
   trackerBox: {
-    marginTop: "20px",
+    background: "white",
     padding: "20px",
-    borderRadius: "15px",
-    background: "#111827",
+    borderRadius: "16px",
+    boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
   },
 };
