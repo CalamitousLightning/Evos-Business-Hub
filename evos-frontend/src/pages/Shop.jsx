@@ -208,91 +208,118 @@ export default function Shop() {
   );
 }
 
-/* ===================== */
+/* ======================
+   SHOP UI (UPGRADED SaaS STYLE)
+====================== */
 const styles = {
   container: {
-    padding: "20px",
+    padding: "24px",
     color: "#e5e7eb",
     textAlign: "center",
+    minHeight: "100vh",
   },
 
   title: {
-    marginBottom: "20px",
+    marginBottom: "22px",
+    fontSize: "22px",
+    fontWeight: "700",
+    letterSpacing: "0.5px",
   },
 
   wrapper: {
-    maxWidth: "420px",
+    maxWidth: "440px",
     margin: "auto",
   },
 
   box: {
-    background: "#0f172a",
-    padding: "20px",
-    borderRadius: "16px",
-    boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
+    background: "rgba(15, 23, 42, 0.85)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    padding: "22px",
+    borderRadius: "18px",
+    boxShadow: "0 25px 60px rgba(0,0,0,0.45)",
+    border: "1px solid rgba(255,255,255,0.06)",
   },
 
   step: {
     marginBottom: "15px",
     color: "#38bdf8",
+    fontWeight: "600",
+    fontSize: "14px",
+    letterSpacing: "0.5px",
   },
 
   option: {
-    padding: "15px",
+    padding: "16px",
     marginBottom: "12px",
-    borderRadius: "12px",
-    background: "#111827",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.06)",
     cursor: "pointer",
+    transition: "0.2s ease",
   },
 
   card: {
-    padding: "15px",
-    borderRadius: "12px",
+    padding: "16px",
+    borderRadius: "14px",
     marginBottom: "10px",
-    background: "#111827",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.06)",
     cursor: "pointer",
+    transition: "0.2s ease",
   },
 
   summary: {
-    background: "#111827",
-    padding: "12px",
-    borderRadius: "10px",
+    background: "rgba(2, 6, 23, 0.6)",
+    padding: "14px",
+    borderRadius: "12px",
     marginBottom: "15px",
+    border: "1px solid rgba(255,255,255,0.05)",
+    fontSize: "14px",
   },
 
   input: {
     width: "100%",
-    padding: "12px",
-    marginBottom: "10px",
-    borderRadius: "10px",
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "#020617",
+    padding: "13px",
+    marginBottom: "12px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(2, 6, 23, 0.7)",
     color: "white",
+    outline: "none",
+    transition: "0.2s ease",
   },
 
   buyBtn: {
     width: "100%",
     padding: "14px",
-    borderRadius: "12px",
+    borderRadius: "14px",
     background: "linear-gradient(135deg, #10b981, #22c55e)",
     border: "none",
     color: "white",
-    fontWeight: "bold",
+    fontWeight: "700",
+    cursor: "pointer",
+    boxShadow: "0 10px 25px rgba(34, 197, 94, 0.25)",
+    transition: "0.2s ease",
   },
 
   back: {
-    marginBottom: "10px",
+    marginBottom: "12px",
     background: "transparent",
     border: "none",
     color: "#38bdf8",
     cursor: "pointer",
+    fontWeight: "600",
+    fontSize: "13px",
   },
 
   error: {
-    background: "#7f1d1d",
+    background: "rgba(127, 29, 29, 0.8)",
     color: "white",
-    padding: "10px",
-    borderRadius: "10px",
-    marginBottom: "10px",
+    padding: "12px",
+    borderRadius: "12px",
+    marginBottom: "12px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    fontSize: "13px",
   },
 };
