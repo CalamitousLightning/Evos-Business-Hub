@@ -28,7 +28,6 @@ export default function Login({ setUser, setPage }) {
 
       console.log("LOGIN RESPONSE:", data);
 
-      // backend valid but failed login
       if (!data || data.status !== "ok") {
         setError("Invalid username or password");
         return;
@@ -36,18 +35,29 @@ export default function Login({ setUser, setPage }) {
 
       const user = data.user;
 
-      // =========================
-      // SAFE STORAGE
-      // =========================
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("username", user.username || "");
-      localStorage.setItem("email", user.email || "");
+      // 🚨 CRITICAL FIX: ensure user_id exists for backend
+      // backend uses user_id in orders
+      const normalizedUser = {
+        id: user.id || user.user_id || null,
+        username: user.username || "",
+        email: user.email || "",
+        full_name: user.full_name || "",
+        referral_code: user.referral_code || "",
+        rank: user.rank || 1,
+      };
 
-      // update global state
-      setUser(user);
+      // =========================
+      // SAVE FULL USER OBJECT
+      // =========================
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+      localStorage.setItem("email", normalizedUser.email);
+      localStorage.setItem("username", normalizedUser.username);
+      localStorage.setItem("user_id", normalizedUser.id); // 🔥 IMPORTANT FIX
+
+      setUser(normalizedUser);
 
       // =========================
-      // ROUTE TO DASHBOARD (NOT SHOP)
+      // GO TO DASHBOARD
       // =========================
       setPage("dashboard");
 
@@ -100,10 +110,7 @@ export default function Login({ setUser, setPage }) {
 
         <p style={styles.footer}>
           Don’t have an account?{" "}
-          <span
-            style={styles.link}
-            onClick={() => setPage("register")}
-          >
+          <span style={styles.link} onClick={() => setPage("register")}>
             Register
           </span>
         </p>
