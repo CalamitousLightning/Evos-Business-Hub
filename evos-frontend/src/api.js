@@ -5,7 +5,7 @@ import axios from "axios";
 // =========================
 const API = axios.create({
   baseURL: "https://evos-business-hub.onrender.com",
-  timeout: 25000,
+  timeout: 60000,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
