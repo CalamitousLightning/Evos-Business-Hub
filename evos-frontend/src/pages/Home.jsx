@@ -146,6 +146,9 @@ export default function Home({ setPage, theme }) {
 /* ======================
    PREMIUM STYLES
 ====================== */
+/* ======================
+   HOME UI (SAAS PREMIUM SYSTEM)
+====================== */
 const styles = {
   container: {
     transition: "0.3s ease",
@@ -153,15 +156,20 @@ const styles = {
 
   hero: {
     textAlign: "center",
-    padding: "70px 20px",
-    borderRadius: "18px",
+    padding: "80px 20px",
+    borderRadius: "20px",
     marginBottom: "40px",
+    background: "rgba(15, 23, 42, 0.35)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    border: "1px solid rgba(255,255,255,0.06)",
   },
 
   title: {
-    fontSize: "clamp(28px, 5vw, 48px)",
-    fontWeight: "bold",
-    marginBottom: "10px",
+    fontSize: "clamp(30px, 5vw, 52px)",
+    fontWeight: "800",
+    marginBottom: "12px",
+    letterSpacing: "0.5px",
   },
 
   highlight: {
@@ -170,8 +178,10 @@ const styles = {
 
   subtitle: {
     fontSize: "16px",
-    maxWidth: "600px",
-    margin: "0 auto 20px",
+    maxWidth: "650px",
+    margin: "0 auto 22px",
+    color: "rgba(156, 163, 175, 0.9)",
+    lineHeight: "1.6",
   },
 
   buttons: {
@@ -184,72 +194,87 @@ const styles = {
 
   primaryBtn: {
     padding: "12px 18px",
-    borderRadius: "10px",
-    background: "#38bdf8",
+    borderRadius: "12px",
+    background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
     color: "#0b1220",
-    fontWeight: "bold",
+    fontWeight: "700",
     border: "none",
     cursor: "pointer",
+    boxShadow: "0 10px 25px rgba(56, 189, 248, 0.25)",
+    transition: "0.2s ease",
   },
 
   secondaryBtn: {
     padding: "12px 18px",
-    borderRadius: "10px",
-    background: "transparent",
+    borderRadius: "12px",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    color: "inherit",
     cursor: "pointer",
+    transition: "0.2s ease",
   },
 
   stats: {
     display: "flex",
     justifyContent: "center",
-    gap: "20px",
+    gap: "16px",
     flexWrap: "wrap",
   },
 
   statBox: {
     padding: "14px 18px",
-    borderRadius: "12px",
-    background: "rgba(255,255,255,0.06)",
-    minWidth: "120px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    minWidth: "130px",
+    backdropFilter: "blur(12px)",
   },
 
   featuresSection: {
-    padding: "50px 20px",
+    padding: "60px 20px",
     textAlign: "center",
   },
 
   sectionTitle: {
     fontSize: "26px",
     marginBottom: "30px",
+    fontWeight: "700",
   },
 
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "15px",
+    gap: "16px",
   },
 
   card: {
     padding: "20px",
-    borderRadius: "14px",
+    borderRadius: "16px",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    backdropFilter: "blur(14px)",
     transition: "0.2s ease",
   },
 
   cta: {
     textAlign: "center",
-    padding: "60px 20px",
+    padding: "70px 20px",
     marginTop: "40px",
-    borderRadius: "18px",
+    borderRadius: "20px",
+    background: "rgba(15, 23, 42, 0.35)",
+    backdropFilter: "blur(16px)",
+    border: "1px solid rgba(255,255,255,0.06)",
   },
 
   ctaBtn: {
     marginTop: "15px",
     padding: "12px 20px",
-    borderRadius: "10px",
+    borderRadius: "12px",
     background: "#0b1220",
     color: "white",
-    fontWeight: "bold",
-    border: "none",
+    fontWeight: "700",
+    border: "1px solid rgba(255,255,255,0.1)",
     cursor: "pointer",
+    transition: "0.2s ease",
   },
 };
