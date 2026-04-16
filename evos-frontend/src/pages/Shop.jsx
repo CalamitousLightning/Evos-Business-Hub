@@ -110,21 +110,23 @@ export default function Shop() {
             <h3 style={styles.step}>Select Network</h3>
 
             {[
-              { name: "MTN", icon: "🟡" },
-              { name: "TELECEL", icon: "🔴" },
-              { name: "AIRTELTIGO", icon: "🔵" },
+              { name: "MTN", icon: "🟡", style: styles.optionMTN },
+              { name: "TELECEL", icon: "🔴", style: styles.optionTELECEL },
+              { name: "AIRTELTIGO", icon: "🔵", style: styles.optionAIRTEL },
             ].map((n) => (
-              <div
-                key={n.name}
-                style={styles.option}
-                onClick={() => {
-                  setNetwork(n.name);
-                  setStep(2);
-                }}
-              >
-                <span>{n.icon}</span> {n.name}
-              </div>
+            <div
+              key={n.name}
+              style={{ ...styles.option, ...n.style }}
+              onClick={() => {
+                setNetwork(n.name);
+                setStep(2);
+            }}
+           >
+            <span>{n.icon}</span> {n.name}
+          </div>
+       
             ))}
+            
           </div>
         )}
 
@@ -148,16 +150,14 @@ export default function Shop() {
                   setBundle(b.bundle);
                   setStep(3);
                 }}
-                style={{
-                  ...styles.card,
-                  border: isSelected(b)
-                    ? "2px solid #38bdf8"
-                    : "1px solid transparent",
+                 style={{
+                   ...styles.card,
+                   ...(isSelected(b) ? styles.selectedCard : {}),
                 }}
               >
-                <h4>{b.bundle}</h4>
-                <p>GH₵ {b.price}</p>
-              </div>
+                <h4 style={{ color: "#e5e7eb" }}>{b.bundle}</h4>
+                <p style={{ color: "#94a3b8" }}>GH₵ {b.price}</p>
+            </div>
             ))}
           </div>
         )}
@@ -223,7 +223,6 @@ const styles = {
     marginBottom: "22px",
     fontSize: "22px",
     fontWeight: "700",
-    letterSpacing: "0.5px",
   },
 
   wrapper: {
@@ -246,27 +245,62 @@ const styles = {
     color: "#38bdf8",
     fontWeight: "600",
     fontSize: "14px",
-    letterSpacing: "0.5px",
   },
 
+  /* ======================
+     NETWORK OPTIONS (UPGRADED)
+  ====================== */
   option: {
     padding: "16px",
     marginBottom: "12px",
     borderRadius: "14px",
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.06)",
     cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    fontWeight: "600",
     transition: "0.2s ease",
+    border: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(255,255,255,0.03)",
   },
 
+  optionMTN: {
+    background: "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))",
+    border: "1px solid rgba(255,193,7,0.3)",
+  },
+
+  optionTELECEL: {
+    background: "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))",
+    border: "1px solid rgba(239,68,68,0.3)",
+  },
+
+  optionAIRTEL: {
+    background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(239,68,68,0.08))",
+    border: "1px solid rgba(59,130,246,0.3)",
+  },
+
+  /* ======================
+     BUNDLES (FIXED READABILITY + HOVER)
+  ====================== */
   card: {
     padding: "16px",
     borderRadius: "14px",
     marginBottom: "10px",
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.06)",
     cursor: "pointer",
     transition: "0.2s ease",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.06)",
+  },
+
+  cardHover: {
+    transform: "translateY(-2px)",
+    background: "rgba(255,255,255,0.06)",
+  },
+
+  selectedCard: {
+    border: "2px solid #38bdf8",
+    background: "rgba(56, 189, 248, 0.08)",
+    boxShadow: "0 10px 25px rgba(56, 189, 248, 0.15)",
   },
 
   summary: {
@@ -275,7 +309,6 @@ const styles = {
     borderRadius: "12px",
     marginBottom: "15px",
     border: "1px solid rgba(255,255,255,0.05)",
-    fontSize: "14px",
   },
 
   input: {
@@ -286,8 +319,6 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.08)",
     background: "rgba(2, 6, 23, 0.7)",
     color: "white",
-    outline: "none",
-    transition: "0.2s ease",
   },
 
   buyBtn: {
@@ -299,8 +330,6 @@ const styles = {
     color: "white",
     fontWeight: "700",
     cursor: "pointer",
-    boxShadow: "0 10px 25px rgba(34, 197, 94, 0.25)",
-    transition: "0.2s ease",
   },
 
   back: {
@@ -310,7 +339,6 @@ const styles = {
     color: "#38bdf8",
     cursor: "pointer",
     fontWeight: "600",
-    fontSize: "13px",
   },
 
   error: {
@@ -320,6 +348,5 @@ const styles = {
     borderRadius: "12px",
     marginBottom: "12px",
     border: "1px solid rgba(255,255,255,0.08)",
-    fontSize: "13px",
   },
 };
