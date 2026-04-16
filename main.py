@@ -651,7 +651,7 @@ def login(data: LoginRequest):
         # FIND USER (OPTIMIZED)
         # =========================
         user_res = supabase.table("users") \
-            .select("username,email,full_name,password,referral_code,rank") \
+            .select("id,username,email,full_name,password,referral_code,rank") \
             .or_(f"username.eq.{username},email.eq.{username}") \
             .limit(1) \
             .execute()
@@ -683,6 +683,7 @@ def login(data: LoginRequest):
         return {
             "status": "ok",
             "user": {
+                "id": user.get("id"),   # ✅ ADDED ID
                 "username": user.get("username"),
                 "email": user.get("email"),
                 "full_name": user.get("full_name"),
