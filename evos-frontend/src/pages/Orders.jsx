@@ -101,39 +101,57 @@ export default function Orders() {
 
 const styles = {
   container: {
-    padding: "20px",
+    padding: "24px",
+    minHeight: "100vh",
   },
 
   title: {
     textAlign: "center",
-    marginBottom: "20px",
+    marginBottom: "24px",
+    fontSize: "22px",
+    fontWeight: "700",
+    letterSpacing: "0.5px",
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-    gap: "15px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: "16px",
   },
 
   card: {
-    padding: "15px",
-    borderRadius: "12px",
-    background: "#ffffff",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+    padding: "16px",
+    borderRadius: "14px",
+    background: "rgba(15, 23, 42, 0.85)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+    boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    transition: "0.2s ease",
   },
 
   phone: {
     fontSize: "12px",
-    color: "#6b7280",
+    color: "#94a3b8",
+    marginTop: "6px",
   },
 
   info: {
     textAlign: "center",
-    color: "#6b7280",
+    color: "#94a3b8",
+    fontSize: "14px",
+    marginTop: "20px",
   },
 
   error: {
     textAlign: "center",
-    color: "red",
+    color: "#f87171",
+    background: "rgba(127, 29, 29, 0.25)",
+    padding: "10px",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.06)",
+    fontSize: "13px",
+    maxWidth: "400px",
+    margin: "0 auto",
   },
 };
