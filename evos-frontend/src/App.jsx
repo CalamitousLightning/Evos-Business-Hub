@@ -184,13 +184,14 @@ export default function App() {
 }
 
 /* =======================
-   STYLES
+  STYLES (UPGRADED UI SYSTEM)
 ======================= */
 const styles = {
   app: {
-    fontFamily: "Arial, sans-serif",
+    fontFamily:
+      "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial",
     minHeight: "100vh",
-    transition: "0.3s ease",
+    transition: "all 0.3s ease",
   },
 
   nav: {
@@ -198,18 +199,21 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "14px 20px",
-    backdropFilter: "blur(10px)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
     position: "sticky",
     top: 0,
     zIndex: 1000,
+    borderBottom: "1px solid rgba(255,255,255,0.06)",
   },
 
   logo: {
-    fontWeight: "bold",
+    fontWeight: "700",
     fontSize: "18px",
     cursor: "pointer",
     color: "#38bdf8",
     letterSpacing: "1px",
+    textTransform: "uppercase",
   },
 
   navRight: {
@@ -221,50 +225,63 @@ const styles = {
   toggle: {
     fontSize: "22px",
     cursor: "pointer",
+    padding: "6px 10px",
+    borderRadius: "10px",
+    transition: "0.2s ease",
   },
 
   themeBtn: {
-    padding: "6px 10px",
-    borderRadius: "8px",
+    padding: "7px 11px",
+    borderRadius: "10px",
     border: "none",
     cursor: "pointer",
-    background: "#38bdf8",
+    background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
     color: "#0b1220",
+    fontWeight: "600",
+    boxShadow: "0 4px 12px rgba(56, 189, 248, 0.25)",
   },
 
   dropdown: {
     display: "flex",
     flexDirection: "column",
     gap: "10px",
-    padding: "15px",
+    padding: "14px",
+    margin: "10px",
+    borderRadius: "12px",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
   },
 
   menuBtn: {
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "transparent",
+    padding: "10px 12px",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.02)",
     cursor: "pointer",
     textAlign: "left",
+    transition: "0.2s ease",
   },
 
   primaryBtn: {
-    padding: "10px",
-    borderRadius: "8px",
+    padding: "10px 12px",
+    borderRadius: "10px",
     border: "none",
-    background: "#38bdf8",
+    background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
     color: "#0b1220",
-    fontWeight: "bold",
+    fontWeight: "700",
     cursor: "pointer",
+    boxShadow: "0 6px 16px rgba(56, 189, 248, 0.25)",
   },
 
   logout: {
-    padding: "10px",
-    borderRadius: "8px",
+    padding: "10px 12px",
+    borderRadius: "10px",
     border: "none",
     background: "#ef4444",
     color: "white",
+    fontWeight: "600",
     cursor: "pointer",
+    boxShadow: "0 6px 14px rgba(239, 68, 68, 0.25)",
   },
 
   container: {
