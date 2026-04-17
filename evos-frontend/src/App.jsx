@@ -85,79 +85,84 @@ export default function App() {
     }
   };
 
-  return (
-    <div style={appStyle(isDark)}>
-      {/* BACKGROUND LAYER */}
-      <div style={bgStyle} />
+return (
+  <div style={appStyle(isDark)}>
+    {/* GLOBAL DARK LAYER OVER BACKGROUND */}
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        background: isDark
+          ? "radial-gradient(circle at top, rgba(0,0,0,0.55), rgba(0,0,0,0.85))"
+          : "rgba(255,255,255,0.25)",
+        zIndex: 0,
+        pointerEvents: "none",
+      }}
+    />
 
-      {/* DARK OVERLAY (keeps text readable) */}
-      <div style={overlayStyle(isDark)} />
+    {/* APP CONTENT */}
+    <div style={{ position: "relative", zIndex: 2 }}>
+      {/* NAVBAR */}
+      <nav style={navStyle(isDark)}>
+        <div style={logoStyle} onClick={() => navigate("home")}>
+          EVOS HUB
+        </div>
 
-      {/* APP CONTENT */}
-      <div style={{ position: "relative", zIndex: 2 }}>
-        {/* NAVBAR */}
-        <nav style={navStyle(isDark)}>
-          <div style={logoStyle} onClick={() => navigate("home")}>
-            EVOS HUB
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button onClick={toggleTheme} style={themeBtn}>
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+
+          <div onClick={() => setMenuOpen(!menuOpen)} style={menuIcon}>
+            ☰
           </div>
+        </div>
+      </nav>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <button onClick={toggleTheme} style={themeBtn}>
-              {theme === "dark" ? "☀️" : "🌙"}
+      {/* DROPDOWN */}
+      {menuOpen && (
+        <div style={dropdownStyle(isDark)}>
+          <button onClick={() => navigate("shop")} style={menuBtn(isDark)}>
+            Buy Data
+          </button>
+
+          <button onClick={() => navigate("orders")} style={menuBtn(isDark)}>
+            Orders
+          </button>
+
+          <button
+            onClick={() => navigate("dashboard")}
+            style={menuBtn(isDark)}
+          >
+            Dashboard
+          </button>
+
+          {user ? (
+            <button onClick={logout} style={dangerBtn}>
+              Logout
             </button>
-
-            <div onClick={() => setMenuOpen(!menuOpen)} style={menuIcon}>
-              ☰
-            </div>
-          </div>
-        </nav>
-
-        {/* DROPDOWN */}
-        {menuOpen && (
-          <div style={dropdownStyle(isDark)}>
-            <button onClick={() => navigate("shop")} style={menuBtn(isDark)}>
-              Buy Data
-            </button>
-
-            <button onClick={() => navigate("orders")} style={menuBtn(isDark)}>
-              Orders
-            </button>
-
-            <button
-              onClick={() => navigate("dashboard")}
-              style={menuBtn(isDark)}
-            >
-              Dashboard
-            </button>
-
-            {user ? (
-              <button onClick={logout} style={dangerBtn}>
-                Logout
+          ) : (
+            <>
+              <button onClick={() => navigate("login")} style={menuBtn(isDark)}>
+                Login
               </button>
-            ) : (
-              <>
-                <button onClick={() => navigate("login")} style={menuBtn(isDark)}>
-                  Login
-                </button>
 
-                <button onClick={() => navigate("register")} style={primaryBtn}>
-                  Register
-                </button>
-              </>
-            )}
-          </div>
-        )}
+              <button onClick={() => navigate("register")} style={primaryBtn}>
+                Register
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
-        {/* CONTENT */}
-        <main style={contentStyle}>{renderPage()}</main>
-      </div>
+      {/* CONTENT */}
+      <main style={contentStyle}>{renderPage()}</main>
     </div>
-  );
-}
-
-/* =======================
-   STYLES (FIXED + SAFE)
-======================= */
+  </div>
+);
 
 /* =======================
    STYLES (FIXED + SAFE)
