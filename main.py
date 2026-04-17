@@ -442,6 +442,9 @@ async def paystack_webhook(request: Request):
 
     except Exception as e:
         print("PAYSTACK WEBHOOK ERROR:", str(e))
+        print("PAYSTACK WEBHOOK HIT")
+        print(signature)
+        print(payload)
         return {"status": "error"}
 
 
