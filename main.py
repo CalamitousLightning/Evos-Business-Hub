@@ -267,7 +267,7 @@ def create_order(data: CreateOrderRequest):
                 json={
                     "email": user["email"],
                     "amount": int(price * 100),
-                    "callback_url": "https://evosdata.netlify.app/orders"
+                    "callback_url": "https://evosdata.netlify.app/success"
                 },
                 timeout=REQUEST_TIMEOUT
             ).json()
