@@ -13,13 +13,31 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [theme, setTheme] = useState("dark");
 
-  // LOAD
+  // LOAD + DETECT URL PAGE
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) setUser(JSON.parse(savedUser));
 
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) setTheme(savedTheme);
+
+    const path = window.location.pathname;
+
+    if (path === "/success") {
+      setPage("success");
+    } else if (path === "/orders") {
+      setPage("orders");
+    } else if (path === "/dashboard") {
+      setPage("dashboard");
+    } else if (path === "/shop") {
+      setPage("shop");
+    } else if (path === "/login") {
+      setPage("login");
+    } else if (path === "/register") {
+      setPage("register");
+    } else {
+      setPage("home");
+    }
   }, []);
 
   const toggleTheme = () => {
@@ -33,11 +51,24 @@ export default function App() {
     localStorage.removeItem("email");
     setUser(null);
     setPage("home");
+    window.history.pushState({}, "", "/");
   };
 
   const navigate = (p) => {
     setPage(p);
     setMenuOpen(false);
+
+    const routes = {
+      home: "/",
+      shop: "/shop",
+      orders: "/orders",
+      dashboard: "/dashboard",
+      login: "/login",
+      register: "/register",
+      success: "/success",
+    };
+
+    window.history.pushState({}, "", routes[p] || "/");
   };
 
   const isDark = theme === "dark";
