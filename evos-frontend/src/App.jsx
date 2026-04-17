@@ -163,6 +163,7 @@ return (
     </div>
   </div>
 );
+}
 
 /* =======================
    STYLES (FIXED + SAFE)
@@ -280,3 +281,6 @@ const contentStyle = {
   maxWidth: "1200px",
   margin: "0 auto",
 };
+
+
+export default App;
