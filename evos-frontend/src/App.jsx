@@ -283,4 +283,3 @@ const contentStyle = {
 };
 
 
-export default App;
