@@ -146,17 +146,21 @@ def extract_capacity(bundle: str) -> str:
 
 def verify_signature(body: bytes, signature: str, secret: str) -> bool:
     try:
+        if not signature:
+            print("SIGNATURE ERROR: missing signature")
+            return False
+
         computed = hmac.new(
-            secret.encode(),
+            secret.encode("utf-8"),
             body,
-            hashlib.sha256
+            hashlib.sha512   # ✅ FIXED: Paystack requires SHA512
         ).hexdigest()
 
-        return hmac.compare_digest(computed, signature or "")
+        return hmac.compare_digest(computed, signature)
+
     except Exception as e:
         print("SIGNATURE ERROR:", str(e))
         return False
-
 
 # =========================
 # PRICES
