@@ -149,23 +149,7 @@ export default function Dashboard({ setPage, user }) {
           </div>
         </div>
 
-        {/* STATS */}
-        <div style={styles.statsGrid}>
-          <div style={{ ...styles.card, background: cardBg }}>
-            <p style={{ color: soft }}>📅 Orders Today</p>
-            <h2 style={styles.bigNumber}>{stats.today}</h2>
-          </div>
-
-          <div style={{ ...styles.card, background: cardBg }}>
-            <p style={{ color: soft }}>✅ Successful</p>
-            <h2 style={styles.bigNumber}>{stats.success}</h2>
-          </div>
-
-          <div style={{ ...styles.card, background: cardBg }}>
-            <p style={{ color: soft }}>⏳ Pending</p>
-            <h2 style={styles.bigNumber}>{stats.pending}</h2>
-          </div>
-        </div>
+        
 
         {/* ACTIONS */}
         <div style={styles.sectionTitle}>Quick Actions</div>
