@@ -124,7 +124,10 @@ def hash_password(password: str) -> str:
         return pwd_context.hash(password)
     except Exception as e:
         print("HASH ERROR:", str(e))
-        raise HTTPException(status_code=500, detail="Password hashing failed")
+        raise HTTPException(
+            status_code=500,
+            detail="Password hashing failed"
+        )
 
 
 def verify_password(plain: str, hashed: str) -> bool:
@@ -141,26 +144,83 @@ def verify_password(plain: str, hashed: str) -> bool:
 def extract_capacity(bundle: str) -> str:
     if not bundle:
         return ""
-    return bundle.replace("GB", "").strip()
+
+    return (
+        bundle.upper()
+        .replace("GB", "")
+        .replace("MB", "")
+        .strip()
+    )
 
 
-def verify_signature(body: bytes, signature: str, secret: str) -> bool:
+# =========================
+# PAYSTACK SIGNATURE
+# Uses SHA512
+# =========================
+def verify_paystack_signature(
+    body: bytes,
+    signature: str,
+    secret: str
+) -> bool:
     try:
         if not signature:
-            print("SIGNATURE ERROR: missing signature")
+            print("PAYSTACK SIGNATURE ERROR: missing signature")
             return False
 
         computed = hmac.new(
             secret.encode("utf-8"),
             body,
-            hashlib.sha512   # ✅ FIXED: Paystack requires SHA512
+            hashlib.sha512
         ).hexdigest()
 
         return hmac.compare_digest(computed, signature)
 
     except Exception as e:
-        print("SIGNATURE ERROR:", str(e))
+        print("PAYSTACK SIGNATURE ERROR:", str(e))
         return False
+
+
+# =========================
+# DATAMART SIGNATURE
+# Uses SHA256 + WEBHOOK SECRET
+# =========================
+def verify_datamart_signature(
+    body: bytes,
+    signature: str,
+    secret: str
+) -> bool:
+    try:
+        if not signature:
+            print("DATAMART SIGNATURE ERROR: missing signature")
+            return False
+
+        computed = hmac.new(
+            secret.encode("utf-8"),
+            body,
+            hashlib.sha256
+        ).hexdigest()
+
+        return hmac.compare_digest(computed, signature)
+
+    except Exception as e:
+        print("DATAMART SIGNATURE ERROR:", str(e))
+        return False
+
+
+# =========================
+# LEGACY WRAPPER (OPTIONAL)
+# Defaults to Paystack
+# =========================
+def verify_signature(
+    body: bytes,
+    signature: str,
+    secret: str
+) -> bool:
+    return verify_paystack_signature(
+        body,
+        signature,
+        secret
+    )
 
 # =========================
 # PRICES
@@ -458,23 +518,38 @@ async def datamart_webhook(request: Request):
     try:
         body = await request.body()
         signature = request.headers.get("X-DataMart-Signature")
+        event = request.headers.get("X-DataMart-Event", "")
 
-        if not signature or not verify_signature(body, signature, DATAMART_API_KEY):
+        # IMPORTANT:
+        # Use your DATAMART_WEBHOOK_SECRET here
+        if not signature or not verify_datamart_signature(
+            body,
+            signature,
+            DATAMART_WEBHOOK_SECRET
+        ):
             raise HTTPException(401, "Invalid signature")
 
         payload = await request.json()
 
         data = payload.get("data", {})
         order_ref = data.get("orderReference")
-        status = data.get("status")
+        status = str(data.get("status", "")).lower()
+
+        print("DATAMART EVENT:", event)
+        print("DATAMART REF:", order_ref)
+        print("DATAMART STATUS:", status)
 
         if not order_ref:
             return {"received": True}
 
         final_status = (
-            "successful" if status in ["completed", "success", "delivered"]
-            else "processing" if status in ["processing", "pending"]
+            "successful"
+            if status in ["completed", "success", "delivered"]
+            else "processing"
+            if status in ["created", "processing", "pending"]
             else "failed"
+            if status in ["failed", "cancelled", "refunded"]
+            else "processing"
         )
 
         supabase.table("orders") \
@@ -483,6 +558,10 @@ async def datamart_webhook(request: Request):
             .execute()
 
         return {"received": True}
+
+    except HTTPException as e:
+        print("DATAMART WEBHOOK AUTH ERROR:", str(e.detail))
+        raise e
 
     except Exception as e:
         print("DATAMART WEBHOOK ERROR:", str(e))
@@ -503,7 +582,7 @@ def sync_order(reference: str):
             .execute()
 
         if not order_res.data:
-            raise HTTPException(404, "Not found")
+            raise HTTPException(404, "Order not found")
 
         order = order_res.data[0]
 
@@ -514,18 +593,33 @@ def sync_order(reference: str):
             f"{DATAMART_BASE}/order-status/{order['datamart_ref']}",
             headers={"X-API-Key": DATAMART_API_KEY},
             timeout=REQUEST_TIMEOUT
-        ).json()
+        )
 
-        status = dm.get("data", {}).get("orderStatus")
+        dm.raise_for_status()
 
-        final = "successful" if status == "completed" else "processing"
+        payload = dm.json()
+
+        status = str(
+            payload.get("data", {}).get("orderStatus", "")
+        ).lower()
+
+        final_status = (
+            "successful"
+            if status in ["completed", "success", "delivered"]
+            else "failed"
+            if status in ["failed", "cancelled", "refunded"]
+            else "processing"
+        )
 
         supabase.table("orders") \
-            .update({"status": final}) \
+            .update({"status": final_status}) \
             .eq("paystack_ref", reference) \
             .execute()
 
-        return {"status": final}
+        return {"status": final_status}
+
+    except HTTPException as e:
+        raise e
 
     except Exception as e:
         print("SYNC ERROR:", str(e))
