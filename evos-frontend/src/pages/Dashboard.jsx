@@ -4,12 +4,6 @@ export default function Dashboard({ setPage, user }) {
   const [dark, setDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [stats] = useState({
-    today: 0,
-    success: 0,
-    pending: 0,
-  });
-
   // AUTH GUARD
   useEffect(() => {
     if (!user) setPage("login");
@@ -31,9 +25,15 @@ export default function Dashboard({ setPage, user }) {
     script.setAttribute("data-theme", dark ? "dark" : "light");
     script.setAttribute("data-container", "tracker");
 
-    container.appendChild(script);
+    document.body.appendChild(script);
 
     return () => {
+      const existing = document.querySelector(
+        'script[src="https://api.datamartgh.shop/widgets/delivery-tracker.js"]'
+      );
+
+      if (existing) existing.remove();
+
       container.innerHTML = "";
     };
   }, [dark]);
