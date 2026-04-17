@@ -13,7 +13,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [theme, setTheme] = useState("dark");
 
-  // LOAD + DETECT URL PAGE
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) setUser(JSON.parse(savedUser));
@@ -23,21 +22,13 @@ export default function App() {
 
     const path = window.location.pathname;
 
-    if (path === "/success") {
-      setPage("success");
-    } else if (path === "/orders") {
-      setPage("orders");
-    } else if (path === "/dashboard") {
-      setPage("dashboard");
-    } else if (path === "/shop") {
-      setPage("shop");
-    } else if (path === "/login") {
-      setPage("login");
-    } else if (path === "/register") {
-      setPage("register");
-    } else {
-      setPage("home");
-    }
+    if (path === "/success") setPage("success");
+    else if (path === "/orders") setPage("orders");
+    else if (path === "/dashboard") setPage("dashboard");
+    else if (path === "/shop") setPage("shop");
+    else if (path === "/login") setPage("login");
+    else if (path === "/register") setPage("register");
+    else setPage("home");
   }, []);
 
   const toggleTheme = () => {
@@ -96,64 +87,77 @@ export default function App() {
 
   return (
     <div style={appStyle(isDark)}>
-      {/* NAVBAR */}
-      <nav style={navStyle(isDark)}>
-        <div style={logoStyle} onClick={() => navigate("home")}>
-          EVOS HUB
-        </div>
+      {/* BACKGROUND LAYER */}
+      <div style={bgStyle} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <button onClick={toggleTheme} style={themeBtn}>
-            {theme === "dark" ? "☀️" : "🌙"}
-          </button>
+      {/* DARK OVERLAY (keeps text readable) */}
+      <div style={overlayStyle(isDark)} />
 
-          <div onClick={() => setMenuOpen(!menuOpen)} style={menuIcon}>
-            ☰
+      {/* APP CONTENT */}
+      <div style={{ position: "relative", zIndex: 2 }}>
+        {/* NAVBAR */}
+        <nav style={navStyle(isDark)}>
+          <div style={logoStyle} onClick={() => navigate("home")}>
+            EVOS HUB
           </div>
-        </div>
-      </nav>
 
-      {/* DROPDOWN */}
-      {menuOpen && (
-        <div style={dropdownStyle(isDark)}>
-          <button onClick={() => navigate("shop")} style={menuBtn(isDark)}>
-            Buy Data
-          </button>
-
-          <button onClick={() => navigate("orders")} style={menuBtn(isDark)}>
-            Orders
-          </button>
-
-          <button
-            onClick={() => navigate("dashboard")}
-            style={menuBtn(isDark)}
-          >
-            Dashboard
-          </button>
-
-          {user ? (
-            <button onClick={logout} style={dangerBtn}>
-              Logout
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button onClick={toggleTheme} style={themeBtn}>
+              {theme === "dark" ? "☀️" : "🌙"}
             </button>
-          ) : (
-            <>
-              <button onClick={() => navigate("login")} style={menuBtn(isDark)}>
-                Login
-              </button>
 
-              <button onClick={() => navigate("register")} style={primaryBtn}>
-                Register
-              </button>
-            </>
-          )}
-        </div>
-      )}
+            <div onClick={() => setMenuOpen(!menuOpen)} style={menuIcon}>
+              ☰
+            </div>
+          </div>
+        </nav>
 
-      {/* CONTENT */}
-      <main style={contentStyle}>{renderPage()}</main>
+        {/* DROPDOWN */}
+        {menuOpen && (
+          <div style={dropdownStyle(isDark)}>
+            <button onClick={() => navigate("shop")} style={menuBtn(isDark)}>
+              Buy Data
+            </button>
+
+            <button onClick={() => navigate("orders")} style={menuBtn(isDark)}>
+              Orders
+            </button>
+
+            <button
+              onClick={() => navigate("dashboard")}
+              style={menuBtn(isDark)}
+            >
+              Dashboard
+            </button>
+
+            {user ? (
+              <button onClick={logout} style={dangerBtn}>
+                Logout
+              </button>
+            ) : (
+              <>
+                <button onClick={() => navigate("login")} style={menuBtn(isDark)}>
+                  Login
+                </button>
+
+                <button onClick={() => navigate("register")} style={primaryBtn}>
+                  Register
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* CONTENT */}
+        <main style={contentStyle}>{renderPage()}</main>
+      </div>
     </div>
   );
 }
+
+/* =======================
+   STYLES (FIXED + SAFE)
+======================= */
 
 /* =======================
    STYLES (FIXED + SAFE)
@@ -163,7 +167,22 @@ const appStyle = (dark) => ({
   minHeight: "100vh",
   fontFamily:
     "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial",
-  background: dark ? "#0b1220" : "#f8fafc",
+
+  /* BACKGROUND IMAGE */
+  backgroundImage: "url('/evosdata.png')",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+
+  /* IMPORTANT: makes overlay layering possible */
+  position: "relative",
+
+  /* overlay effect using gradient layer */
+  backgroundBlendMode: "overlay",
+  backgroundColor: dark
+    ? "rgba(0,0,0,0.65)"
+    : "rgba(255,255,255,0.35)",
+
   color: dark ? "#e5e7eb" : "#0f172a",
   transition: "0.3s ease",
 });
