@@ -4,12 +4,16 @@ export default function Dashboard({ setPage, user }) {
   const [dark, setDark] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // 🔥 LIVE DATAMART STATE
+  const [tracker, setTracker] = useState(null);
+  const [loadingTracker, setLoadingTracker] = useState(true);
+
   // AUTH GUARD
   useEffect(() => {
     if (!user) setPage("login");
   }, [user, setPage]);
 
-  // TRACKER SCRIPT
+  // 📡 DATAMART WIDGET SCRIPT
   useEffect(() => {
     const container = document.getElementById("tracker");
     if (!container) return;
@@ -37,6 +41,37 @@ export default function Dashboard({ setPage, user }) {
       container.innerHTML = "";
     };
   }, [dark]);
+
+  // ⚡ LIVE API TRACKER (CONTROL CENTER FEED)
+  useEffect(() => {
+    const fetchTracker = async () => {
+      try {
+        const res = await fetch(
+          "https://api.datamartgh.shop/delivery-tracker"
+        );
+        const data = await res.json();
+
+        setTracker(data.data);
+        setLoadingTracker(false);
+      } catch (err) {
+        console.log("Tracker error:", err);
+      }
+    };
+
+    fetchTracker();
+    const interval = setInterval(fetchTracker, 15000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 🔥 SCANNER STATUS ENGINE
+  const getScannerStatus = () => {
+    if (!tracker?.scanner) return "UNKNOWN";
+
+    if (tracker.scanner.active) return "ACTIVE 🟢";
+    if (tracker.scanner.waiting) return "WAITING ⏳";
+    return "IDLE 🔴";
+  };
 
   const logout = () => {
     localStorage.removeItem("user");
@@ -118,10 +153,7 @@ export default function Dashboard({ setPage, user }) {
             {dark ? "☀️ Light Mode" : "🌙 Dark Mode"}
           </button>
 
-          <button
-            style={styles.logoutBtn}
-            onClick={logout}
-          >
+          <button style={styles.logoutBtn} onClick={logout}>
             🚪 Logout
           </button>
         </div>
@@ -129,10 +161,7 @@ export default function Dashboard({ setPage, user }) {
 
       {/* OVERLAY */}
       {menuOpen && (
-        <div
-          style={styles.overlay}
-          onClick={() => setMenuOpen(false)}
-        />
+        <div style={styles.overlay} onClick={() => setMenuOpen(false)} />
       )}
 
       {/* MAIN */}
@@ -142,14 +171,57 @@ export default function Dashboard({ setPage, user }) {
           <div>
             <h1 style={styles.heroTitle}>Welcome back</h1>
             <p style={{ ...styles.heroText, color: soft }}>
-              <strong>
-                {user?.username || user?.email}
-              </strong>
+              <strong>{user?.username || user?.email}</strong>
             </p>
           </div>
         </div>
 
-        
+        {/* 🔥 DATAMART CONTROL PANEL */}
+        <div
+          style={{
+            ...styles.card,
+            background: cardBg,
+            border: "1px solid rgba(14,165,233,0.3)",
+            marginTop: "12px",
+          }}
+        >
+          <h3>⚡ Live Datamart System</h3>
+
+          {loadingTracker ? (
+            <p style={{ color: soft }}>Connecting scanner...</p>
+          ) : (
+            <>
+              <p>
+                <b>Status:</b> {getScannerStatus()}
+              </p>
+
+              <p style={{ color: soft }}>{tracker?.message}</p>
+
+              <div style={styles.statRow}>
+                <div>📦 Checked: {tracker?.stats?.checked}</div>
+                <div>✅ Delivered: {tracker?.stats?.delivered}</div>
+                <div>⏳ Pending: {tracker?.stats?.pending}</div>
+                <div>❌ Failed: {tracker?.stats?.failed}</div>
+              </div>
+
+              <hr style={{ opacity: 0.2 }} />
+
+              <p>
+                <b>Last Delivered:</b>
+              </p>
+              <p style={{ color: soft }}>
+                {tracker?.lastDelivered?.summary}
+              </p>
+
+              <p>
+                <b>Current Batch:</b>
+              </p>
+              <p style={{ color: soft }}>
+                {tracker?.checkingNow?.summary}
+              </p>
+            </>
+          )}
+        </div>
 
         {/* ACTIONS */}
         <div style={styles.sectionTitle}>Quick Actions</div>
@@ -176,7 +248,7 @@ export default function Dashboard({ setPage, user }) {
           </div>
         </div>
 
-        {/* TRACKER */}
+        {/* WIDGET TRACKER */}
         <div
           style={{
             ...styles.card,
@@ -187,6 +259,7 @@ export default function Dashboard({ setPage, user }) {
           <h3 style={{ marginBottom: "12px" }}>
             Live Delivery Tracker
           </h3>
+
           <div id="tracker"></div>
         </div>
 
@@ -198,7 +271,6 @@ export default function Dashboard({ setPage, user }) {
     </div>
   );
 }
-
 /* =======================
    STYLES
 ======================= */
@@ -207,6 +279,7 @@ const styles = {
   container: {
     minHeight: "100vh",
     transition: "0.3s ease",
+    background: "radial-gradient(circle at top, rgba(14,165,233,0.12), transparent 50%)",
   },
 
   header: {
@@ -218,13 +291,17 @@ const styles = {
     position: "sticky",
     top: 0,
     zIndex: 1000,
-    boxShadow: "0 10px 20px rgba(0,0,0,0.08)",
+    backdropFilter: "blur(18px)",
+    background: "rgba(15,23,42,0.75)",
+    borderBottom: "1px solid rgba(255,255,255,0.06)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
   },
 
   brand: {
-    color: "white",
-    fontWeight: "800",
+    color: "#38bdf8",
+    fontWeight: "900",
     fontSize: "22px",
+    letterSpacing: "1px",
   },
 
   menuBtn: {
@@ -232,10 +309,11 @@ const styles = {
     height: "44px",
     border: "none",
     borderRadius: "14px",
-    background: "rgba(255,255,255,0.18)",
-    color: "white",
+    background: "rgba(56,189,248,0.18)",
+    color: "#38bdf8",
     fontSize: "20px",
     cursor: "pointer",
+    backdropFilter: "blur(10px)",
   },
 
   sidebar: {
@@ -247,18 +325,21 @@ const styles = {
     padding: "22px",
     zIndex: 1200,
     transition: "0.3s ease",
-    boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
+    background: "rgba(15,23,42,0.95)",
+    backdropFilter: "blur(20px)",
+    borderRight: "1px solid rgba(255,255,255,0.06)",
+    boxShadow: "0 30px 60px rgba(0,0,0,0.4)",
   },
 
   sideTitle: {
-    color: "white",
+    color: "#38bdf8",
     fontSize: "24px",
-    fontWeight: "800",
+    fontWeight: "900",
     marginBottom: "6px",
   },
 
   sideSmall: {
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.7)",
     fontSize: "13px",
     marginBottom: "24px",
   },
@@ -271,22 +352,23 @@ const styles = {
 
   navBtn: {
     padding: "13px",
-    border: "none",
+    border: "1px solid rgba(255,255,255,0.08)",
     borderRadius: "14px",
-    background: "rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.04)",
     color: "white",
     fontWeight: "700",
     textAlign: "left",
     cursor: "pointer",
+    transition: "0.2s",
   },
 
   logoutBtn: {
     padding: "13px",
     border: "none",
     borderRadius: "14px",
-    background: "#ef4444",
+    background: "linear-gradient(135deg,#ef4444,#b91c1c)",
     color: "white",
-    fontWeight: "700",
+    fontWeight: "800",
     textAlign: "left",
     cursor: "pointer",
   },
@@ -294,7 +376,8 @@ const styles = {
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.45)",
+    background: "rgba(0,0,0,0.55)",
+    backdropFilter: "blur(2px)",
     zIndex: 1100,
   },
 
@@ -310,8 +393,9 @@ const styles = {
 
   heroTitle: {
     fontSize: "28px",
-    fontWeight: "800",
+    fontWeight: "900",
     marginBottom: "4px",
+    color: "#e5e7eb",
   },
 
   heroText: {
@@ -319,10 +403,12 @@ const styles = {
   },
 
   sectionTitle: {
-    fontSize: "15px",
-    fontWeight: "700",
+    fontSize: "14px",
+    fontWeight: "800",
     marginBottom: "12px",
-    marginTop: "6px",
+    marginTop: "10px",
+    color: "rgba(255,255,255,0.75)",
+    letterSpacing: "0.5px",
   },
 
   statsGrid: {
@@ -341,20 +427,26 @@ const styles = {
   card: {
     padding: "18px",
     borderRadius: "18px",
-    boxShadow: "0 10px 24px rgba(0,0,0,0.06)",
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
     cursor: "pointer",
+    backdropFilter: "blur(14px)",
+    transition: "0.2s ease",
   },
 
   bigNumber: {
     fontSize: "34px",
-    fontWeight: "800",
+    fontWeight: "900",
     marginTop: "8px",
+    color: "#38bdf8",
   },
 
   footer: {
     textAlign: "center",
-    fontSize: "13px",
-    marginTop: "24px",
+    fontSize: "12px",
+    marginTop: "26px",
     paddingBottom: "24px",
+    color: "rgba(255,255,255,0.5)",
   },
 };
