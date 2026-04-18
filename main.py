@@ -259,38 +259,14 @@ def get_user_orders(user_id: int = Query(...)):
 
 
 # =========================
-# CREATE ORDER (PRODUCTION SAFE)
+# CREATE ORDER (FIXED + CLEAN FLOW)
 # =========================
 @app.post("/orders/create")
 def create_order(data: CreateOrderRequest):
 
     try:
         # =========================
-        # PREVENT DUPLICATES (WITH EXPIRY)
-        # =========================
-
-        existing = supabase.table("orders") \
-            .select("id, created_at") \
-            .eq("user_id", data.user_id) \
-            .eq("network", data.network) \
-            .eq("bundle", data.bundle) \
-            .eq("status", "pending_payment") \
-            .order("created_at", desc=True) \
-            .limit(1) \
-            .execute()
-
-        if existing.data:
-            order = existing.data[0]
-
-            created_at = datetime.fromisoformat(order["created_at"])
-
-            # EXPIRE AFTER 10 MINUTES
-            if datetime.utcnow() - created_at < timedelta(minutes=10):
-                raise HTTPException(400, "Pending order already exists")
-
-                       
-        # =========================
-        # GET PRICE (SAFE)
+        # GET PRICE
         # =========================
         price_res = supabase.table("prices") \
             .select("price") \
@@ -319,48 +295,47 @@ def create_order(data: CreateOrderRequest):
         user = user_res.data[0]
 
         # =========================
-        # PAYSTACK INIT (SAFE)
+        # PAYSTACK INIT
         # =========================
-        try:
-            paystack = requests.post(
-                "https://api.paystack.co/transaction/initialize",
-                headers={
-                    "Authorization": f"Bearer {PAYSTACK_SECRET}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "email": user["email"],
-                    "amount": int(price * 100),
-                    "callback_url": "https://evosdata.netlify.app/success"
-                },
-                timeout=REQUEST_TIMEOUT
-            ).json()
-
-        except requests.exceptions.RequestException as e:
-            print("PAYSTACK ERROR:", str(e))
-            raise HTTPException(status_code=500, detail="Payment service error")
+        paystack = requests.post(
+            "https://api.paystack.co/transaction/initialize",
+            headers={
+                "Authorization": f"Bearer {PAYSTACK_SECRET}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "email": user["email"],
+                "amount": int(price * 100),
+                "callback_url": "https://evosdata.netlify.app/success"
+            },
+            timeout=REQUEST_TIMEOUT
+        ).json()
 
         if not paystack.get("status"):
             raise HTTPException(400, "Payment init failed")
 
-        ref = paystack["data"]["reference"]
+        pay_ref = paystack["data"]["reference"]
 
         # =========================
-        # SAVE ORDER
+        # CREATE ORDER (PENDING PAYMENT)
         # =========================
-        supabase.table("orders").insert({
+        order_insert = supabase.table("orders").insert({
             "user_id": data.user_id,
             "network": data.network,
             "bundle": data.bundle,
             "price": price,
             "phone_number": data.phone,
-            "paystack_ref": ref,
-            "status": "pending_payment"
+            "paystack_ref": pay_ref,
+
+            # CLEAN STATE SYSTEM
+            "status": "pending_payment",
+            "datamart_ref": None
         }).execute()
 
         return {
             "payment_url": paystack["data"]["authorization_url"],
-            "reference": ref
+            "reference": pay_ref,
+            "status": "pending_payment"
         }
 
     except HTTPException:
@@ -369,7 +344,6 @@ def create_order(data: CreateOrderRequest):
     except Exception as e:
         print("CREATE ORDER ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Server error")
-
 
 # =========================
 # PAYSTACK HELPERS
@@ -487,6 +461,7 @@ async def paystack_webhook(request: Request):
             supabase.table("orders") \
                 .update({
                     "status": "processing",
+                    "delivery_eta": "1min - 4hrs",
                     "datamart_ref": dm_ref
                 }) \
                 .eq("paystack_ref", reference) \
@@ -510,7 +485,7 @@ async def paystack_webhook(request: Request):
 
 
 # =========================
-# DATAMART WEBHOOK
+# DATAMART WEBHOOK (FIXED)
 # =========================
 @app.post("/webhook/datamart")
 async def datamart_webhook(request: Request):
@@ -520,8 +495,6 @@ async def datamart_webhook(request: Request):
         signature = request.headers.get("X-DataMart-Signature")
         event = request.headers.get("X-DataMart-Event", "")
 
-        # IMPORTANT:
-        # Use your DATAMART_WEBHOOK_SECRET here
         if not signature or not verify_datamart_signature(
             body,
             signature,
@@ -530,46 +503,57 @@ async def datamart_webhook(request: Request):
             raise HTTPException(401, "Invalid signature")
 
         payload = await request.json()
-
         data = payload.get("data", {})
+
         order_ref = data.get("orderReference") or data.get("reference")
-        status = str(data.get("status", "")).lower()
+        status = str(data.get("orderStatus") or data.get("status", "")).lower()
+
+        order_id = data.get("orderId")  # 🔥 store it if available
 
         print("DATAMART EVENT:", event)
-        print("DATAMART REF:", order_ref)
-        print("DATAMART STATUS:", status)
+        print("REF:", order_ref)
+        print("STATUS:", status)
+        print("ORDER ID:", order_id)
 
         if not order_ref:
             return {"received": True}
 
-        final_status = (
-            "successful"
-            if status in ["completed", "success", "delivered"]
-            else "processing"
-            if status in ["created", "processing", "pending"]
-            else "failed"
-            if status in ["failed", "cancelled", "refunded"]
-            else "processing"
-        )
+        # =========================
+        # CLEAN STATUS MAPPING
+        # =========================
+        if status in ["completed", "delivered", "success"]:
+            final_status = "delivered"
 
-        supabase.table("orders") \
-            .update({"status": final_status}) \
-            .eq("datamart_ref", order_ref) \
-            .execute()
+        elif status in ["processing", "pending", "created"]:
+            final_status = "processing"
+
+        elif status in ["failed", "cancelled", "refunded"]:
+            final_status = "failed"
+
+        else:
+            final_status = "processing"
+
+        # =========================
+        # UPDATE ORDER
+        # =========================
+        supabase.table("orders").update({
+            "status": final_status,
+            "datamart_order_id": order_id  # optional but useful
+        }).eq("datamart_ref", order_ref).execute()
 
         return {"received": True}
 
     except HTTPException as e:
-        print("DATAMART WEBHOOK AUTH ERROR:", str(e.detail))
+        print("WEBHOOK AUTH ERROR:", str(e.detail))
         raise e
 
     except Exception as e:
-        print("DATAMART WEBHOOK ERROR:", str(e))
+        print("WEBHOOK ERROR:", str(e))
         return {"received": False}
 
 
 # =========================
-# SYNC ORDER
+# SYNC ORDER (FIXED)
 # =========================
 @app.post("/orders/sync/{reference}")
 def sync_order(reference: str):
@@ -596,27 +580,42 @@ def sync_order(reference: str):
         )
 
         dm.raise_for_status()
-
         payload = dm.json()
 
         status = str(
             payload.get("data", {}).get("orderStatus", "")
         ).lower()
 
-        final_status = (
-            "successful"
-            if status in ["completed", "success", "delivered"]
-            else "failed"
-            if status in ["failed", "cancelled", "refunded"]
-            else "processing"
-        )
+        # =========================
+        # CLEAN STATUS MAPPING
+        # =========================
+        if status in ["completed", "delivered", "success"]:
+            final_status = "delivered"
 
+        elif status in ["processing", "pending", "created"]:
+            final_status = "processing"
+
+        elif status in ["failed", "cancelled", "refunded"]:
+            final_status = "failed"
+
+        else:
+            final_status = "processing"
+
+        # =========================
+        # UPDATE ORDER
+        # =========================
         supabase.table("orders") \
-            .update({"status": final_status}) \
+            .update({
+                "status": final_status,
+                "datamart_order_id": payload.get("data", {}).get("orderId")
+            }) \
             .eq("paystack_ref", reference) \
             .execute()
 
-        return {"status": final_status}
+        return {
+            "status": final_status,
+            "source": "datamart_sync"
+        }
 
     except HTTPException as e:
         raise e
