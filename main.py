@@ -1058,3 +1058,65 @@ async def ussd(request: Request):
         )
 
     return "END Invalid request"
+
+
+
+
+from fastapi import FastAPI, Request
+
+
+
+# =========================
+# EVOS DATA WHATSAPP BOT
+# =========================
+@app.post("/whatsapp/webhook")
+async def whatsapp_webhook(request: Request):
+
+    data = await request.json()
+
+    message = data.get("message", "").lower()
+    phone = data.get("from")
+
+    # =========================
+    # MAIN MENU
+    # =========================
+    if message in ["hi", "hello", "start"]:
+        return {
+            "reply": (
+                "👋 Welcome to EVOS Data\n\n"
+                "1. Buy Data\n"
+                "2. Track Order\n"
+                "3. Support"
+            )
+        }
+
+    # =========================
+    # BUY DATA FLOW
+    # =========================
+    if message == "1":
+        return {
+            "reply": (
+                "📡 Select Network:\n"
+                "1. MTN\n"
+                "2. Telecel\n"
+                "3. AirtelTigo"
+            )
+        }
+
+    # Example simple shortcut (you will expand later)
+    if "mtn" in message:
+        return {
+            "reply": "📦 Send bundle (e.g. 1GB, 2GB, 5GB)"
+        }
+
+    # =========================
+    # SUPPORT
+    # =========================
+    if message == "3":
+        return {
+            "reply": "💬 Support: https://wa.me/233208718943"
+        }
+
+    return {
+        "reply": "❌ Invalid option. Send 'hi' to start."
+    }
