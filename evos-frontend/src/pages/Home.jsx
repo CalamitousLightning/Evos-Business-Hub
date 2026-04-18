@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 export default function Home({ setPage, theme }) {
   const [loaded, setLoaded] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   useEffect(() => {
     setLoaded(true);
@@ -50,11 +51,15 @@ export default function Home({ setPage, theme }) {
             color: isDark ? "#94a3b8" : "#475569",
           }}
         >
-          Fast, secure and automated data delivery system powered by EVOS Bussiness HUB.
+          Fast, secure and automated data delivery system powered by EVOS
+          Bussiness HUB.
         </p>
 
         <div style={styles.buttons}>
-          <button style={styles.primaryBtn} onClick={() => setPage("shop")}>
+          <button
+            style={styles.primaryBtn}
+            onClick={() => setPage("shop")}
+          >
             Buy Data Now
           </button>
 
@@ -69,6 +74,13 @@ export default function Home({ setPage, theme }) {
             onClick={() => setPage("orders")}
           >
             Track Orders
+          </button>
+
+          <button
+            style={styles.supportBtn}
+            onClick={() => setSupportOpen(true)}
+          >
+            Support
           </button>
         </div>
 
@@ -135,20 +147,96 @@ export default function Home({ setPage, theme }) {
         <h2>Start Buying Data in Seconds</h2>
         <p>No stress. No delays. Just instant delivery.</p>
 
-        <button style={styles.ctaBtn} onClick={() => setPage("shop")}>
+        <button
+          style={styles.ctaBtn}
+          onClick={() => setPage("shop")}
+        >
           Get Started
         </button>
       </div>
+
+      {/* SUPPORT MODAL */}
+      {supportOpen && (
+        <>
+          <div
+            style={styles.overlay}
+            onClick={() => setSupportOpen(false)}
+          />
+
+          <div style={styles.modal}>
+            <h2 style={{ marginBottom: "10px" }}>
+              Support Center
+            </h2>
+
+            {/* WHATSAPP SUPPORT */}
+            <div
+              style={{
+                ...styles.helpCard,
+                cursor: "pointer",
+              }}
+              onClick={() =>
+                window.open(
+                  "https://wa.me/233208718943",
+                  "_blank"
+                )
+              }
+            >
+              💬 WhatsApp Support
+              <br />
+              Tap to chat instantly
+            </div>
+
+            {/* COMMUNITY */}
+            <div
+              style={{
+                ...styles.helpCard,
+                cursor: "pointer",
+              }}
+              onClick={() =>
+                window.open(
+                  "https://whatsapp.com/channel/0029VaTrnsZEgGfFXkIcjt1M",
+                  "_blank"
+                )
+              }
+            >
+              👥 WhatsApp Community
+              <br />
+              Join updates & promos
+            </div>
+
+            {/* EMAIL */}
+            <div
+              style={{
+                ...styles.helpCard,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                window.location.href =
+                  "mailto:support@evosdata.com";
+              }}
+            >
+              📧 Email Support
+              <br />
+              Tap to send email
+            </div>
+
+            <button
+              style={styles.closeBtn}
+              onClick={() => setSupportOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 /* ======================
-   PREMIUM STYLES
+   STYLES
 ====================== */
-/* ======================
-   HOME UI (SAAS PREMIUM SYSTEM)
-====================== */
+
 const styles = {
   container: {
     transition: "0.3s ease",
@@ -161,7 +249,6 @@ const styles = {
     marginBottom: "40px",
     background: "rgba(15, 23, 42, 0.35)",
     backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
     border: "1px solid rgba(255,255,255,0.06)",
   },
 
@@ -169,7 +256,6 @@ const styles = {
     fontSize: "clamp(30px, 5vw, 52px)",
     fontWeight: "800",
     marginBottom: "12px",
-    letterSpacing: "0.5px",
   },
 
   highlight: {
@@ -180,7 +266,6 @@ const styles = {
     fontSize: "16px",
     maxWidth: "650px",
     margin: "0 auto 22px",
-    color: "rgba(156, 163, 175, 0.9)",
     lineHeight: "1.6",
   },
 
@@ -200,18 +285,23 @@ const styles = {
     fontWeight: "700",
     border: "none",
     cursor: "pointer",
-    boxShadow: "0 10px 25px rgba(56, 189, 248, 0.25)",
-    transition: "0.2s ease",
   },
 
   secondaryBtn: {
     padding: "12px 18px",
     borderRadius: "12px",
     background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    color: "inherit",
     cursor: "pointer",
-    transition: "0.2s ease",
+  },
+
+  supportBtn: {
+    padding: "12px 18px",
+    borderRadius: "12px",
+    background: "#22c55e",
+    color: "white",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "700",
   },
 
   stats: {
@@ -225,9 +315,7 @@ const styles = {
     padding: "14px 18px",
     borderRadius: "14px",
     background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.06)",
     minWidth: "130px",
-    backdropFilter: "blur(12px)",
   },
 
   featuresSection: {
@@ -243,17 +331,14 @@ const styles = {
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "16px",
   },
 
   card: {
     padding: "20px",
     borderRadius: "16px",
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.06)",
-    backdropFilter: "blur(14px)",
-    transition: "0.2s ease",
   },
 
   cta: {
@@ -261,9 +346,6 @@ const styles = {
     padding: "70px 20px",
     marginTop: "40px",
     borderRadius: "20px",
-    background: "rgba(15, 23, 42, 0.35)",
-    backdropFilter: "blur(16px)",
-    border: "1px solid rgba(255,255,255,0.06)",
   },
 
   ctaBtn: {
@@ -272,9 +354,47 @@ const styles = {
     borderRadius: "12px",
     background: "#0b1220",
     color: "white",
-    fontWeight: "700",
-    border: "1px solid rgba(255,255,255,0.1)",
+    border: "none",
     cursor: "pointer",
-    transition: "0.2s ease",
+  },
+
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.55)",
+    zIndex: 1000,
+  },
+
+  modal: {
+    position: "fixed",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    width: "90%",
+    maxWidth: "420px",
+    background: "#0f172a",
+    padding: "22px",
+    borderRadius: "20px",
+    zIndex: 1200,
+  },
+
+  helpCard: {
+    padding: "14px",
+    borderRadius: "14px",
+    marginBottom: "10px",
+    background: "rgba(255,255,255,0.04)",
+  },
+
+  closeBtn: {
+    width: "100%",
+    padding: "12px",
+    border: "none",
+    borderRadius: "14px",
+    background:
+      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
+    color: "#00111f",
+    fontWeight: "800",
+    cursor: "pointer",
+    marginTop: "10px",
   },
 };
