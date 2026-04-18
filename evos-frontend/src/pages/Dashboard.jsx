@@ -5,10 +5,49 @@ export default function Dashboard({ setPage, user }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
 
+  const [stats, setStats] = useState({
+    total_orders: 0,
+    my_orders: 0,
+    my_successful_orders: 0,
+    transactions: [],
+  });
+
+  const [loading, setLoading] = useState(true);
+
   // AUTH GUARD
   useEffect(() => {
     if (!user) setPage("login");
   }, [user, setPage]);
+
+  // LOAD LIVE DASHBOARD DATA
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const loadDashboard = async () => {
+      try {
+        const res = await fetch(
+          `https://YOUR-BACKEND-URL/today/${user.id}`
+        );
+
+        const data = await res.json();
+
+        setStats({
+          total_orders: data.global.total_orders || 0,
+          my_orders: data.user.my_orders || 0,
+          my_successful_orders:
+            data.user.my_successful_orders || 0,
+          transactions:
+            data.user.transactions || [],
+        });
+      } catch (error) {
+        console.log("Dashboard error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, [user]);
 
   const logout = () => {
     localStorage.removeItem("user");
@@ -23,18 +62,6 @@ export default function Dashboard({ setPage, user }) {
   const text = isDark ? "#e5e7eb" : "#111827";
   const soft = isDark ? "#94a3b8" : "#64748b";
   const header = isDark ? "#0f172a" : "#0ea5e9";
-
-  // TEMP STATS (replace with backend API later)
-  const stats = {
-    delivered: 128,
-    pending: 7,
-    failed: 2,
-    total: 137,
-  };
-
-  const successRate = Math.round(
-    (stats.delivered / stats.total) * 100
-  );
 
   return (
     <div
@@ -138,38 +165,72 @@ export default function Dashboard({ setPage, user }) {
 
         {/* STATS */}
         <div style={styles.sectionTitle}>
-          Performance Overview
+          Dashboard Overview
         </div>
 
-        <div style={styles.grid2}>
-          <div style={{ ...styles.card, background: cardBg }}>
-            <div style={styles.small}>Delivered</div>
-            <div style={styles.bigNumber}>
-              {stats.delivered}
-            </div>
+        {loading ? (
+          <div style={{ color: soft }}>
+            Loading dashboard...
           </div>
+        ) : (
+          <div style={styles.grid2}>
+            <div
+              style={{
+                ...styles.card,
+                background: cardBg,
+              }}
+            >
+              <div style={styles.small}>
+                Global Orders
+              </div>
+              <div style={styles.bigNumber}>
+                {stats.total_orders}
+              </div>
+            </div>
 
-          <div style={{ ...styles.card, background: cardBg }}>
-            <div style={styles.small}>Pending</div>
-            <div style={styles.bigNumber}>
-              {stats.pending}
+            <div
+              style={{
+                ...styles.card,
+                background: cardBg,
+              }}
+            >
+              <div style={styles.small}>
+                My Orders
+              </div>
+              <div style={styles.bigNumber}>
+                {stats.my_orders}
+              </div>
             </div>
-          </div>
 
-          <div style={{ ...styles.card, background: cardBg }}>
-            <div style={styles.small}>Failed</div>
-            <div style={styles.bigNumber}>
-              {stats.failed}
+            <div
+              style={{
+                ...styles.card,
+                background: cardBg,
+              }}
+            >
+              <div style={styles.small}>
+                Successful Orders
+              </div>
+              <div style={styles.bigNumber}>
+                {stats.my_successful_orders}
+              </div>
             </div>
-          </div>
 
-          <div style={{ ...styles.card, background: cardBg }}>
-            <div style={styles.small}>Success Rate</div>
-            <div style={styles.bigNumber}>
-              {successRate}%
+            <div
+              style={{
+                ...styles.card,
+                background: cardBg,
+              }}
+            >
+              <div style={styles.small}>
+                Transactions
+              </div>
+              <div style={styles.bigNumber}>
+                {stats.transactions.length}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* ACTIONS */}
         <div style={styles.sectionTitle}>
@@ -178,7 +239,10 @@ export default function Dashboard({ setPage, user }) {
 
         <div style={styles.grid}>
           <div
-            style={{ ...styles.card, background: cardBg }}
+            style={{
+              ...styles.card,
+              background: cardBg,
+            }}
             onClick={() => setPage("shop")}
           >
             <h3>📦 Buy Data</h3>
@@ -188,45 +252,39 @@ export default function Dashboard({ setPage, user }) {
           </div>
 
           <div
-            style={{ ...styles.card, background: cardBg }}
+            style={{
+              ...styles.card,
+              background: cardBg,
+            }}
             onClick={() => setPage("orders")}
           >
             <h3>📜 Orders</h3>
             <p style={{ color: soft }}>
-              View your transaction history
+              View transaction history
             </p>
           </div>
 
           <div
-            style={{ ...styles.card, background: cardBg }}
-            onClick={() => setPage("orders")}
-          >
-            <h3>🚚 Track Delivery</h3>
-            <p style={{ color: soft }}>
-              Check delivery progress
-            </p>
-          </div>
-
-          <div
-            style={{ ...styles.card, background: cardBg }}
+            style={{
+              ...styles.card,
+              background: cardBg,
+            }}
             onClick={() => setSupportOpen(true)}
           >
             <h3>💬 Support</h3>
             <p style={{ color: soft }}>
-              Help center & how to buy
-            </p>
-          </div>
-
-          <div style={{ ...styles.card, background: cardBg }}>
-            <h3>📱 USSD</h3>
-            <p style={{ color: soft }}>
-              Coming Soon
+              WhatsApp & Email help
             </p>
           </div>
         </div>
 
         {/* FOOTER */}
-        <div style={{ ...styles.footer, color: soft }}>
+        <div
+          style={{
+            ...styles.footer,
+            color: soft,
+          }}
+        >
           © Copyright 2026, Evos Technologies
         </div>
       </div>
@@ -236,29 +294,44 @@ export default function Dashboard({ setPage, user }) {
         <>
           <div
             style={styles.overlay}
-            onClick={() => setSupportOpen(false)}
+            onClick={() =>
+              setSupportOpen(false)
+            }
           />
 
           <div style={styles.modal}>
-            <h2 style={{ marginBottom: "10px" }}>
+            <h2
+              style={{
+                marginBottom: "10px",
+              }}
+            >
               Support Center
             </h2>
 
+            {/* ADD YOUR DETAILS BELOW */}
+
             <div style={styles.helpCard}>
-              🌐 How to buy data with website
+              💬 WhatsApp Community:
+              <br />
+             https://whatsapp.com/channel/0029VaTrnsZEgGfFXkIcjt1M
             </div>
 
             <div style={styles.helpCard}>
-              📱 Buy with USSD (Coming Soon)
+              📧 Email Support:
+              <br />
+              support@evosdata.com
             </div>
 
             <div style={styles.helpCard}>
-              📞 Contact Support
+              🌐 Need help buying data?
+              Contact support anytime.
             </div>
 
             <button
               style={styles.closeBtn}
-              onClick={() => setSupportOpen(false)}
+              onClick={() =>
+                setSupportOpen(false)
+              }
             >
               Close
             </button>
