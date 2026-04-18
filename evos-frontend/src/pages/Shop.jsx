@@ -1,3 +1,8 @@
+// ======================
+// REPLACE ONLY LOGIC + RETURN SECTION
+// Keep your styles below unchanged
+// ======================
+
 import { useEffect, useState } from "react";
 import API from "../api";
 
@@ -15,7 +20,7 @@ export default function Shop() {
   const [error, setError] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const user_id = user?.id || null; // ✅ GUEST SUPPORT
+  const user_id = user?.id || null;
 
   // ======================
   // LOAD PRICES
@@ -25,10 +30,8 @@ export default function Shop() {
       try {
         const res = await API.get("/prices");
         const data = res.data?.data;
-
         setPrices(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.log("Failed to load prices");
         setPrices([]);
       }
     };
@@ -36,12 +39,20 @@ export default function Shop() {
     loadPrices();
   }, []);
 
-  const bundles = Array.isArray(prices)
-    ? prices.filter((p) => p.network === network)
-    : [];
+  // ======================
+  // OUT OF STOCK NETWORKS
+  // ======================
+  const OUT_OF_STOCK = ["TELECEL", "AIRTELTIGO"];
+
+  const isOutOfStock = (name) => OUT_OF_STOCK.includes(name);
 
   // ======================
-  // BUY ORDER (GUEST SAFE)
+  // FILTER BUNDLES
+  // ======================
+  const bundles = prices.filter((p) => p.network === network);
+
+  // ======================
+  // BUY ORDER
   // ======================
   const handleBuy = async () => {
     try {
@@ -60,33 +71,39 @@ export default function Shop() {
       setLoading(true);
 
       const res = await API.post("/orders/create", {
-        user_id, // can be null (guest)
+        user_id,
         network,
         bundle,
         phone,
-        email: email || "guest@evosdata.com",
+        email: email || "guest@evoshub.com",
       });
 
-      if (!res.data?.payment_url) {
-        setError("Payment link not received");
+      // IMPORTANT FIX
+      const paymentUrl =
+        res.data?.payment_url ||
+        res.data?.authorization_url ||
+        res.data?.data?.authorization_url;
+
+      if (!paymentUrl) {
         setLoading(false);
+        setError("Payment link not received");
         return;
       }
 
-      window.location.href = res.data.payment_url;
+      window.location.href = paymentUrl;
     } catch (err) {
       setLoading(false);
-      setError(err.response?.data?.detail || "Order failed");
+      setError(
+        err.response?.data?.detail ||
+          err.response?.data?.message ||
+          "Order failed"
+      );
     }
   };
 
   // ======================
-  // STOCK CONTROL
+  // RETURN UI
   // ======================
-  const OUT_OF_STOCK = ["TELECEL", "AIRTELTIGO"];
-
-  const isOutOfStock = (name) => OUT_OF_STOCK.includes(name);
-
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Buy Data</h2>
@@ -113,22 +130,27 @@ export default function Shop() {
                   style={{
                     ...styles.option,
                     ...n.style,
-                    opacity: disabled ? 0.4 : 1,
+                    opacity: disabled ? 0.45 : 1,
                     cursor: disabled ? "not-allowed" : "pointer",
                   }}
                   onClick={() => {
                     if (disabled) return;
-
                     setNetwork(n.name);
                     setStep(2);
                   }}
                 >
                   <span>{n.icon}</span>
-
                   {n.name}
 
                   {disabled && (
-                    <span style={{ marginLeft: "auto", color: "red" }}>
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        color: "#ef4444",
+                        fontSize: "13px",
+                        fontWeight: "700",
+                      }}
+                    >
                       Out of Stock
                     </span>
                   )}
@@ -141,27 +163,37 @@ export default function Shop() {
         {/* STEP 2 */}
         {step === 2 && (
           <div style={styles.box}>
-            <button style={styles.back} onClick={() => setStep(1)}>
+            <button
+              style={styles.back}
+              onClick={() => setStep(1)}
+            >
               ← Back
             </button>
 
             <h3 style={styles.step}>Select Bundle</h3>
 
             {bundles.length === 0 && (
-              <p style={{ color: "#888" }}>No bundles found</p>
+              <p style={{ color: "#94a3b8" }}>
+                No bundles found
+              </p>
             )}
 
             {bundles.map((b, i) => (
               <div
                 key={i}
+                style={styles.card}
                 onClick={() => {
                   setBundle(b.bundle);
                   setStep(3);
                 }}
-                style={styles.card}
               >
-                <h4 style={{ color: "#e5e7eb" }}>{b.bundle}</h4>
-                <p style={{ color: "#94a3b8" }}>GH₵ {b.price}</p>
+                <h4 style={{ color: "#e5e7eb" }}>
+                  {b.bundle}
+                </h4>
+
+                <p style={{ color: "#94a3b8" }}>
+                  GH₵ {b.price}
+                </p>
               </div>
             ))}
           </div>
@@ -170,7 +202,10 @@ export default function Shop() {
         {/* STEP 3 */}
         {step === 3 && (
           <div style={styles.box}>
-            <button style={styles.back} onClick={() => setStep(2)}>
+            <button
+              style={styles.back}
+              onClick={() => setStep(2)}
+            >
               ← Back
             </button>
 
@@ -182,18 +217,21 @@ export default function Shop() {
             </div>
 
             <input
+              style={styles.input}
               placeholder="Enter phone number"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              style={styles.input}
+              onChange={(e) =>
+                setPhone(e.target.value)
+              }
             />
 
-            {/* GUEST EMAIL INPUT */}
             <input
-              placeholder="Email (optional for receipt)"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               style={styles.input}
+              placeholder="Email for receipt"
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
             />
 
             <button
@@ -202,10 +240,11 @@ export default function Shop() {
               style={{
                 ...styles.buyBtn,
                 opacity: loading ? 0.6 : 1,
-                cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              {loading ? "Processing..." : "Pay with Paystack"}
+              {loading
+                ? "Processing..."
+                : "Pay with Paystack"}
             </button>
           </div>
         )}
@@ -214,6 +253,8 @@ export default function Shop() {
     </div>
   );
 }
+
+
 /* ======================
    SHOP UI (UPGRADED SaaS STYLE)
 ====================== */
