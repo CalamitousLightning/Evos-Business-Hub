@@ -147,11 +147,17 @@ export default function Dashboard({ setPage, user }) {
 
       {/* MAIN */}
       <div style={styles.main}>
-        {/* HERO */}
         <div style={styles.hero}>
-          <h1 style={styles.heroTitle}>Welcome back</h1>
+          <h1 style={styles.heroTitle}>
+            Welcome back
+          </h1>
 
-          <p style={{ ...styles.heroText, color: soft }}>
+          <p
+            style={{
+              ...styles.heroText,
+              color: soft,
+            }}
+          >
             {user?.username || user?.email}
           </p>
 
@@ -269,7 +275,9 @@ export default function Dashboard({ setPage, user }) {
               ...styles.card,
               background: cardBg,
             }}
-            onClick={() => setSupportOpen(true)}
+            onClick={() =>
+              setSupportOpen(true)
+            }
           >
             <h3>💬 Support</h3>
             <p style={{ color: soft }}>
@@ -278,7 +286,6 @@ export default function Dashboard({ setPage, user }) {
           </div>
         </div>
 
-        {/* FOOTER */}
         <div
           style={{
             ...styles.footer,
@@ -308,23 +315,56 @@ export default function Dashboard({ setPage, user }) {
               Support Center
             </h2>
 
-            {/* ADD YOUR DETAILS BELOW */}
-
-            <div style={styles.helpCard}>
-              💬 WhatsApp Community:
+            {/* WHATSAPP SUPPORT */}
+            <div
+              style={{
+                ...styles.helpCard,
+                cursor: "pointer",
+              }}
+              onClick={() =>
+                window.open(
+                  "https://wa.me/233208718943",
+                  "_blank"
+                )
+              }
+            >
+              💬 WhatsApp Support
               <br />
-             https://whatsapp.com/channel/0029VaTrnsZEgGfFXkIcjt1M
+              Tap to chat instantly
             </div>
 
-            <div style={styles.helpCard}>
-              📧 Email Support:
+            {/* COMMUNITY */}
+            <div
+              style={{
+                ...styles.helpCard,
+                cursor: "pointer",
+              }}
+              onClick={() =>
+                window.open(
+                  "https://whatsapp.com/channel/0029VaTrnsZEgGfFXkIcjt1M",
+                  "_blank"
+                )
+              }
+            >
+              👥 WhatsApp Community
               <br />
-              support@evosdata.com
+              Join updates & promos
             </div>
 
-            <div style={styles.helpCard}>
-              🌐 Need help buying data?
-              Contact support anytime.
+            {/* EMAIL */}
+            <div
+              style={{
+                ...styles.helpCard,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                window.location.href =
+                  "mailto:support@evosdata.com";
+              }}
+            >
+              📧 Email Support
+              <br />
+              Tap to send email
             </div>
 
             <button
