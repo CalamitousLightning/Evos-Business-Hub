@@ -18,6 +18,8 @@ from jose import jwt
 from passlib.context import CryptContext
 
 from datetime import datetime, timedelta
+import uuid
+
 
 load_dotenv()
 
@@ -151,7 +153,6 @@ def extract_capacity(bundle: str) -> str:
         .replace("MB", "")
         .strip()
     )
-
 
 # =========================
 # PAYSTACK SIGNATURE
@@ -288,7 +289,6 @@ def create_order(data: CreateOrderRequest):
             if datetime.utcnow() - created_at < timedelta(minutes=10):
                 raise HTTPException(400, "Pending order already exists")
 
-                       
         # =========================
         # GET PRICE (SAFE)
         # =========================
@@ -346,6 +346,12 @@ def create_order(data: CreateOrderRequest):
         ref = paystack["data"]["reference"]
 
         # =========================
+        # GENERATE EVOSDATA REF
+        # =========================
+        import uuid
+        evos_ref = f"EVOS-{uuid.uuid4().hex[:8].upper()}"
+
+        # =========================
         # SAVE ORDER
         # =========================
         supabase.table("orders").insert({
@@ -355,6 +361,7 @@ def create_order(data: CreateOrderRequest):
             "price": price,
             "phone_number": data.phone,
             "paystack_ref": ref,
+            "evosdata_ref": evos_ref,
             "status": "pending_payment"
         }).execute()
 
@@ -369,7 +376,6 @@ def create_order(data: CreateOrderRequest):
     except Exception as e:
         print("CREATE ORDER ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Server error")
-
 
 # =========================
 # PAYSTACK HELPERS
@@ -807,3 +813,69 @@ def login(data: LoginRequest):
     except Exception as e:
         print("LOGIN ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Server error")
+from fastapi import HTTPException
+
+
+
+@app.get("/today/{user_id}")
+def today_dashboard(user_id: int):
+
+    try:
+        # GLOBAL TOTAL ORDERS
+        global_orders = supabase.table("orders") \
+            .select("id", count="exact") \
+            .execute()
+
+        total_orders = global_orders.count or 0
+
+        # USER ORDERS
+        user_orders = supabase.table("orders") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .order("created_at", desc=True) \
+            .execute()
+
+        my_orders = user_orders.data or []
+
+        # SUCCESSFUL USER ORDERS
+        success_status = [
+            "processing",
+            "successful",
+            "delivered",
+            "initiated"
+        ]
+
+        my_successful_orders = [
+            order for order in my_orders
+            if order["status"] in success_status
+        ]
+
+        # TRANSACTIONS
+        transactions = [
+            {
+                "network": row["network"],
+                "amount": f'{row["bundle"]} - GHS {row["price"]}',
+                "phone_number": row["phone_number"],
+                "evosdata_ref": row["evosdata_ref"],
+                "paystack_ref": row["paystack_ref"],
+                "datamart_ref": row["datamart_ref"],
+                "status": row["status"],
+                "created_at": row["created_at"]
+            }
+            for row in my_orders
+        ]
+
+        return {
+            "global": {
+                "total_orders": total_orders
+            },
+            "user": {
+                "my_orders": len(my_orders),
+                "my_successful_orders": len(my_successful_orders),
+                "transactions": transactions
+            }
+        }
+
+    except Exception as e:
+        print("TODAY ERROR:", str(e))
+        raise HTTPException(500, "Server error")
