@@ -18,6 +18,22 @@ export default function Orders() {
     return "#6b7280";
   };
 
+  // ⚡ NEW: STATUS LABEL MAP (UI ONLY - DATAMART AWARE)
+  const getStatusLabel = (status) => {
+    if (status === "pending_payment") return "Waiting for Payment";
+
+    if (status === "processing")
+      return "Processing (Delivery: 1 min - 4 hrs)";
+
+    if (status === "successful")
+      return "Delivered Successfully";
+
+    if (status === "failed")
+      return "Delivery Failed";
+
+    return "Unknown Status";
+  };
+
   // 🔥 FETCH ORDERS
   const loadOrders = async () => {
     if (!userId) {
@@ -83,8 +99,9 @@ export default function Orders() {
           <div key={i} style={styles.card}>
             <h3>{o.network} • {o.bundle}</h3>
 
+            {/* 🔥 UPDATED STATUS DISPLAY */}
             <p style={{ color: getColor(o.status), fontWeight: "bold" }}>
-              {o.status}
+              {getStatusLabel(o.status)}
             </p>
 
             <p>GH₵ {o.price}</p>
