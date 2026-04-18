@@ -50,7 +50,7 @@ export default function Home({ setPage, theme }) {
             color: isDark ? "#94a3b8" : "#475569",
           }}
         >
-          Fast, secure and automated data delivery system powered by EVOS HUB.
+          Fast, secure and automated data delivery system powered by EVOS Bussiness HUB.
         </p>
 
         <div style={styles.buttons}>
@@ -75,7 +75,7 @@ export default function Home({ setPage, theme }) {
         {/* STATS */}
         <div style={styles.stats}>
           <div style={styles.statBox}>
-            <h3>⚡ 5s</h3>
+            <h3>⚡ 5s - 4hr</h3>
             <p>Avg Delivery</p>
           </div>
 
