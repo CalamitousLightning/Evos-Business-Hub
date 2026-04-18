@@ -1,77 +1,14 @@
 import { useEffect, useState } from "react";
 
 export default function Dashboard({ setPage, user }) {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // 🔥 LIVE DATAMART STATE
-  const [tracker, setTracker] = useState(null);
-  const [loadingTracker, setLoadingTracker] = useState(true);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   // AUTH GUARD
   useEffect(() => {
     if (!user) setPage("login");
   }, [user, setPage]);
-
-  // 📡 DATAMART WIDGET SCRIPT
-  useEffect(() => {
-    const container = document.getElementById("tracker");
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    const script = document.createElement("script");
-    script.src =
-      "https://api.datamartgh.shop/widgets/delivery-tracker.js";
-    script.async = true;
-
-    script.setAttribute("data-api-key", "YOUR_API_KEY");
-    script.setAttribute("data-theme", dark ? "dark" : "light");
-    script.setAttribute("data-container", "tracker");
-
-    document.body.appendChild(script);
-
-    return () => {
-      const existing = document.querySelector(
-        'script[src="https://api.datamartgh.shop/widgets/delivery-tracker.js"]'
-      );
-
-      if (existing) existing.remove();
-
-      container.innerHTML = "";
-    };
-  }, [dark]);
-
-  // ⚡ LIVE API TRACKER (CONTROL CENTER FEED)
-  useEffect(() => {
-    const fetchTracker = async () => {
-      try {
-        const res = await fetch(
-          "https://api.datamartgh.shop/delivery-tracker"
-        );
-        const data = await res.json();
-
-        setTracker(data.data);
-        setLoadingTracker(false);
-      } catch (err) {
-        console.log("Tracker error:", err);
-      }
-    };
-
-    fetchTracker();
-    const interval = setInterval(fetchTracker, 15000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // 🔥 SCANNER STATUS ENGINE
-  const getScannerStatus = () => {
-    if (!tracker?.scanner) return "UNKNOWN";
-
-    if (tracker.scanner.active) return "ACTIVE 🟢";
-    if (tracker.scanner.waiting) return "WAITING ⏳";
-    return "IDLE 🔴";
-  };
 
   const logout = () => {
     localStorage.removeItem("user");
@@ -81,11 +18,23 @@ export default function Dashboard({ setPage, user }) {
 
   const isDark = dark;
 
-  const bg = isDark ? "#0f172a" : "#f8fafc";
-  const cardBg = isDark ? "#1e293b" : "#ffffff";
+  const bg = isDark ? "#020617" : "#f8fafc";
+  const cardBg = isDark ? "#0f172a" : "#ffffff";
   const text = isDark ? "#e5e7eb" : "#111827";
   const soft = isDark ? "#94a3b8" : "#64748b";
-  const header = isDark ? "#111827" : "#0ea5e9";
+  const header = isDark ? "#0f172a" : "#0ea5e9";
+
+  // TEMP STATS (replace with backend API later)
+  const stats = {
+    delivered: 128,
+    pending: 7,
+    failed: 2,
+    total: 137,
+  };
+
+  const successRate = Math.round(
+    (stats.delivered / stats.total) * 100
+  );
 
   return (
     <div
@@ -102,7 +51,7 @@ export default function Dashboard({ setPage, user }) {
           background: header,
         }}
       >
-        <div style={styles.brand}>Dashboard</div>
+        <div style={styles.brand}>EVOS HUB</div>
 
         <button
           onClick={() => setMenuOpen(!menuOpen)}
@@ -116,7 +65,6 @@ export default function Dashboard({ setPage, user }) {
       <div
         style={{
           ...styles.sidebar,
-          background: header,
           left: menuOpen ? "0" : "-280px",
         }}
       >
@@ -143,7 +91,7 @@ export default function Dashboard({ setPage, user }) {
               setMenuOpen(false);
             }}
           >
-            📡 Orders
+            📜 Orders
           </button>
 
           <button
@@ -153,7 +101,10 @@ export default function Dashboard({ setPage, user }) {
             {dark ? "☀️ Light Mode" : "🌙 Dark Mode"}
           </button>
 
-          <button style={styles.logoutBtn} onClick={logout}>
+          <button
+            style={styles.logoutBtn}
+            onClick={logout}
+          >
             🚪 Logout
           </button>
         </div>
@@ -161,79 +112,78 @@ export default function Dashboard({ setPage, user }) {
 
       {/* OVERLAY */}
       {menuOpen && (
-        <div style={styles.overlay} onClick={() => setMenuOpen(false)} />
+        <div
+          style={styles.overlay}
+          onClick={() => setMenuOpen(false)}
+        />
       )}
 
       {/* MAIN */}
       <div style={styles.main}>
-        {/* WELCOME */}
+        {/* HERO */}
         <div style={styles.hero}>
-          <div>
-            <h1 style={styles.heroTitle}>Welcome back</h1>
-            <p style={{ ...styles.heroText, color: soft }}>
-              <strong>{user?.username || user?.email}</strong>
-            </p>
+          <h1 style={styles.heroTitle}>Welcome back</h1>
+
+          <p style={{ ...styles.heroText, color: soft }}>
+            {user?.username || user?.email}
+          </p>
+
+          <div style={styles.onlineWrap}>
+            <span style={styles.dot}></span>
+            <span style={{ color: soft }}>
+              System Online
+            </span>
           </div>
         </div>
 
-        {/* 🔥 DATAMART CONTROL PANEL */}
-        <div
-          style={{
-            ...styles.card,
-            background: cardBg,
-            border: "1px solid rgba(14,165,233,0.3)",
-            marginTop: "12px",
-          }}
-        >
-          <h3>⚡ Live Datamart System</h3>
+        {/* STATS */}
+        <div style={styles.sectionTitle}>
+          Performance Overview
+        </div>
 
-          {loadingTracker ? (
-            <p style={{ color: soft }}>Connecting scanner...</p>
-          ) : (
-            <>
-              <p>
-                <b>Status:</b> {getScannerStatus()}
-              </p>
+        <div style={styles.grid2}>
+          <div style={{ ...styles.card, background: cardBg }}>
+            <div style={styles.small}>Delivered</div>
+            <div style={styles.bigNumber}>
+              {stats.delivered}
+            </div>
+          </div>
 
-              <p style={{ color: soft }}>{tracker?.message}</p>
+          <div style={{ ...styles.card, background: cardBg }}>
+            <div style={styles.small}>Pending</div>
+            <div style={styles.bigNumber}>
+              {stats.pending}
+            </div>
+          </div>
 
-              <div style={styles.statRow}>
-                <div>📦 Checked: {tracker?.stats?.checked}</div>
-                <div>✅ Delivered: {tracker?.stats?.delivered}</div>
-                <div>⏳ Pending: {tracker?.stats?.pending}</div>
-                <div>❌ Failed: {tracker?.stats?.failed}</div>
-              </div>
+          <div style={{ ...styles.card, background: cardBg }}>
+            <div style={styles.small}>Failed</div>
+            <div style={styles.bigNumber}>
+              {stats.failed}
+            </div>
+          </div>
 
-              <hr style={{ opacity: 0.2 }} />
-
-              <p>
-                <b>Last Delivered:</b>
-              </p>
-              <p style={{ color: soft }}>
-                {tracker?.lastDelivered?.summary}
-              </p>
-
-              <p>
-                <b>Current Batch:</b>
-              </p>
-              <p style={{ color: soft }}>
-                {tracker?.checkingNow?.summary}
-              </p>
-            </>
-          )}
+          <div style={{ ...styles.card, background: cardBg }}>
+            <div style={styles.small}>Success Rate</div>
+            <div style={styles.bigNumber}>
+              {successRate}%
+            </div>
+          </div>
         </div>
 
         {/* ACTIONS */}
-        <div style={styles.sectionTitle}>Quick Actions</div>
+        <div style={styles.sectionTitle}>
+          Quick Actions
+        </div>
 
         <div style={styles.grid}>
           <div
             style={{ ...styles.card, background: cardBg }}
             onClick={() => setPage("shop")}
           >
-            <h3>Buy Data</h3>
+            <h3>📦 Buy Data</h3>
             <p style={{ color: soft }}>
-              Purchase MTN, Telecel & AirtelTigo bundles
+              Purchase all network bundles
             </p>
           </div>
 
@@ -241,26 +191,38 @@ export default function Dashboard({ setPage, user }) {
             style={{ ...styles.card, background: cardBg }}
             onClick={() => setPage("orders")}
           >
-            <h3>Track Orders</h3>
+            <h3>📜 Orders</h3>
             <p style={{ color: soft }}>
-              Monitor transactions and delivery
+              View your transaction history
             </p>
           </div>
-        </div>
 
-        {/* WIDGET TRACKER */}
-        <div
-          style={{
-            ...styles.card,
-            background: cardBg,
-            marginTop: "16px",
-          }}
-        >
-          <h3 style={{ marginBottom: "12px" }}>
-            Live Delivery Tracker
-          </h3>
+          <div
+            style={{ ...styles.card, background: cardBg }}
+            onClick={() => setPage("orders")}
+          >
+            <h3>🚚 Track Delivery</h3>
+            <p style={{ color: soft }}>
+              Check delivery progress
+            </p>
+          </div>
 
-          <div id="tracker"></div>
+          <div
+            style={{ ...styles.card, background: cardBg }}
+            onClick={() => setSupportOpen(true)}
+          >
+            <h3>💬 Support</h3>
+            <p style={{ color: soft }}>
+              Help center & how to buy
+            </p>
+          </div>
+
+          <div style={{ ...styles.card, background: cardBg }}>
+            <h3>📱 USSD</h3>
+            <p style={{ color: soft }}>
+              Coming Soon
+            </p>
+          </div>
         </div>
 
         {/* FOOTER */}
@@ -268,9 +230,45 @@ export default function Dashboard({ setPage, user }) {
           © Copyright 2026, Evos Technologies
         </div>
       </div>
+
+      {/* SUPPORT MODAL */}
+      {supportOpen && (
+        <>
+          <div
+            style={styles.overlay}
+            onClick={() => setSupportOpen(false)}
+          />
+
+          <div style={styles.modal}>
+            <h2 style={{ marginBottom: "10px" }}>
+              Support Center
+            </h2>
+
+            <div style={styles.helpCard}>
+              🌐 How to buy data with website
+            </div>
+
+            <div style={styles.helpCard}>
+              📱 Buy with USSD (Coming Soon)
+            </div>
+
+            <div style={styles.helpCard}>
+              📞 Contact Support
+            </div>
+
+            <button
+              style={styles.closeBtn}
+              onClick={() => setSupportOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
+
 /* =======================
    STYLES
 ======================= */
@@ -279,7 +277,8 @@ const styles = {
   container: {
     minHeight: "100vh",
     transition: "0.3s ease",
-    background: "radial-gradient(circle at top, rgba(14,165,233,0.12), transparent 50%)",
+    background:
+      "radial-gradient(circle at top, rgba(56,189,248,0.10), transparent 50%)",
   },
 
   header: {
@@ -291,10 +290,9 @@ const styles = {
     position: "sticky",
     top: 0,
     zIndex: 1000,
-    backdropFilter: "blur(18px)",
-    background: "rgba(15,23,42,0.75)",
-    borderBottom: "1px solid rgba(255,255,255,0.06)",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+    borderBottom:
+      "1px solid rgba(255,255,255,0.06)",
+    backdropFilter: "blur(16px)",
   },
 
   brand: {
@@ -309,26 +307,23 @@ const styles = {
     height: "44px",
     border: "none",
     borderRadius: "14px",
-    background: "rgba(56,189,248,0.18)",
+    background: "rgba(56,189,248,0.14)",
     color: "#38bdf8",
     fontSize: "20px",
     cursor: "pointer",
-    backdropFilter: "blur(10px)",
   },
 
   sidebar: {
     position: "fixed",
     top: 0,
-    left: "-280px",
     width: "260px",
     height: "100vh",
     padding: "22px",
     zIndex: 1200,
     transition: "0.3s ease",
-    background: "rgba(15,23,42,0.95)",
-    backdropFilter: "blur(20px)",
-    borderRight: "1px solid rgba(255,255,255,0.06)",
-    boxShadow: "0 30px 60px rgba(0,0,0,0.4)",
+    background: "#020617",
+    borderRight:
+      "1px solid rgba(255,255,255,0.06)",
   },
 
   sideTitle: {
@@ -339,7 +334,7 @@ const styles = {
   },
 
   sideSmall: {
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.6)",
     fontSize: "13px",
     marginBottom: "24px",
   },
@@ -352,21 +347,21 @@ const styles = {
 
   navBtn: {
     padding: "13px",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.06)",
     borderRadius: "14px",
-    background: "rgba(255,255,255,0.04)",
+    background: "rgba(255,255,255,0.03)",
     color: "white",
     fontWeight: "700",
     textAlign: "left",
     cursor: "pointer",
-    transition: "0.2s",
   },
 
   logoutBtn: {
     padding: "13px",
     border: "none",
     borderRadius: "14px",
-    background: "linear-gradient(135deg,#ef4444,#b91c1c)",
+    background:
+      "linear-gradient(135deg,#ef4444,#b91c1c)",
     color: "white",
     fontWeight: "800",
     textAlign: "left",
@@ -377,45 +372,49 @@ const styles = {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.55)",
-    backdropFilter: "blur(2px)",
     zIndex: 1100,
   },
 
   main: {
     padding: "18px",
-    maxWidth: "760px",
+    maxWidth: "850px",
     margin: "0 auto",
   },
 
   hero: {
-    marginBottom: "18px",
+    marginBottom: "20px",
   },
 
   heroTitle: {
-    fontSize: "28px",
+    fontSize: "30px",
     fontWeight: "900",
     marginBottom: "4px",
-    color: "#e5e7eb",
   },
 
   heroText: {
     fontSize: "15px",
   },
 
+  onlineWrap: {
+    marginTop: "10px",
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+  },
+
+  dot: {
+    width: "10px",
+    height: "10px",
+    borderRadius: "50%",
+    background: "#22c55e",
+  },
+
   sectionTitle: {
     fontSize: "14px",
     fontWeight: "800",
     marginBottom: "12px",
-    marginTop: "10px",
-    color: "rgba(255,255,255,0.75)",
+    marginTop: "14px",
     letterSpacing: "0.5px",
-  },
-
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: "14px",
-    marginBottom: "18px",
   },
 
   grid: {
@@ -424,15 +423,25 @@ const styles = {
     gap: "14px",
   },
 
+  grid2: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "14px",
+  },
+
   card: {
     padding: "18px",
     borderRadius: "18px",
-    background: "rgba(255,255,255,0.04)",
     border: "1px solid rgba(255,255,255,0.06)",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+    background: "rgba(255,255,255,0.03)",
+    boxShadow:
+      "0 10px 30px rgba(0,0,0,0.20)",
     cursor: "pointer",
-    backdropFilter: "blur(14px)",
-    transition: "0.2s ease",
+  },
+
+  small: {
+    fontSize: "13px",
+    color: "#94a3b8",
   },
 
   bigNumber: {
@@ -445,8 +454,41 @@ const styles = {
   footer: {
     textAlign: "center",
     fontSize: "12px",
-    marginTop: "26px",
+    marginTop: "28px",
     paddingBottom: "24px",
-    color: "rgba(255,255,255,0.5)",
+  },
+
+  modal: {
+    position: "fixed",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    width: "90%",
+    maxWidth: "420px",
+    background: "#0f172a",
+    padding: "22px",
+    borderRadius: "20px",
+    zIndex: 1300,
+    border: "1px solid rgba(255,255,255,0.06)",
+  },
+
+  helpCard: {
+    padding: "14px",
+    borderRadius: "14px",
+    marginBottom: "10px",
+    background: "rgba(255,255,255,0.04)",
+  },
+
+  closeBtn: {
+    width: "100%",
+    padding: "12px",
+    border: "none",
+    borderRadius: "14px",
+    background:
+      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
+    color: "#00111f",
+    fontWeight: "800",
+    cursor: "pointer",
+    marginTop: "10px",
   },
 };
