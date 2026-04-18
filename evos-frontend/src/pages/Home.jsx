@@ -75,7 +75,7 @@ export default function Home({ setPage, theme }) {
         {/* STATS */}
         <div style={styles.stats}>
           <div style={styles.statBox}>
-            <h3>⚡ 5s - 4hr</h3>
+            <h3>⚡ 5s - 2hr</h3>
             <p>Avg Delivery</p>
           </div>
 
