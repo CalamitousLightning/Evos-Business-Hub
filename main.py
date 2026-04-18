@@ -925,3 +925,136 @@ def today_dashboard(user_id: int):
     except Exception as e:
         print("TODAY ERROR:", str(e))
         raise HTTPException(500, "Server error")
+
+
+
+
+from fastapi import FastAPI, Request
+
+# =========================
+# EVOS USSD ENGINE
+# =========================
+@app.post("/ussd")
+async def ussd(request: Request):
+    data = await request.json()
+
+    phone = data.get("phoneNumber")
+    text = data.get("text", "")
+    service_code = data.get("serviceCode", "*1590#")
+
+    # split user input path
+    user_input = text.split("*") if text else []
+
+    # =========================
+    # MAIN MENU
+    # =========================
+    if text == "":
+        response = (
+            "CON Welcome to EVOS Business Hub\n"
+            "1. Buy Data\n"
+            "2. My Orders\n"
+            "3. Support\n"
+        )
+        return response
+
+    # =========================
+    # OPTION 1: BUY DATA
+    # =========================
+    if user_input[0] == "1":
+
+        # STEP 1: network selection
+        if len(user_input) == 1:
+            return (
+                "CON Select Network\n"
+                "1. MTN\n"
+                "2. Telecel\n"
+                "3. AirtelTigo"
+            )
+
+        # STEP 2: map network
+        network_map = {
+            "1": "MTN",
+            "2": "TELECEL",
+            "3": "AIRTELTIGO"
+        }
+
+        network = network_map.get(user_input[1])
+
+        if not network:
+            return "END Invalid network selected"
+
+        # STEP 3: bundle selection
+        if len(user_input) == 2:
+            return (
+                f"CON {network} Bundles\n"
+                "1. 1GB - GH₵5\n"
+                "2. 2GB - GH₵10\n"
+                "3. 5GB - GH₵20"
+            )
+
+        # STEP 4: map bundle
+        bundle_map = {
+            "1": ("1GB", 5),
+            "2": ("2GB", 10),
+            "3": ("5GB", 20)
+        }
+
+        bundle_data = bundle_map.get(user_input[2])
+
+        if not bundle_data:
+            return "END Invalid bundle selected"
+
+        bundle, price = bundle_data
+
+        # =========================
+        # CREATE ORDER VIA YOUR EXISTING SYSTEM
+        # =========================
+        import requests
+
+        try:
+            res = requests.post(
+                "https://evos-business-hub.onrender.com/orders/create",
+                json={
+                    "user_id": None,  # guest USSD user
+                    "network": network,
+                    "bundle": bundle,
+                    "phone": phone
+                },
+                timeout=10
+            )
+
+            result = res.json()
+
+            if res.status_code != 200:
+                return "END Order failed. Try again."
+
+            return (
+                f"END Order Created Successfully\n"
+                f"Network: {network}\n"
+                f"Bundle: {bundle}\n"
+                f"Pay via link sent to SMS or app"
+            )
+
+        except Exception as e:
+            print("USSD ERROR:", str(e))
+            return "END Service temporarily unavailable"
+
+    # =========================
+    # OPTION 2: MY ORDERS
+    # =========================
+    if user_input[0] == "2":
+        return (
+            "END Check your orders on EVOS App or Website:\n"
+            "https://evosdata.netlify.app"
+        )
+
+    # =========================
+    # OPTION 3: SUPPORT
+    # =========================
+    if user_input[0] == "3":
+        return (
+            "END EVOS Support:\n"
+            "WhatsApp: +233208718943"
+        )
+
+    return "END Invalid request"
