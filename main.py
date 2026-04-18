@@ -95,11 +95,15 @@ class LoginRequest(BaseModel):
     username: str = Field(min_length=3)
     password: str = Field(min_length=6)
 
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+
 class CreateOrderRequest(BaseModel):
-    user_id: int
+    user_id: Optional[int] = None
     network: str
     bundle: str
     phone: str
+    email: Optional[EmailStr] = None
     
 # =========================
 # HELPERS
