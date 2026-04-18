@@ -7,14 +7,15 @@ export default function Shop() {
   const [network, setNetwork] = useState("");
   const [bundle, setBundle] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState(localStorage.getItem("email") || "");
+
   const [prices, setPrices] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const email = localStorage.getItem("email");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const user_id = user?.id;
+  const user_id = user?.id || null; // ✅ GUEST SUPPORT
 
   // ======================
   // LOAD PRICES
@@ -23,16 +24,9 @@ export default function Shop() {
     const loadPrices = async () => {
       try {
         const res = await API.get("/prices");
-
-        // ✅ YOUR BACKEND RETURNS {status, data}
         const data = res.data?.data;
 
-        if (Array.isArray(data)) {
-          setPrices(data);
-        } else {
-          setPrices([]);
-        }
-
+        setPrices(Array.isArray(data) ? data : []);
       } catch (err) {
         console.log("Failed to load prices");
         setPrices([]);
@@ -42,13 +36,12 @@ export default function Shop() {
     loadPrices();
   }, []);
 
-  // SAFE FILTER
   const bundles = Array.isArray(prices)
     ? prices.filter((p) => p.network === network)
     : [];
 
   // ======================
-  // BUY ORDER
+  // BUY ORDER (GUEST SAFE)
   // ======================
   const handleBuy = async () => {
     try {
@@ -64,18 +57,14 @@ export default function Shop() {
         return;
       }
 
-      if (!user_id) {
-        setError("User session missing. Login again.");
-        return;
-      }
-
       setLoading(true);
 
       const res = await API.post("/orders/create", {
-        user_id,
+        user_id, // can be null (guest)
         network,
         bundle,
         phone,
+        email: email || "guest@evosdata.com",
       });
 
       if (!res.data?.payment_url) {
@@ -84,17 +73,19 @@ export default function Shop() {
         return;
       }
 
-      setTimeout(() => {
-        window.location.href = res.data.payment_url;
-      }, 500);
-
+      window.location.href = res.data.payment_url;
     } catch (err) {
       setLoading(false);
       setError(err.response?.data?.detail || "Order failed");
     }
   };
 
-  const isSelected = (b) => b.bundle === bundle;
+  // ======================
+  // STOCK CONTROL
+  // ======================
+  const OUT_OF_STOCK = ["TELECEL", "AIRTELTIGO"];
+
+  const isOutOfStock = (name) => OUT_OF_STOCK.includes(name);
 
   return (
     <div style={styles.container}>
@@ -113,20 +104,37 @@ export default function Shop() {
               { name: "MTN", icon: "🟡", style: styles.optionMTN },
               { name: "TELECEL", icon: "🔴", style: styles.optionTELECEL },
               { name: "AIRTELTIGO", icon: "🔵", style: styles.optionAIRTEL },
-            ].map((n) => (
-            <div
-              key={n.name}
-              style={{ ...styles.option, ...n.style }}
-              onClick={() => {
-                setNetwork(n.name);
-                setStep(2);
-            }}
-           >
-            <span>{n.icon}</span> {n.name}
-          </div>
-       
-            ))}
-            
+            ].map((n) => {
+              const disabled = isOutOfStock(n.name);
+
+              return (
+                <div
+                  key={n.name}
+                  style={{
+                    ...styles.option,
+                    ...n.style,
+                    opacity: disabled ? 0.4 : 1,
+                    cursor: disabled ? "not-allowed" : "pointer",
+                  }}
+                  onClick={() => {
+                    if (disabled) return;
+
+                    setNetwork(n.name);
+                    setStep(2);
+                  }}
+                >
+                  <span>{n.icon}</span>
+
+                  {n.name}
+
+                  {disabled && (
+                    <span style={{ marginLeft: "auto", color: "red" }}>
+                      Out of Stock
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -150,14 +158,11 @@ export default function Shop() {
                   setBundle(b.bundle);
                   setStep(3);
                 }}
-                 style={{
-                   ...styles.card,
-                   ...(isSelected(b) ? styles.selectedCard : {}),
-                }}
+                style={styles.card}
               >
                 <h4 style={{ color: "#e5e7eb" }}>{b.bundle}</h4>
                 <p style={{ color: "#94a3b8" }}>GH₵ {b.price}</p>
-            </div>
+              </div>
             ))}
           </div>
         )}
@@ -183,9 +188,11 @@ export default function Shop() {
               style={styles.input}
             />
 
+            {/* GUEST EMAIL INPUT */}
             <input
-              value={email || ""}
-              disabled
+              placeholder="Email (optional for receipt)"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               style={styles.input}
             />
 
@@ -207,7 +214,6 @@ export default function Shop() {
     </div>
   );
 }
-
 /* ======================
    SHOP UI (UPGRADED SaaS STYLE)
 ====================== */
