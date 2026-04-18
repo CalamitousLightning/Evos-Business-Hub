@@ -532,7 +532,7 @@ async def datamart_webhook(request: Request):
         payload = await request.json()
 
         data = payload.get("data", {})
-        order_ref = data.get("orderReference")
+        order_ref = data.get("orderReference") or data.get("reference")
         status = str(data.get("status", "")).lower()
 
         print("DATAMART EVENT:", event)
