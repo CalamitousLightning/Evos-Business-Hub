@@ -1062,61 +1062,73 @@ async def ussd(request: Request):
 
 
 
-from fastapi import FastAPI, Request
-
-
+from fastapi import Request
+from fastapi.responses import Response
 
 # =========================
-# EVOS DATA WHATSAPP BOT
+# EVOS DATA WHATSAPP BOT (TWILIO FIXED)
 # =========================
 @app.post("/whatsapp/webhook")
 async def whatsapp_webhook(request: Request):
 
-    data = await request.json()
+    form = await request.form()
 
-    message = data.get("message", "").lower()
-    phone = data.get("from")
+    message = form.get("Body", "").strip().lower()
+    phone = form.get("From")
+
+    reply = ""
 
     # =========================
     # MAIN MENU
     # =========================
-    if message in ["hi", "hello", "start"]:
-        return {
-            "reply": (
-                "👋 Welcome to EVOS Data\n\n"
-                "1. Buy Data\n"
-                "2. Track Order\n"
-                "3. Support"
-            )
-        }
+    if message in ["hi", "hello", "start", "menu"]:
+        reply = (
+            "👋 *Welcome to EVOS Data*\n\n"
+            "Reply with an option:\n"
+            "1️⃣ Buy Data\n"
+            "2️⃣ Track Order\n"
+            "3️⃣ Support"
+        )
 
     # =========================
     # BUY DATA FLOW
     # =========================
-    if message == "1":
-        return {
-            "reply": (
-                "📡 Select Network:\n"
-                "1. MTN\n"
-                "2. Telecel\n"
-                "3. AirtelTigo"
-            )
-        }
+    elif message == "1":
+        reply = (
+            "📡 *Select Network*\n\n"
+            "1️⃣ MTN\n"
+            "2️⃣ Telecel\n"
+            "3️⃣ AirtelTigo"
+        )
 
-    # Example simple shortcut (you will expand later)
-    if "mtn" in message:
-        return {
-            "reply": "📦 Send bundle (e.g. 1GB, 2GB, 5GB)"
-        }
+    elif message in ["1 mtn", "mtn"]:
+        reply = "📦 Send bundle (e.g. 1GB, 2GB, 5GB)"
+
+    elif message in ["2 telecel", "telecel"]:
+        reply = "📦 Send bundle for Telecel (e.g. 1GB, 2GB)"
+
+    elif message in ["3 airteltigo", "airteltigo"]:
+        reply = "📦 Send bundle for AirtelTigo (e.g. 1GB, 2GB)"
 
     # =========================
     # SUPPORT
     # =========================
-    if message == "3":
-        return {
-            "reply": "💬 Support: https://wa.me/233208718943"
-        }
+    elif message == "3":
+        reply = "💬 Support: https://wa.me/233208718943"
 
-    return {
-        "reply": "❌ Invalid option. Send 'hi' to start."
-    }
+    # =========================
+    # DEFAULT
+    # =========================
+    else:
+        reply = "❌ Invalid option.\nType *menu* to start again."
+
+    # =========================
+    # TWILIO REQUIRED FORMAT (CRITICAL FIX)
+    # =========================
+    xml_response = f"""
+    <Response>
+        <Message>{reply}</Message>
+    </Response>
+    """
+
+    return Response(content=xml_response, media_type="application/xml")
