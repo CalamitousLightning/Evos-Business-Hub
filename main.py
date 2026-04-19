@@ -534,12 +534,17 @@ async def paystack_webhook(request: Request):
 
             dm = dm_response.json()
 
-            dm_ref = dm.get("data", {}).get("orderReference")
+            dm_data = dm.get("data", {})
+
+            dm_ref = dm_data.get("orderReference")
+            dm_order_id = dm_data.get("orderId")
 
             supabase.table("orders") \
                 .update({
                     "status": "processing",
-                    "datamart_ref": dm_ref
+                    "datamart_ref": dm_ref,
+                    "datamart_order_id": dm_order_id
+
                 }) \
                 .eq("paystack_ref", reference) \
                 .execute()
@@ -585,7 +590,9 @@ async def datamart_webhook(request: Request):
 
         data = payload.get("data", {})
         order_ref = data.get("orderReference") or data.get("reference")
+        order_id = data.get("orderId")
         status = str(data.get("status", "")).lower()
+        
 
         print("DATAMART EVENT:", event)
         print("DATAMART REF:", order_ref)
@@ -604,10 +611,13 @@ async def datamart_webhook(request: Request):
             else "processing"
         )
 
-        supabase.table("orders") \
-            .update({"status": final_status}) \
-            .eq("datamart_ref", order_ref) \
-            .execute()
+                query = supabase.table("orders") \
+            .update({"status": final_status})
+        if order_id:
+            query = query.eq("datamart_order_id", order_id)
+        else:
+            query = query.eq("datamart_ref", order_ref)
+        query.execute()
 
         return {"received": True}
 
@@ -638,11 +648,13 @@ def sync_order(reference: str):
 
         order = order_res.data[0]
 
-        if not order.get("datamart_ref"):
-            return {"status": "not processed yet"}
-
+        tracker = order.get("datamart_order_id") or order.get("datamart_ref")
+        
+            if not tracker:
+                return {"status": "not processed yet"}
+        
         dm = requests.get(
-            f"{DATAMART_BASE}/order-status/{order['datamart_ref']}",
+            f"{DATAMART_BASE}/order-status/{tracker}",
             headers={"X-API-Key": DATAMART_API_KEY},
             timeout=REQUEST_TIMEOUT
         )
