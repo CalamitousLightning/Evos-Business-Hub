@@ -544,7 +544,6 @@ async def paystack_webhook(request: Request):
                     "status": "processing",
                     "datamart_ref": dm_ref,
                     "datamart_order_id": dm_order_id
-
                 }) \
                 .eq("paystack_ref", reference) \
                 .execute()
@@ -651,10 +650,10 @@ def sync_order(reference: str):
         order = order_res.data[0]
 
         tracker = order.get("datamart_order_id") or order.get("datamart_ref")
-        
-            if not tracker:
-                return {"status": "not processed yet"}
-        
+
+        if not tracker:
+            return {"status": "not processed yet"}
+
         dm = requests.get(
             f"{DATAMART_BASE}/order-status/{tracker}",
             headers={"X-API-Key": DATAMART_API_KEY},
@@ -690,6 +689,7 @@ def sync_order(reference: str):
     except Exception as e:
         print("SYNC ERROR:", str(e))
         raise HTTPException(500, "Sync failed")
+
 
 
 # =========================
