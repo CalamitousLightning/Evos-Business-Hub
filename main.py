@@ -1078,9 +1078,63 @@ async def ussd(request: Request):
 
 from fastapi import Request
 from fastapi.responses import Response
+import uuid
+import requests
+
+sessions = {}
 
 # =========================
-# EVOS DATA WHATSAPP BOT (TWILIO FIXED)
+# HELPERS
+# =========================
+def get_session(phone: str):
+    if phone not in sessions:
+        sessions[phone] = {
+            "step": "start",
+            "network": None,
+            "bundle": None,
+            "price": None
+        }
+    return sessions[phone]
+
+
+def fetch_price(network: str, bundle: str):
+    res = supabase.table("prices") \
+        .select("price") \
+        .eq("network", network) \
+        .eq("bundle", bundle) \
+        .limit(1) \
+        .execute()
+
+    if not res.data:
+        return None
+
+    return float(res.data[0]["price"])
+
+
+def init_paystack(email: str, amount: float):
+    res = requests.post(
+        "https://api.paystack.co/transaction/initialize",
+        headers={
+            "Authorization": f"Bearer {PAYSTACK_SECRET}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "email": email,
+            "amount": int(amount * 100),
+            "callback_url": "https://evosdata.netlify.app/success"
+        }
+    )
+
+    data = res.json()
+
+    if not data.get("status"):
+        return None
+
+    return data["data"]
+
+
+# =========================
+# WHATSAPP WEBHOOK
 # =========================
 @app.post("/whatsapp/webhook")
 async def whatsapp_webhook(request: Request):
@@ -1090,39 +1144,116 @@ async def whatsapp_webhook(request: Request):
     message = form.get("Body", "").strip().lower()
     phone = form.get("From")
 
+    session = get_session(phone)
     reply = ""
 
     # =========================
-    # MAIN MENU
+    # MENU
     # =========================
     if message in ["hi", "hello", "start", "menu"]:
+        session["step"] = "menu"
         reply = (
-            "👋 *Welcome to EVOS Data*\n\n"
-            "Reply with an option:\n"
+            "👋 *EVOS DATA HUB*\n\n"
             "1️⃣ Buy Data\n"
             "2️⃣ Track Order\n"
             "3️⃣ Support"
         )
 
     # =========================
-    # BUY DATA FLOW
+    # BUY DATA
     # =========================
     elif message == "1":
+        session["step"] = "network"
         reply = (
-            "📡 *Select Network*\n\n"
+            "📡 Select Network:\n\n"
             "1️⃣ MTN\n"
             "2️⃣ Telecel\n"
             "3️⃣ AirtelTigo"
         )
 
-    elif message in ["1 mtn", "mtn"]:
-        reply = "📦 Send bundle (e.g. 1GB, 2GB, 5GB)"
+    # =========================
+    # NETWORK
+    # =========================
+    elif message in ["1", "mtn"]:
+        session["network"] = "MTN"
+        session["step"] = "bundle"
+        reply = "📦 Send MTN bundle (e.g. 1GB, 2GB)"
 
-    elif message in ["2 telecel", "telecel"]:
-        reply = "📦 Send bundle for Telecel (e.g. 1GB, 2GB)"
+    elif message in ["2", "telecel"]:
+        session["network"] = "TELECEL"
+        session["step"] = "bundle"
+        reply = "📦 Send Telecel bundle"
 
-    elif message in ["3 airteltigo", "airteltigo"]:
-        reply = "📦 Send bundle for AirtelTigo (e.g. 1GB, 2GB)"
+    elif message in ["3", "airteltigo"]:
+        session["network"] = "AIRTELTIGO"
+        session["step"] = "bundle"
+        reply = "📦 Send AirtelTigo bundle"
+
+    # =========================
+    # BUNDLE
+    # =========================
+    elif session["step"] == "bundle":
+        session["bundle"] = message.upper()
+
+        price = fetch_price(session["network"], session["bundle"])
+
+        if not price:
+            reply = "❌ Bundle not found. Try again."
+        else:
+            session["price"] = price
+            session["step"] = "confirm"
+
+            reply = (
+                f"📦 *ORDER SUMMARY*\n\n"
+                f"Network: {session['network']}\n"
+                f"Bundle: {session['bundle']}\n"
+                f"Price: GHS {price}\n\n"
+                "1️⃣ Confirm & Pay\n"
+                "2️⃣ Cancel"
+            )
+
+    # =========================
+    # CONFIRM + PAYSTACK INIT
+    # =========================
+    elif message == "1" and session["step"] == "confirm":
+
+        evos_ref = f"EVOS-{uuid.uuid4().hex[:8].upper()}"
+
+        paystack = init_paystack(
+            email=f"{phone}@evosdata.com",
+            amount=session["price"]
+        )
+
+        if not paystack:
+            reply = "❌ Payment initialization failed."
+        else:
+            paystack_ref = paystack["reference"]
+
+            supabase.table("orders").insert({
+                "network": session["network"],
+                "bundle": session["bundle"],
+                "price": session["price"],
+                "phone_number": phone,
+                "status": "pending_payment",
+                "evosdata_ref": evos_ref,
+                "paystack_ref": paystack_ref
+            }).execute()
+
+            reply = (
+                "💳 *PAYMENT READY*\n\n"
+                f"Amount: GHS {session['price']}\n\n"
+                f"Pay here:\n{paystack['authorization_url']}\n\n"
+                "Once payment is completed, your data will be delivered automatically."
+            )
+
+            session["step"] = "done"
+
+    # =========================
+    # CANCEL
+    # =========================
+    elif message == "2":
+        session["step"] = "menu"
+        reply = "❌ Order cancelled. Type *menu* to restart."
 
     # =========================
     # SUPPORT
@@ -1134,15 +1265,15 @@ async def whatsapp_webhook(request: Request):
     # DEFAULT
     # =========================
     else:
-        reply = "❌ Invalid option.\nType *menu* to start again."
+        reply = "❌ Invalid input. Type *menu*."
 
     # =========================
-    # TWILIO REQUIRED FORMAT (CRITICAL FIX)
+    # TWILIO RESPONSE
     # =========================
-    xml_response = f"""
+    xml = f"""
     <Response>
         <Message>{reply}</Message>
     </Response>
     """
 
-    return Response(content=xml_response, media_type="application/xml")
+    return Response(content=xml, media_type="application/xml")
