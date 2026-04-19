@@ -592,31 +592,34 @@ async def datamart_webhook(request: Request):
         order_ref = data.get("orderReference") or data.get("reference")
         order_id = data.get("orderId")
         status = str(data.get("status", "")).lower()
-        
 
         print("DATAMART EVENT:", event)
         print("DATAMART REF:", order_ref)
+        print("DATAMART ORDER ID:", order_id)
         print("DATAMART STATUS:", status)
 
-        if not order_ref:
+        if not order_ref and not order_id:
             return {"received": True}
 
         final_status = (
             "successful"
             if status in ["completed", "success", "delivered"]
             else "processing"
-            if status in ["created", "processing", "pending"]
+            if status in ["created", "processing", "pending", "waiting"]
             else "failed"
             if status in ["failed", "cancelled", "refunded"]
             else "processing"
         )
 
-                query = supabase.table("orders") \
-            .update({"status": final_status})
+        query = supabase.table("orders").update({
+            "status": final_status
+        })
+
         if order_id:
             query = query.eq("datamart_order_id", order_id)
         else:
             query = query.eq("datamart_ref", order_ref)
+
         query.execute()
 
         return {"received": True}
@@ -628,7 +631,6 @@ async def datamart_webhook(request: Request):
     except Exception as e:
         print("DATAMART WEBHOOK ERROR:", str(e))
         return {"received": False}
-
 
 # =========================
 # SYNC ORDER
