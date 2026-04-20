@@ -250,7 +250,15 @@ def get_provider(network: str):
         print("PROVIDER LOOKUP ERROR:", str(e))
         return None
 
-
+# =========================
+# AGENTS STATUS
+# =========================
+def can_access_agent_system(user):
+    return (
+        user.role == "agent"
+        and user.agent_status == "approved"
+    )
+    
 # =========================
 # PRICES
 # =========================
