@@ -33,7 +33,7 @@ export default function Dashboard({ setPage, user }) {
     const loadDashboard = async () => {
       try {
         const res = await fetch(
-          `https://YOUR-BACKEND-URL/today/${user.id}`
+          `https://evos-business-hub.onrender.com/today/${user.id}`
         );
 
         const data = await res.json();
