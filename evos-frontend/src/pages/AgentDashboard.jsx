@@ -45,7 +45,7 @@ export default function AgentDashboard({
     const loadAgent = async () => {
       try {
         const res = await fetch(
-          `https://YOUR-BACKEND-URL/agent/dashboard/${user.id}`
+          `https://evos-business-hub.onrender.com/agent/dashboard/${user.id}`
         );
 
         const data = await res.json();
