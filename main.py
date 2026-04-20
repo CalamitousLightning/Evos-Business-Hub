@@ -1209,7 +1209,7 @@ def get_agent_pricing(agent_id: str):
 
     try:
         # 1. get base prices
-        base_res = supabase.table("prices").select("*").execute()
+        base_res = supabase.table("base_prices").select("*").execute()
 
         # 2. get agent markup
         agent_res = supabase.table("agent_prices") \
