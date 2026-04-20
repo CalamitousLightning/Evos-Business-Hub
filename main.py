@@ -927,29 +927,48 @@ def sync_order(reference: str):
 
 
 # =========================
-# USER PROFILE
+# USER PROFILE (FIXED)
 # =========================
 @app.get("/users/me")
 def get_user(user_id: int):
 
     try:
-        user = supabase.table("users") \
+        res = supabase.table("users") \
             .select("*") \
             .eq("id", user_id) \
-            .limit(1) \
+            .single() \
             .execute()
 
-        if not user.data:
-            raise HTTPException(404, "User not found")
+        user = res.data
+
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # =========================
+        # NORMALIZE FIELDS (IMPORTANT FIX)
+        # =========================
+        user_data = {
+            "id": user.get("id"),
+            "username": user.get("username"),
+            "email": user.get("email"),
+            "full_name": user.get("full_name"),
+
+            # 🔥 CRITICAL FIX (DEFAULTS)
+            "role": user.get("role", "user"),  # default fallback
+            "agent_status": user.get("agent_status", "pending"),
+
+            "rank": user.get("rank", 1),
+            "referral_code": user.get("referral_code", ""),
+        }
 
         return {
             "status": "success",
-            "user": user.data[0]
+            "user": user_data
         }
 
     except Exception as e:
         print("GET USER ERROR:", str(e))
-        raise HTTPException(500, "Failed to fetch user")
+        raise HTTPException(status_code=500, detail="Failed to fetch user")
 
 
 # =========================
