@@ -23,7 +23,7 @@ export default function Orders() {
     if (status === "pending_payment") return "Waiting for Payment";
 
     if (status === "processing")
-      return "Processing (Delivery: 1 min - 4 hrs)";
+      return "Processed (Delivery: 1 min - 4 hrs)";
 
     if (status === "successful")
       return "Delivered Successfully";
