@@ -7,6 +7,10 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Success from "./pages/Success";
 import AgentDashboard from "./pages/AgentDashboard";
+import AgentPricing from "./pages/AgentPricing";
+import AgentStore from "./pages/AgentStore";
+import StorePage from "./pages/StorePage";
+import OrderTracking from "./pages/OrderTracking";
 
 export default function App() {
   const [page, setPage] = useState("home");
@@ -16,43 +20,45 @@ export default function App() {
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    if (savedUser) setUser(JSON.parse(savedUser));
 
     const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
+    if (savedTheme) setTheme(savedTheme);
 
     const path = window.location.pathname;
 
-    if (path === "/success") setPage("success");
-    else if (path === "/orders") setPage("orders");
-    else if (path === "/dashboard") setPage("dashboard");
-    else if (path === "/shop") setPage("shop");
-    else if (path === "/login") setPage("login");
-    else if (path === "/register") setPage("register");
-    else if (path === "/agent-dashboard")
-      setPage("agent-dashboard");
-    else setPage("home");
+    const routeMap = {
+      "/": "home",
+      "/shop": "shop",
+      "/orders": "orders",
+      "/dashboard": "dashboard",
+      "/login": "login",
+      "/register": "register",
+      "/success": "success",
+      "/agent-dashboard": "agent-dashboard",
+      "/agent-pricing": "agent-pricing",
+      "/agent-store": "agent-store",
+      "/store": "store",
+      "/track": "track-order",
+    };
+
+    setPage(routeMap[path] || "home");
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme =
-      theme === "dark" ? "light" : "dark";
+  const isAgentActive =
+    user?.role === "agent" &&
+    user?.agent_status === "approved";
 
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
   };
 
   const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("email");
-
+    localStorage.clear();
     setUser(null);
     setPage("home");
-
     window.history.pushState({}, "", "/");
   };
 
@@ -68,158 +74,78 @@ export default function App() {
       login: "/login",
       register: "/register",
       success: "/success",
-      "agent-dashboard":
-        "/agent-dashboard",
+      "agent-dashboard": "/agent-dashboard",
+      "agent-pricing": "/agent-pricing",
+      "agent-store": "/agent-store",
+      store: "/store",
+      "track-order": "/track",
     };
 
-    window.history.pushState(
-      {},
-      "",
-      routes[p] || "/"
-    );
+    window.history.pushState({}, "", routes[p] || "/");
   };
-
-  const isDark = theme === "dark";
-
-  const isAgentActive =
-    user?.role === "agent" &&
-    user?.agent_status === "approved";
 
   const renderPage = () => {
     switch (page) {
       case "home":
-        return (
-          <Home
-            setPage={navigate}
-            theme={theme}
-          />
-        );
+        return <Home setPage={navigate} theme={theme} />;
 
       case "shop":
-        return (
-          <Shop
-            user={user}
-            theme={theme}
-          />
-        );
+        return <Shop user={user} theme={theme} />;
 
       case "orders":
-        return (
-          <Orders
-            user={user}
-            theme={theme}
-          />
-        );
+        return <Orders user={user} theme={theme} />;
 
       case "login":
-        return (
-          <Login
-            setUser={setUser}
-            setPage={navigate}
-            theme={theme}
-          />
-        );
+        return <Login setUser={setUser} setPage={navigate} theme={theme} />;
 
       case "register":
-        return (
-          <Register
-            setPage={navigate}
-            theme={theme}
-          />
-        );
+        return <Register setPage={navigate} theme={theme} />;
 
       case "dashboard":
-        return (
-          <Dashboard
-            user={user}
-            setPage={navigate}
-            theme={theme}
-          />
-        );
+        return <Dashboard user={user} setPage={navigate} theme={theme} />;
 
       case "agent-dashboard":
-        return (
-          <AgentDashboard
-            user={user}
-            setPage={navigate}
-            theme={theme}
-          />
-        );
+        return <AgentDashboard user={user} setPage={navigate} theme={theme} />;
+
+      case "agent-pricing":
+        return <AgentPricing user={user} setPage={navigate} />;
+
+      case "agent-store":
+        return <AgentStore user={user} setPage={navigate} />;
+
+      case "store":
+        return <StorePage setPage={navigate} />;
+
+      case "track-order":
+        return <OrderTracking user={user} setPage={navigate} />;
 
       case "success":
-        return (
-          <Success theme={theme} />
-        );
+        return <Success theme={theme} />;
 
       default:
-        return (
-          <Home
-            setPage={navigate}
-            theme={theme}
-          />
-        );
+        return <Home setPage={navigate} theme={theme} />;
     }
   };
 
+  const isDark = theme === "dark";
+
   return (
     <div style={appStyle(isDark)}>
-      {/* GLOBAL LAYER */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          background: isDark
-            ? "radial-gradient(circle at top, rgba(0,0,0,0.55), rgba(0,0,0,0.85))"
-            : "rgba(255,255,255,0.25)",
-          zIndex: 0,
-          pointerEvents: "none",
-        }}
-      />
+      <div style={overlayStyle(isDark)} />
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 2,
-        }}
-      >
-        {/* NAVBAR */}
+      <div style={{ position: "relative", zIndex: 2 }}>
+        {/* NAV */}
         <nav style={navStyle(isDark)}>
-          <div
-            style={logoStyle}
-            onClick={() =>
-              navigate("home")
-            }
-          >
+          <div style={logoStyle} onClick={() => navigate("home")}>
             EVOS HUB
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            <button
-              onClick={toggleTheme}
-              style={themeBtn}
-            >
-              {theme === "dark"
-                ? "☀️"
-                : "🌙"}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={toggleTheme} style={themeBtn}>
+              {theme === "dark" ? "☀️" : "🌙"}
             </button>
 
-            <div
-              onClick={() =>
-                setMenuOpen(
-                  !menuOpen
-                )
-              }
-              style={menuIcon}
-            >
+            <div onClick={() => setMenuOpen(!menuOpen)} style={menuIcon}>
               ☰
             </div>
           </div>
@@ -227,94 +153,39 @@ export default function App() {
 
         {/* MENU */}
         {menuOpen && (
-          <div
-            style={dropdownStyle(
-              isDark
-            )}
-          >
-            <button
-              onClick={() =>
-                navigate("shop")
-              }
-              style={menuBtn(
-                isDark
-              )}
-            >
+          <div style={dropdownStyle(isDark)}>
+            <button onClick={() => navigate("shop")} style={menuBtn(isDark)}>
               Buy Data
             </button>
 
-            <button
-              onClick={() =>
-                navigate("orders")
-              }
-              style={menuBtn(
-                isDark
-              )}
-            >
+            <button onClick={() => navigate("orders")} style={menuBtn(isDark)}>
               Orders
             </button>
 
-            <button
-              onClick={() =>
-                navigate(
-                  "dashboard"
-                )
-              }
-              style={menuBtn(
-                isDark
-              )}
-            >
+            <button onClick={() => navigate("dashboard")} style={menuBtn(isDark)}>
               Dashboard
             </button>
 
-            {/* AGENT HUB */}
             {user && (
               <button
-                onClick={() =>
-                  navigate(
-                    "agent-dashboard"
-                  )
-                }
+                onClick={() => navigate("agent-dashboard")}
                 style={agentBtn}
               >
-                {isAgentActive
-                  ? "🚀 Agent Dashboard"
-                  : "🚀 Become Agent"}
+                {isAgentActive ? "🚀 Agent Dashboard" : "🚀 Become Agent"}
               </button>
             )}
 
             {user ? (
-              <button
-                onClick={logout}
-                style={dangerBtn}
-              >
+              <button onClick={logout} style={dangerBtn}>
                 Logout
               </button>
             ) : (
               <>
-                <button
-                  onClick={() =>
-                    navigate(
-                      "login"
-                    )
-                  }
-                  style={menuBtn(
-                    isDark
-                  )}
-                >
+                <button onClick={() => navigate("login")} style={menuBtn(isDark)}>
                   Login
                 </button>
 
-                <button
-                  onClick={() =>
-                    navigate(
-                      "register"
-                    )
-                  }
-                  style={
-                    primaryBtn
-                  }
-                >
+                <button onClick={() => navigate("register")} style={primaryBtn}>
                   Register
                 </button>
               </>
@@ -322,145 +193,95 @@ export default function App() {
           </div>
         )}
 
-        {/* CONTENT */}
-        <main
-          style={contentStyle}
-        >
-          {renderPage()}
-        </main>
+        {/* PAGE */}
+        <main style={contentStyle}>{renderPage()}</main>
       </div>
     </div>
   );
 }
 
-/* =======================
-   STYLES
-======================= */
+/* ================= UI STYLES ================= */
 
 const appStyle = (dark) => ({
   minHeight: "100vh",
-  fontFamily:
-    "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial",
-  backgroundImage:
-    "url('/evosdata.png')",
+  fontFamily: "system-ui",
+  backgroundImage: "url('/evosdata.png')",
   backgroundSize: "cover",
-  backgroundPosition:
-    "center",
-  backgroundRepeat:
-    "no-repeat",
-  position: "relative",
-  backgroundBlendMode:
-    "overlay",
-  backgroundColor: dark
-    ? "rgba(0,0,0,0.65)"
-    : "rgba(255,255,255,0.35)",
-  color: dark
-    ? "#e5e7eb"
-    : "#0f172a",
-  transition: "0.3s ease",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+  backgroundColor: dark ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.35)",
+  color: dark ? "#e5e7eb" : "#0f172a",
+});
+
+const overlayStyle = (dark) => ({
+  position: "fixed",
+  inset: 0,
+  background: dark
+    ? "rgba(0,0,0,0.6)"
+    : "rgba(255,255,255,0.2)",
+  zIndex: 0,
+  pointerEvents: "none",
 });
 
 const navStyle = (dark) => ({
   display: "flex",
-  justifyContent:
-    "space-between",
-  alignItems: "center",
-  padding: "14px 20px",
+  justifyContent: "space-between",
+  padding: 14,
   position: "sticky",
   top: 0,
-  zIndex: 1000,
-  backdropFilter:
-    "blur(14px)",
-  background: dark
-    ? "rgba(15,23,42,0.6)"
-    : "rgba(255,255,255,0.7)",
+  backdropFilter: "blur(12px)",
+  background: dark ? "rgba(15,23,42,0.6)" : "rgba(255,255,255,0.7)",
 });
 
-const logoStyle = {
-  fontWeight: "700",
-  fontSize: "18px",
-  cursor: "pointer",
-  color: "#38bdf8",
-};
-
-const themeBtn = {
-  padding: "7px 11px",
-  borderRadius: "10px",
-  border: "none",
-  cursor: "pointer",
-  background:
-    "linear-gradient(135deg,#38bdf8,#0ea5e9)",
-  color: "#0b1220",
-  fontWeight: "700",
-};
-
-const menuIcon = {
-  fontSize: "22px",
-  cursor: "pointer",
-  padding: "6px 10px",
-};
+const logoStyle = { color: "#38bdf8", fontWeight: 800, cursor: "pointer" };
+const themeBtn = { padding: 8, borderRadius: 8, border: "none" };
+const menuIcon = { fontSize: 22, cursor: "pointer" };
 
 const dropdownStyle = (dark) => ({
   display: "flex",
   flexDirection: "column",
-  gap: "10px",
-  padding: "14px",
-  margin: "10px",
-  borderRadius: "12px",
-  background: dark
-    ? "rgba(15,23,42,0.95)"
-    : "rgba(255,255,255,0.95)",
+  gap: 10,
+  padding: 14,
+  margin: 10,
+  borderRadius: 12,
+  background: dark ? "#0f172a" : "#fff",
 });
 
 const menuBtn = (dark) => ({
-  padding: "10px 12px",
-  borderRadius: "10px",
+  padding: 10,
+  borderRadius: 8,
   border: "none",
-  background: dark
-    ? "rgba(255,255,255,0.05)"
-    : "rgba(0,0,0,0.05)",
-  color: dark
-    ? "#e5e7eb"
-    : "#0f172a",
+  background: dark ? "#1e293b" : "#f1f5f9",
+  color: dark ? "#fff" : "#000",
   textAlign: "left",
-  cursor: "pointer",
 });
 
 const primaryBtn = {
-  padding: "10px 12px",
-  borderRadius: "10px",
+  padding: 10,
+  background: "#38bdf8",
   border: "none",
-  background:
-    "linear-gradient(135deg,#38bdf8,#0ea5e9)",
-  color: "#0b1220",
-  fontWeight: "700",
-  cursor: "pointer",
+  borderRadius: 8,
 };
 
 const agentBtn = {
-  padding: "10px 12px",
-  borderRadius: "10px",
+  padding: 10,
+  background: "linear-gradient(135deg,#22c55e,#16a34a)",
   border: "none",
-  background:
-    "linear-gradient(135deg,#22c55e,#16a34a)",
+  borderRadius: 8,
   color: "white",
-  fontWeight: "800",
-  cursor: "pointer",
-  textAlign: "left",
+  fontWeight: 700,
 };
 
 const dangerBtn = {
-  padding: "10px 12px",
-  borderRadius: "10px",
-  border: "none",
+  padding: 10,
   background: "#ef4444",
+  border: "none",
+  borderRadius: 8,
   color: "white",
-  fontWeight: "700",
-  cursor: "pointer",
 };
 
 const contentStyle = {
-  padding: "20px",
-  maxWidth: "1200px",
+  padding: 20,
+  maxWidth: 1200,
   margin: "0 auto",
 };
