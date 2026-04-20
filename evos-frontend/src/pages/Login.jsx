@@ -35,38 +35,50 @@ export default function Login({ setUser, setPage }) {
 
       const user = data.user;
 
-      // 🚨 CRITICAL FIX: ensure user_id exists for backend
-      // backend uses user_id in orders
+      // =========================
+      // NORMALIZE USER (CORE FIX)
+      // =========================
       const normalizedUser = {
-        id: user.id || user.user_id || null,
+        id: user.id || user.user_id,
         username: user.username || "",
         email: user.email || "",
+
+        // 🔥 CRITICAL FOR AGENT SYSTEM
+        role: user.role || "user",
+        agent_status: user.agent_status || "pending",
+
         full_name: user.full_name || "",
         referral_code: user.referral_code || "",
         rank: user.rank || 1,
       };
 
       // =========================
-      // SAVE FULL USER OBJECT
+      // STORE FULL USER STATE
       // =========================
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       localStorage.setItem("email", normalizedUser.email);
       localStorage.setItem("username", normalizedUser.username);
-      localStorage.setItem("user_id", normalizedUser.id); // 🔥 IMPORTANT FIX
+      localStorage.setItem("user_id", normalizedUser.id);
 
       setUser(normalizedUser);
 
       // =========================
-      // GO TO DASHBOARD
+      // SMART REDIRECT (IMPORTANT)
       // =========================
-      setPage("dashboard");
+      if (
+        normalizedUser.role === "agent" &&
+        normalizedUser.agent_status === "approved"
+      ) {
+        setPage("agent-dashboard");
+      } else {
+        setPage("dashboard");
+      }
 
     } catch (err) {
       console.log("LOGIN ERROR:", err);
 
       setError(
         err?.response?.data?.detail ||
-        err?.response?.data?.status ||
         "Server error. Try again."
       );
     } finally {
@@ -118,6 +130,10 @@ export default function Login({ setUser, setPage }) {
     </div>
   );
 }
+
+/* =======================
+   STYLES
+======================= */
 
 const styles = {
   wrapper: {
