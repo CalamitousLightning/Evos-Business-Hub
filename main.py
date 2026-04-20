@@ -697,9 +697,11 @@ async def paystack_webhook(request: Request):
                         "datamart_ref": dm_data.get("orderReference"),
                         "datamart_order_id": dm_data.get("orderId")
                     }) \
-                    process_agent_profit(order["id"], reference)
                     .eq("paystack_ref", reference) \
                     .execute()
+
+                # ✅ FIXED: OUTSIDE CHAIN
+                process_agent_profit(order["id"], reference)
 
             # =====================================
             # DATABOSS (TELECEL / AIRTELTIGO)
@@ -738,9 +740,11 @@ async def paystack_webhook(request: Request):
                         "status": "successful",
                         "databoss_ref": str(db.get("order_id"))
                     }) \
-                    process_agent_profit(order["id"], reference)
                     .eq("paystack_ref", reference) \
                     .execute()
+
+                # ✅ FIXED: OUTSIDE CHAIN
+                process_agent_profit(order["id"], reference)
 
             else:
                 raise Exception("No provider assigned")
