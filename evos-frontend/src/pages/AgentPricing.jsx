@@ -1,15 +1,10 @@
 import { useEffect, useState } from "react";
 
-export default function AgentPricing({
-  user,
-  setPage,
-}) {
-  const [loading, setLoading] =
-    useState(true);
+const API = "https://evos-business-hub.onrender.com";
 
-  const [saving, setSaving] =
-    useState(false);
-
+export default function AgentPricing({ user, setPage }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [rows, setRows] = useState([]);
 
   // =========================
@@ -31,105 +26,94 @@ export default function AgentPricing({
   }, [user, setPage]);
 
   // =========================
-  // LOAD PRICES
+  // LOAD PRICING
   // =========================
   useEffect(() => {
     if (!user?.id) return;
 
-    const loadPricing =
-      async () => {
-        try {
-          const res =
-            await fetch(
-              `https://YOUR-BACKEND-URL/agent/pricing/${user.id}`
-            );
+    const loadPricing = async () => {
+      try {
+        setLoading(true);
 
-          const data =
-            await res.json();
+        const res = await fetch(
+          `${API}/agent/pricing/${user.id}`
+        );
 
-          setRows(
-            data.prices || []
-          );
-        } catch (error) {
-          console.log(error);
-        } finally {
-          setLoading(false);
+        if (!res.ok) {
+          throw new Error("Failed to fetch pricing");
         }
-      };
+
+        const data = await res.json();
+
+        const normalized = (data.prices || []).map((item) => ({
+          ...item,
+          markup: item.markup || 0,
+          final_price:
+            Number(item.base_price) + Number(item.markup || 0),
+        }));
+
+        setRows(normalized);
+      } catch (err) {
+        console.log("Pricing load error:", err);
+        setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     loadPricing();
   }, [user]);
 
   // =========================
-  // INPUT CHANGE
+  // UPDATE MARKUP
   // =========================
-  const updateMarkup = (
-    index,
-    value
-  ) => {
+  const updateMarkup = (index, value) => {
     const copy = [...rows];
 
-    copy[index].markup =
-      value;
+    const markup = Number(value || 0);
+    const base = Number(copy[index].base_price || 0);
 
-    copy[index].final_price =
-      Number(
-        copy[index]
-          .base_price
-      ) +
-      Number(value || 0);
+    copy[index].markup = markup;
+    copy[index].final_price = base + markup;
 
     setRows(copy);
   };
 
   // =========================
-  // SAVE ALL
+  // SAVE PRICING
   // =========================
-  const savePricing =
-    async () => {
-      setSaving(true);
+  const savePricing = async () => {
+    setSaving(true);
 
-      try {
-        const res =
-          await fetch(
-            "https://evos-business-hub.onrender.com/agent/pricing/save",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                agent_id:
-                  user.id,
-                prices: rows,
-              }),
-            }
-          );
-
-        const data =
-          await res.json();
-
-        if (
-          data.status ===
-          "success"
-        ) {
-          alert(
-            "Pricing updated"
-          );
-        } else {
-          alert(
-            "Failed to save"
-          );
+    try {
+      const res = await fetch(
+        `${API}/agent/pricing/save`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            agent_id: user.id,
+            prices: rows,
+          }),
         }
-      } catch (error) {
-        alert(
-          "Network error"
-        );
-      } finally {
-        setSaving(false);
+      );
+
+      const data = await res.json();
+
+      if (data.status === "success") {
+        alert("Pricing updated successfully");
+      } else {
+        alert(data.message || "Failed to save pricing");
       }
-    };
+    } catch (err) {
+      console.log(err);
+      alert("Network error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div style={styles.wrap}>
@@ -137,136 +121,80 @@ export default function AgentPricing({
       <div style={styles.top}>
         <button
           style={styles.back}
-          onClick={() =>
-            setPage(
-              "agent-dashboard"
-            )
-          }
+          onClick={() => setPage("agent-dashboard")}
         >
           ← Back
         </button>
 
-        <h1 style={styles.title}>
-          Agent Pricing
-        </h1>
+        <h1 style={styles.title}>Agent Pricing</h1>
       </div>
 
       <p style={styles.sub}>
-        Set your markup.
-        Customers pay your
-        final price.
+        Set your markup. Customers will pay: Base Price + Your Markup
       </p>
 
+      {/* LOADING */}
       {loading ? (
-        <p>
-          Loading pricing...
-        </p>
+        <p>Loading pricing...</p>
+      ) : rows.length === 0 ? (
+        <p>No pricing data found</p>
       ) : (
         <>
-          {rows.map(
-            (item, index) => (
-              <div
-                key={index}
-                style={
-                  styles.card
-                }
-              >
-                <div
-                  style={
-                    styles.row
-                  }
-                >
-                  <div>
-                    <strong>
-                      {
-                        item.network
-                      }
-                    </strong>
-                    <br />
-                    {
-                      item.bundle
-                    }
-                  </div>
-
-                  <div>
-                    GH₵{" "}
-                    {
-                      item.base_price
-                    }
-                  </div>
+          {/* PRICE LIST */}
+          {rows.map((item, index) => (
+            <div key={index} style={styles.card}>
+              <div style={styles.row}>
+                <div>
+                  <strong>{item.network}</strong>
+                  <br />
+                  {item.bundle}
                 </div>
 
-                <div
-                  style={{
-                    marginTop:
-                      "12px",
-                  }}
-                >
-                  <label>
-                    Markup
-                  </label>
-
-                  <input
-                    type="number"
-                    min="0"
-                    value={
-                      item.markup
-                    }
-                    onChange={(
-                      e
-                    ) =>
-                      updateMarkup(
-                        index,
-                        e
-                          .target
-                          .value
-                      )
-                    }
-                    style={
-                      styles.input
-                    }
-                  />
-                </div>
-
-                <div
-                  style={{
-                    marginTop:
-                      "12px",
-                  }}
-                >
-                  Final Price:
-                  <strong>
-                    {" "}
-                    GH₵{" "}
-                    {
-                      item.final_price
-                    }
-                  </strong>
-                </div>
+                <div>GH₵ {item.base_price}</div>
               </div>
-            )
-          )}
 
+              <div style={{ marginTop: "12px" }}>
+                <label>Markup (Your Profit)</label>
+
+                <input
+                  type="number"
+                  min="0"
+                  value={item.markup}
+                  onChange={(e) =>
+                    updateMarkup(index, e.target.value)
+                  }
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={{ marginTop: "12px" }}>
+                Final Price:{" "}
+                <strong>GH₵ {item.final_price}</strong>
+              </div>
+            </div>
+          ))}
+
+          {/* SAVE BUTTON */}
           <button
-            style={
-              styles.save
-            }
-            onClick={
-              savePricing
-            }
-            disabled={
-              saving
-            }
+            style={{
+              ...styles.save,
+              opacity: saving ? 0.7 : 1,
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+            onClick={savePricing}
+            disabled={saving}
           >
-            {saving
-              ? "Saving..."
-              : "Save Pricing"}
+            {saving ? "Saving..." : "Save Pricing"}
           </button>
         </>
       )}
     </div>
   );
 }
+
+/* =======================
+   STYLES
+======================= */
 
 const styles = {
   wrap: {
@@ -288,8 +216,7 @@ const styles = {
     padding: "10px 14px",
     borderRadius: "12px",
     cursor: "pointer",
-    background:
-      "#1e293b",
+    background: "#1e293b",
     color: "white",
   },
 
@@ -305,21 +232,16 @@ const styles = {
   },
 
   card: {
-    background:
-      "#0f172a",
-    border:
-      "1px solid rgba(255,255,255,0.06)",
+    background: "#0f172a",
+    border: "1px solid rgba(255,255,255,0.06)",
     padding: "18px",
-    borderRadius:
-      "18px",
-    marginBottom:
-      "14px",
+    borderRadius: "18px",
+    marginBottom: "14px",
   },
 
   row: {
     display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     gap: "10px",
     alignItems: "center",
   },
@@ -328,12 +250,9 @@ const styles = {
     width: "100%",
     marginTop: "8px",
     padding: "12px",
-    borderRadius:
-      "12px",
-    border:
-      "1px solid rgba(255,255,255,0.08)",
-    background:
-      "#020617",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "#020617",
     color: "white",
   },
 
@@ -341,13 +260,10 @@ const styles = {
     width: "100%",
     padding: "14px",
     border: "none",
-    borderRadius:
-      "14px",
+    borderRadius: "14px",
     marginTop: "10px",
-    cursor: "pointer",
     fontWeight: "900",
-    background:
-      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
+    background: "linear-gradient(135deg,#38bdf8,#0ea5e9)",
     color: "#00111f",
   },
 };
