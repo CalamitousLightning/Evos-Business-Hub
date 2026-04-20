@@ -14,12 +14,19 @@ export default function Dashboard({ setPage, user }) {
 
   const [loading, setLoading] = useState(true);
 
+  // ======================
+  // AGENT ACCESS RULE
+  // ======================
+  const isAgentActive =
+    user?.role === "agent" &&
+    user?.agent_status === "approved";
+
   // AUTH GUARD
   useEffect(() => {
     if (!user) setPage("login");
   }, [user, setPage]);
 
-  // LOAD LIVE DASHBOARD DATA
+  // LOAD DASHBOARD DATA
   useEffect(() => {
     if (!user?.id) return;
 
@@ -53,6 +60,19 @@ export default function Dashboard({ setPage, user }) {
     localStorage.removeItem("user");
     localStorage.removeItem("email");
     setPage("login");
+  };
+
+  // ======================
+  // AGENT HUB ACCESS
+  // ======================
+  const handleAgentAccess = () => {
+    if (isAgentActive) {
+      setPage("agent-dashboard");
+    } else {
+      setSupportOpen(true);
+    }
+
+    setMenuOpen(false);
   };
 
   const isDark = dark;
@@ -96,6 +116,7 @@ export default function Dashboard({ setPage, user }) {
         }}
       >
         <div style={styles.sideTitle}>EVOS HUB</div>
+
         <div style={styles.sideSmall}>
           Powered by Evos Technologies
         </div>
@@ -119,6 +140,16 @@ export default function Dashboard({ setPage, user }) {
             }}
           >
             📜 Orders
+          </button>
+
+          {/* AGENT HUB */}
+          <button
+            style={styles.agentBtn}
+            onClick={handleAgentAccess}
+          >
+            {isAgentActive
+              ? "🚀 Agent Dashboard"
+              : "🚀 Become Agent"}
           </button>
 
           <button
@@ -163,6 +194,7 @@ export default function Dashboard({ setPage, user }) {
 
           <div style={styles.onlineWrap}>
             <span style={styles.dot}></span>
+
             <span style={{ color: soft }}>
               System Online
             </span>
@@ -189,6 +221,7 @@ export default function Dashboard({ setPage, user }) {
               <div style={styles.small}>
                 Global Orders
               </div>
+
               <div style={styles.bigNumber}>
                 {stats.total_orders}
               </div>
@@ -203,6 +236,7 @@ export default function Dashboard({ setPage, user }) {
               <div style={styles.small}>
                 My Orders
               </div>
+
               <div style={styles.bigNumber}>
                 {stats.my_orders}
               </div>
@@ -217,6 +251,7 @@ export default function Dashboard({ setPage, user }) {
               <div style={styles.small}>
                 Successful Orders
               </div>
+
               <div style={styles.bigNumber}>
                 {stats.my_successful_orders}
               </div>
@@ -231,6 +266,7 @@ export default function Dashboard({ setPage, user }) {
               <div style={styles.small}>
                 Transactions
               </div>
+
               <div style={styles.bigNumber}>
                 {stats.transactions.length}
               </div>
@@ -238,7 +274,7 @@ export default function Dashboard({ setPage, user }) {
           </div>
         )}
 
-        {/* ACTIONS */}
+        {/* QUICK ACTIONS */}
         <div style={styles.sectionTitle}>
           Quick Actions
         </div>
@@ -270,6 +306,27 @@ export default function Dashboard({ setPage, user }) {
             </p>
           </div>
 
+          {/* AGENT CARD */}
+          <div
+            style={{
+              ...styles.card,
+              background: cardBg,
+            }}
+            onClick={handleAgentAccess}
+          >
+            <h3>
+              {isAgentActive
+                ? "🚀 Agent Dashboard"
+                : "🚀 Become Agent"}
+            </h3>
+
+            <p style={{ color: soft }}>
+              {isAgentActive
+                ? "Manage store, earnings and wallet"
+                : "Contact support to become a reseller"}
+            </p>
+          </div>
+
           <div
             style={{
               ...styles.card,
@@ -280,6 +337,7 @@ export default function Dashboard({ setPage, user }) {
             }
           >
             <h3>💬 Support</h3>
+
             <p style={{ color: soft }}>
               WhatsApp & Email help
             </p>
@@ -315,7 +373,13 @@ export default function Dashboard({ setPage, user }) {
               Support Center
             </h2>
 
-            {/* WHATSAPP SUPPORT */}
+            <div style={styles.helpCard}>
+              Need Agent Access?
+              <br />
+              Contact founder/support for
+              approval.
+            </div>
+
             <div
               style={{
                 ...styles.helpCard,
@@ -329,42 +393,19 @@ export default function Dashboard({ setPage, user }) {
               }
             >
               💬 WhatsApp Support
-              <br />
-              Tap to chat instantly
             </div>
 
-            {/* COMMUNITY */}
             <div
               style={{
                 ...styles.helpCard,
                 cursor: "pointer",
               }}
               onClick={() =>
-                window.open(
-                  "https://whatsapp.com/channel/0029VaTrnsZEgGfFXkIcjt1M",
-                  "_blank"
-                )
+                window.location.href =
+                  "mailto:support@evosdata.com"
               }
             >
-              👥 WhatsApp Community
-              <br />
-              Join updates & promos
-            </div>
-
-            {/* EMAIL */}
-            <div
-              style={{
-                ...styles.helpCard,
-                cursor: "pointer",
-              }}
-              onClick={() => {
-                window.location.href =
-                  "mailto:support@evosdata.com";
-              }}
-            >
               📧 Email Support
-              <br />
-              Tap to send email
             </div>
 
             <button
@@ -382,16 +423,9 @@ export default function Dashboard({ setPage, user }) {
   );
 }
 
-/* =======================
-   STYLES
-======================= */
-
 const styles = {
   container: {
     minHeight: "100vh",
-    transition: "0.3s ease",
-    background:
-      "radial-gradient(circle at top, rgba(56,189,248,0.10), transparent 50%)",
   },
 
   header: {
@@ -405,14 +439,12 @@ const styles = {
     zIndex: 1000,
     borderBottom:
       "1px solid rgba(255,255,255,0.06)",
-    backdropFilter: "blur(16px)",
   },
 
   brand: {
     color: "#38bdf8",
     fontWeight: "900",
     fontSize: "22px",
-    letterSpacing: "1px",
   },
 
   menuBtn: {
@@ -422,7 +454,6 @@ const styles = {
     borderRadius: "14px",
     background: "rgba(56,189,248,0.14)",
     color: "#38bdf8",
-    fontSize: "20px",
     cursor: "pointer",
   },
 
@@ -435,15 +466,12 @@ const styles = {
     zIndex: 1200,
     transition: "0.3s ease",
     background: "#020617",
-    borderRight:
-      "1px solid rgba(255,255,255,0.06)",
   },
 
   sideTitle: {
     color: "#38bdf8",
     fontSize: "24px",
     fontWeight: "900",
-    marginBottom: "6px",
   },
 
   sideSmall: {
@@ -460,11 +488,23 @@ const styles = {
 
   navBtn: {
     padding: "13px",
-    border: "1px solid rgba(255,255,255,0.06)",
+    border: "none",
     borderRadius: "14px",
-    background: "rgba(255,255,255,0.03)",
+    background: "#1e293b",
     color: "white",
     fontWeight: "700",
+    textAlign: "left",
+    cursor: "pointer",
+  },
+
+  agentBtn: {
+    padding: "13px",
+    border: "none",
+    borderRadius: "14px",
+    background:
+      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
+    color: "#00111f",
+    fontWeight: "900",
     textAlign: "left",
     cursor: "pointer",
   },
@@ -501,7 +541,6 @@ const styles = {
   heroTitle: {
     fontSize: "30px",
     fontWeight: "900",
-    marginBottom: "4px",
   },
 
   heroText: {
@@ -509,10 +548,10 @@ const styles = {
   },
 
   onlineWrap: {
-    marginTop: "10px",
     display: "flex",
     gap: "8px",
     alignItems: "center",
+    marginTop: "10px",
   },
 
   dot: {
@@ -525,9 +564,7 @@ const styles = {
   sectionTitle: {
     fontSize: "14px",
     fontWeight: "800",
-    marginBottom: "12px",
-    marginTop: "14px",
-    letterSpacing: "0.5px",
+    margin: "14px 0 12px",
   },
 
   grid: {
@@ -546,9 +583,6 @@ const styles = {
     padding: "18px",
     borderRadius: "18px",
     border: "1px solid rgba(255,255,255,0.06)",
-    background: "rgba(255,255,255,0.03)",
-    boxShadow:
-      "0 10px 30px rgba(0,0,0,0.20)",
     cursor: "pointer",
   },
 
@@ -582,7 +616,6 @@ const styles = {
     padding: "22px",
     borderRadius: "20px",
     zIndex: 1300,
-    border: "1px solid rgba(255,255,255,0.06)",
   },
 
   helpCard: {
