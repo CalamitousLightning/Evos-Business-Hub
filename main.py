@@ -229,10 +229,10 @@ def verify_signature(
         secret
     )
 
-
 # =========================
 # NETWORK PROVIDERS
 # =========================
+
 def get_provider(network: str):
     try:
         res = supabase.table("provider_routes") \
@@ -492,20 +492,29 @@ def create_order(data: CreateOrderRequest):
         )
 
 
+from decimal import Decimal
+
 # =========================
 # PAYSTACK HELPERS
 # =========================
 
-existing = supabase.table("agent_transactions") \
-    .select("id") \
-    .eq("reference", reference) \
-    .execute()
-
-if existing.data:
-    return
-    
 def process_agent_profit(order_id, reference):
 
+    # =========================
+    # DOUBLE CREDIT PROTECTION
+    # =========================
+    existing = supabase.table("agent_transactions") \
+        .select("id") \
+        .eq("reference", reference) \
+        .limit(1) \
+        .execute()
+
+    if existing.data:
+        return
+
+    # =========================
+    # GET ORDER
+    # =========================
     order_res = supabase.table("orders") \
         .select("*") \
         .eq("id", order_id) \
@@ -521,11 +530,9 @@ def process_agent_profit(order_id, reference):
     base_price = order.get("base_price")
     agent_price = order.get("agent_price")
 
-    # No agent → exit safely
     if not agent_id:
         return
 
-    # safety
     if base_price is None or agent_price is None:
         return
 
@@ -572,6 +579,10 @@ def process_agent_profit(order_id, reference):
         .execute()
 
 
+# =========================
+# USER STATS
+# =========================
+
 def calculate_rank(order_count: int):
     if order_count >= 50:
         return 5
@@ -608,6 +619,8 @@ def increment_user_orders(user_id: int):
 
     except Exception as e:
         print("INCREMENT USER ERROR:", str(e))
+
+
 
 
 # =========================
