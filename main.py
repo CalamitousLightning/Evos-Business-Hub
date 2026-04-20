@@ -227,6 +227,30 @@ def verify_signature(
         secret
     )
 
+
+# =========================
+# NETWORK PROVIDERS
+# =========================
+def get_provider(network: str):
+    try:
+        res = supabase.table("provider_routes") \
+            .select("provider") \
+            .eq("network", network.upper()) \
+            .eq("active", True) \
+            .order("priority") \
+            .limit(1) \
+            .execute()
+
+        if res.data:
+            return res.data[0]["provider"]
+
+        return None
+
+    except Exception as e:
+        print("PROVIDER LOOKUP ERROR:", str(e))
+        return None
+
+
 # =========================
 # PRICES
 # =========================
@@ -511,59 +535,108 @@ async def paystack_webhook(request: Request):
             .execute()
 
         # =========================
-        # UPDATE USER STATS (SAFE)
+        # UPDATE USER STATS
         # =========================
         if order.get("user_id"):
             increment_user_orders(order["user_id"])
 
         # =========================
-        # CALL DATAMART (SAFE + TIMEOUT)
+        # GET PROVIDER FROM SUPABASE
+        # =========================
+        provider = get_provider(order["network"])
+
+        # =========================
+        # PURCHASE FLOW
         # =========================
         try:
-            dm_response = requests.post(
-                f"{DATAMART_BASE}/purchase",
-                headers={"X-API-Key": DATAMART_API_KEY},
-                json={
-                    "phoneNumber": order["phone_number"],
-                    "network": NETWORK_MAP.get(order["network"]),
-                    "capacity": extract_capacity(order["bundle"]),
-                    "gateway": "wallet"
-                },
-                timeout=REQUEST_TIMEOUT
-            )
 
-            dm = dm_response.json()
+            # =====================================
+            # DATAMART (MTN)
+            # =====================================
+            if provider == "DATAMART":
 
-            dm_data = dm.get("data", {})
+                dm_response = requests.post(
+                    f"{DATAMART_BASE}/purchase",
+                    headers={"X-API-Key": DATAMART_API_KEY},
+                    json={
+                        "phoneNumber": order["phone_number"],
+                        "network": NETWORK_MAP.get(order["network"]),
+                        "capacity": extract_capacity(order["bundle"]),
+                        "gateway": "wallet"
+                    },
+                    timeout=REQUEST_TIMEOUT
+                )
 
-            dm_ref = dm_data.get("orderReference")
-            dm_order_id = dm_data.get("orderId")
+                dm = dm_response.json()
+                dm_data = dm.get("data", {})
 
-            supabase.table("orders") \
-                .update({
-                    "status": "processing",
-                    "datamart_ref": dm_ref,
-                    "datamart_order_id": dm_order_id
-                }) \
-                .eq("paystack_ref", reference) \
-                .execute()
+                supabase.table("orders") \
+                    .update({
+                        "status": "processing",
+                        "datamart_ref": dm_data.get("orderReference"),
+                        "datamart_order_id": dm_data.get("orderId")
+                    }) \
+                    .eq("paystack_ref", reference) \
+                    .execute()
+
+            # =====================================
+            # DATABOSS (TELECEL / AIRTELTIGO)
+            # =====================================
+            elif provider == "DATABOSS":
+
+                endpoint = "telecel.php"
+
+                network_name = order["network"].upper()
+
+                if network_name in ["AIRTELTIGO", "AT"]:
+                    endpoint = "at.php"
+
+                elif network_name in ["MTN"]:
+                    endpoint = "mtn.php"
+
+                db_response = requests.post(
+                    f"{DATABOSS_BASE}/{endpoint}",
+                    json={
+                        "api_key": DATABOSS_API_KEY,
+                        "api_secret": DATABOSS_API_SECRET,
+                        "network": network_name,
+                        "package_gb": extract_capacity(order["bundle"]),
+                        "phone_number": order["phone_number"]
+                    },
+                    timeout=REQUEST_TIMEOUT
+                )
+
+                db = db_response.json()
+
+                if not db.get("success"):
+                    raise Exception(db.get("message", "Databoss failed"))
+
+                supabase.table("orders") \
+                    .update({
+                        "status": "successful",
+                        "databoss_ref": str(db.get("order_id"))
+                    }) \
+                    .eq("paystack_ref", reference) \
+                    .execute()
+
+            else:
+                raise Exception("No provider assigned")
 
             return {"status": "success"}
 
         except Exception as e:
-            print("DATAMART ERROR:", str(e))
+            print("PURCHASE ERROR:", str(e))
 
             supabase.table("orders") \
                 .update({"status": "failed"}) \
                 .eq("paystack_ref", reference) \
                 .execute()
 
-            return {"status": "datamart failed"}
+            return {"status": "purchase failed"}
 
     except Exception as e:
         print("PAYSTACK WEBHOOK ERROR:", str(e))
         return {"status": "error"}
-
 
 # =========================
 # DATAMART WEBHOOK
@@ -654,23 +727,45 @@ def sync_order(reference: str):
         if not tracker:
             return {"status": "not processed yet"}
 
-        dm = requests.get(
-            f"{DATAMART_BASE}/order-status/{tracker}",
-            headers={"X-API-Key": DATAMART_API_KEY},
-            timeout=REQUEST_TIMEOUT
-        )
+        provider = get_provider(order["network"])
 
-        dm.raise_for_status()
+        # =========================
+        # DATAMART
+        # =========================
+        if provider == "DATAMART":
 
-        payload = dm.json()
+            dm = requests.get(
+                f"{DATAMART_BASE}/order-status/{tracker}",
+                headers={"X-API-Key": DATAMART_API_KEY},
+                timeout=REQUEST_TIMEOUT
+            )
 
-        status = str(
-            payload.get("data", {}).get("orderStatus", "")
-        ).lower()
+            dm.raise_for_status()
 
+            payload = dm.json()
+
+            status = str(
+                payload.get("data", {}).get("orderStatus", "")
+            ).lower()
+
+        # =========================
+        # DATABOSS
+        # =========================
+        elif provider == "DATABOSS":
+
+            # Databoss has no separate tracker endpoint currently.
+            # Use existing DB status until manual/auto success logic added.
+            status = order["status"].lower()
+
+        else:
+            status = "processing"
+
+        # =========================
+        # MAP STATUS
+        # =========================
         final_status = (
             "successful"
-            if status in ["completed", "success", "delivered"]
+            if status in ["completed", "success", "delivered", "successful"]
             else "failed"
             if status in ["failed", "cancelled", "refunded"]
             else "processing"
@@ -689,7 +784,6 @@ def sync_order(reference: str):
     except Exception as e:
         print("SYNC ERROR:", str(e))
         raise HTTPException(500, "Sync failed")
-
 
 
 # =========================
