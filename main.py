@@ -14,6 +14,8 @@ from supabase import create_client, Client
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 
+from decimal import Decimal
+
 from jose import jwt
 from passlib.context import CryptContext
 
@@ -258,7 +260,40 @@ def can_access_agent_system(user):
         user.role == "agent"
         and user.agent_status == "approved"
     )
-    
+
+
+# =========================
+# CORE PROFIT SYS
+# =========================
+def handle_successful_order(order):
+    base = order.base_price
+    agent_price = order.agent_price
+    agent_id = order.agent_id
+
+    if agent_id:
+        profit = agent_price - base
+
+        credit_wallet(agent_id, profit)
+
+        log_transaction(
+            agent_id=agent_id,
+            amount=profit,
+            order_id=order.id,
+            type="credit"
+        )
+
+
+# =========================
+# WALLET UPDATE SYS
+# =========================
+def update_wallet(agent_id, amount):
+    wallet = get_wallet(agent_id)
+
+    if not wallet:
+        create_wallet(agent_id, amount)
+    else:
+        wallet.balance += amount
+        save(wallet)
 # =========================
 # PRICES
 # =========================
@@ -455,9 +490,87 @@ def create_order(data: CreateOrderRequest):
             status_code=500,
             detail="Server error"
         )
+
+
 # =========================
 # PAYSTACK HELPERS
 # =========================
+
+existing = supabase.table("agent_transactions") \
+    .select("id") \
+    .eq("reference", reference) \
+    .execute()
+
+if existing.data:
+    return
+    
+def process_agent_profit(order_id, reference):
+
+    order_res = supabase.table("orders") \
+        .select("*") \
+        .eq("id", order_id) \
+        .limit(1) \
+        .execute()
+
+    if not order_res.data:
+        return
+
+    order = order_res.data[0]
+
+    agent_id = order.get("agent_id")
+    base_price = order.get("base_price")
+    agent_price = order.get("agent_price")
+
+    # No agent → exit safely
+    if not agent_id:
+        return
+
+    # safety
+    if base_price is None or agent_price is None:
+        return
+
+    profit = Decimal(agent_price) - Decimal(base_price)
+
+    if profit <= 0:
+        return
+
+    # =========================
+    # UPDATE WALLET
+    # =========================
+    wallet = supabase.table("agent_wallets") \
+        .select("*") \
+        .eq("agent_id", agent_id) \
+        .limit(1) \
+        .execute()
+
+    if wallet.data:
+        new_balance = Decimal(wallet.data[0]["balance"]) + profit
+
+        supabase.table("agent_wallets") \
+            .update({"balance": float(new_balance)}) \
+            .eq("agent_id", agent_id) \
+            .execute()
+    else:
+        supabase.table("agent_wallets") \
+            .insert({
+                "agent_id": agent_id,
+                "balance": float(profit)
+            }) \
+            .execute()
+
+    # =========================
+    # TRANSACTION LOG
+    # =========================
+    supabase.table("agent_transactions") \
+        .insert({
+            "agent_id": agent_id,
+            "order_id": order_id,
+            "amount": float(profit),
+            "type": "credit",
+            "reference": reference
+        }) \
+        .execute()
+
 
 def calculate_rank(order_count: int):
     if order_count >= 50:
@@ -584,6 +697,7 @@ async def paystack_webhook(request: Request):
                         "datamart_ref": dm_data.get("orderReference"),
                         "datamart_order_id": dm_data.get("orderId")
                     }) \
+                    process_agent_profit(order["id"], reference)
                     .eq("paystack_ref", reference) \
                     .execute()
 
@@ -624,6 +738,7 @@ async def paystack_webhook(request: Request):
                         "status": "successful",
                         "databoss_ref": str(db.get("order_id"))
                     }) \
+                    process_agent_profit(order["id"], reference)
                     .eq("paystack_ref", reference) \
                     .execute()
 
