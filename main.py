@@ -283,6 +283,10 @@ def handle_successful_order(order):
         )
 
 
+
+def calculate_agent_price(base_price, markup_price):
+    return float(base_price) + float(markup_price)
+    
 # =========================
 # WALLET UPDATE SYS
 # =========================
@@ -952,6 +956,343 @@ def get_user(user_id: int):
         raise HTTPException(500, "Failed to fetch user")
 
 
+# =========================
+# AGENT DASHBOARD
+# =========================
+@app.get("/agent/dashboard/{agent_id}")
+async def agent_dashboard(agent_id: int):
+
+    # =========================
+    # VALIDATE AGENT
+    # =========================
+    user = supabase.table("users") \
+        .select("role, agent_status") \
+        .eq("id", agent_id) \
+        .limit(1) \
+        .execute()
+
+    if not user.data:
+        return {"error": "User not found"}
+
+    u = user.data[0]
+
+    if u["role"] != "agent" or u["agent_status"] != "approved":
+        return {"error": "Not authorized"}
+
+    # =========================
+    # WALLET
+    # =========================
+    wallet = supabase.table("agent_wallets") \
+        .select("*") \
+        .eq("agent_id", agent_id) \
+        .limit(1) \
+        .execute()
+
+    balance = wallet.data[0]["balance"] if wallet.data else 0
+
+    # =========================
+    # TOTAL TRANSACTIONS
+    # =========================
+    transactions = supabase.table("agent_transactions") \
+        .select("*") \
+        .eq("agent_id", agent_id) \
+        .execute()
+
+    total_earned = sum(t["amount"] for t in transactions.data) if transactions.data else 0
+
+    # =========================
+    # ORDERS COUNT
+    # =========================
+    orders = supabase.table("orders") \
+        .select("id", count="exact") \
+        .eq("agent_id", agent_id) \
+        .execute()
+
+    return {
+        "wallet_balance": balance,
+        "total_earned": total_earned,
+        "total_sales": orders.count if hasattr(orders, "count") else len(orders.data or []),
+        "transactions_count": len(transactions.data or [])
+    }
+
+
+# =========================
+# AGENT WALLET AND TRANSACTION
+# =========================
+@app.get("/agent/wallet/{agent_id}")
+async def get_wallet(agent_id: int):
+
+    wallet = supabase.table("agent_wallets") \
+        .select("*") \
+        .eq("agent_id", agent_id) \
+        .limit(1) \
+        .execute()
+
+    if not wallet.data:
+        return {
+            "agent_id": agent_id,
+            "balance": 0
+        }
+
+    return wallet.data[0]
+
+
+@app.get("/agent/transactions/{agent_id}")
+async def agent_transactions(agent_id: int):
+
+    res = supabase.table("agent_transactions") \
+        .select("*") \
+        .eq("agent_id", agent_id) \
+        .order("created_at", desc=True) \
+        .limit(50) \
+        .execute()
+
+    return {
+        "transactions": res.data or []
+    }
+
+# =========================
+# AGENT SALES
+# =========================
+@app.get("/agent/sales/{agent_id}")
+async def agent_sales(agent_id: int):
+
+    orders = supabase.table("orders") \
+        .select("id, agent_price, base_price, created_at") \
+        .eq("agent_id", agent_id) \
+        .execute()
+
+    data = orders.data or []
+
+    total_profit = 0
+
+    for o in data:
+        if o.get("agent_price") and o.get("base_price"):
+            total_profit += (o["agent_price"] - o["base_price"])
+
+    return {
+        "total_orders": len(data),
+        "total_profit": total_profit
+    }
+
+
+
+
+
+# =========================
+# AGENT WITHDRAW
+# =========================
+
+
+@app.post("/agent/withdraw")
+async def request_withdrawal(payload: dict):
+
+    agent_id = payload.get("agent_id")
+    amount = payload.get("amount")
+
+    if not agent_id or not amount:
+        return {"error": "Missing fields"}
+
+    wallet = supabase.table("agent_wallets") \
+        .select("balance") \
+        .eq("agent_id", agent_id) \
+        .limit(1) \
+        .execute()
+
+    if not wallet.data:
+        return {"error": "Wallet not found"}
+
+    balance = float(wallet.data[0]["balance"])
+
+    if amount > balance:
+        return {"error": "Insufficient balance"}
+
+    if amount < 5:
+        return {"error": "Minimum withdrawal is 5"}
+
+    # hold funds immediately
+    new_balance = balance - amount
+
+    supabase.table("agent_wallets") \
+        .update({"balance": new_balance}) \
+        .eq("agent_id", agent_id) \
+        .execute()
+
+    supabase.table("agent_withdrawals") \
+        .insert({
+            "agent_id": agent_id,
+            "amount": amount,
+            "account_name": payload.get("account_name"),
+            "account_number": payload.get("account_number"),
+            "bank_name": payload.get("bank_name")
+        }) \
+        .execute()
+
+    return {"status": "request submitted"}
+
+
+# =========================
+# ADMIN WITHDRAWALS
+# =========================
+@app.post("/admin/withdrawals/{withdrawal_id}/paid")
+async def mark_paid(withdrawal_id: int):
+
+    supabase.table("agent_withdrawals") \
+        .update({
+            "status": "paid"
+        }) \
+        .eq("id", withdrawal_id) \
+        .execute()
+
+    return {"status": "paid"}
+
+
+# =========================
+# ADMIN REJECT
+# =========================
+@app.post("/admin/withdrawals/{withdrawal_id}/reject")
+async def reject_withdrawal(withdrawal_id: int):
+
+    req = supabase.table("agent_withdrawals") \
+        .select("*") \
+        .eq("id", withdrawal_id) \
+        .limit(1) \
+        .execute()
+
+    if not req.data:
+        return {"error": "Not found"}
+
+    row = req.data[0]
+
+    if row["status"] != "pending":
+        return {"error": "Already processed"}
+
+    # refund wallet
+    wallet = supabase.table("agent_wallets") \
+        .select("balance") \
+        .eq("agent_id", row["agent_id"]) \
+        .limit(1) \
+        .execute()
+
+    current = float(wallet.data[0]["balance"])
+
+    supabase.table("agent_wallets") \
+        .update({"balance": current + float(row["amount"])}) \
+        .eq("agent_id", row["agent_id"]) \
+        .execute()
+
+    supabase.table("agent_withdrawals") \
+        .update({"status": "rejected"}) \
+        .eq("id", withdrawal_id) \
+        .execute()
+
+    return {"status": "rejected"}
+
+    
+# =========================
+# AGENT STORE
+# =========================
+@app.get("/store/{agent_id}")
+async def public_agent_store(agent_id: int):
+
+    user = supabase.table("users") \
+        .select("role,agent_status") \
+        .eq("id", agent_id) \
+        .limit(1) \
+        .execute()
+
+    if not user.data:
+        return {"error": "Store not found"}
+
+    u = user.data[0]
+
+    if u["role"] != "agent" or u["agent_status"] != "approved":
+        return {"error": "Store unavailable"}
+
+    prices = supabase.table("base_prices") \
+        .select("*") \
+        .execute()
+
+    markups = supabase.table("agent_prices") \
+        .select("*") \
+        .eq("agent_id", agent_id) \
+        .execute()
+
+    markup_map = {}
+    for m in markups.data or []:
+        key = f'{m["network"]}:{m["bundle"]}'
+        markup_map[key] = float(m["markup"])
+
+    bundles = []
+
+    for row in prices.data or []:
+        key = f'{row["network"]}:{row["bundle"]}'
+        markup = markup_map.get(key, 0)
+
+        final_price = float(row["cost_price"]) + markup
+
+        bundles.append({
+            "network": row["network"],
+            "bundle": row["bundle"],
+            "price": final_price
+        })
+
+    return {
+        "agent_id": agent_id,
+        "bundles": bundles
+    }
+
+# =========================
+# STORE/ORDER
+# =========================
+@app.post("/store/order")
+async def create_store_order(payload: dict):
+
+    agent_id = payload["agent_id"]
+    network = payload["network"]
+    bundle = payload["bundle"]
+
+    base = supabase.table("base_prices") \
+        .select("*") \
+        .eq("network", network) \
+        .eq("bundle", bundle) \
+        .limit(1) \
+        .execute()
+
+    markup = supabase.table("agent_prices") \
+        .select("*") \
+        .eq("agent_id", agent_id) \
+        .eq("network", network) \
+        .eq("bundle", bundle) \
+        .limit(1) \
+        .execute()
+
+    base_price = float(base.data[0]["cost_price"])
+    markup_price = 0
+
+    if markup.data:
+        markup_price = float(markup.data[0]["markup"])
+
+    agent_price = base_price + markup_price
+
+    # create paystack order row
+    order = supabase.table("orders") \
+        .insert({
+            "agent_id": agent_id,
+            "network": network,
+            "bundle": bundle,
+            "phone_number": payload["phone_number"],
+            "base_price": base_price,
+            "agent_price": agent_price,
+            "status": "pending_payment"
+        }) \
+        .execute()
+
+    return {
+        "status": "created",
+        "order": order.data[0]
+    }
+    
 # =========================
 # AUTH (PRODUCTION SAFE)
 # =========================
