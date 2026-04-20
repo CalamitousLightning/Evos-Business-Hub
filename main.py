@@ -1204,46 +1204,79 @@ async def reject_withdrawal(withdrawal_id: int):
     return {"status": "rejected"}
 
 
+# =========================
+# AGENT PRICING (PRODUCTION READY)
+# =========================
 @app.get("/agent/pricing/{agent_id}")
 def get_agent_pricing(agent_id: str):
 
     try:
-        # 1. get base prices
-        base_res = supabase.table("base_prices").select("*").execute()
+        # =========================
+        # 1. GET BASE PRICES
+        # =========================
+        base_res = supabase.table("base_prices") \
+            .select("*") \
+            .execute()
 
-        # 2. get agent markup
+        base_prices = base_res.data or []
+
+        # =========================
+        # 2. GET AGENT PRICES
+        # =========================
         agent_res = supabase.table("agent_prices") \
             .select("*") \
             .eq("agent_id", agent_id) \
             .execute()
 
+        agent_prices = agent_res.data or []
+
+        # =========================
+        # 3. MAP AGENT MARKUPS
+        # =========================
         agent_map = {}
 
-        for row in agent_res.data:
-            key = f"{row['network']}-{row['bundle']}"
-            agent_map[key] = row["markup"]
+        for row in agent_prices:
+            if not row:
+                continue
 
+            key = f"{row.get('network','').strip().lower()}-{row.get('bundle','').strip().lower()}"
+            agent_map[key] = float(row.get("markup", 0) or 0)
+
+        # =========================
+        # 4. BUILD FINAL RESPONSE
+        # =========================
         result = []
 
-        for item in base_res.data:
-            key = f"{item['network']}-{item['bundle']}"
+        for item in base_prices:
+            if not item:
+                continue
 
-            markup = agent_map.get(key, 0)
+            network = item.get("network", "").strip()
+            bundle = item.get("bundle", "").strip()
+            base_price = float(item.get("price", 0) or 0)
+
+            key = f"{network.lower()}-{bundle.lower()}"
+            markup = float(agent_map.get(key, 0) or 0)
 
             result.append({
-                "network": item["network"],
-                "bundle": item["bundle"],
-                "base_price": item["price"],
+                "network": network,
+                "bundle": bundle,
+                "base_price": base_price,
                 "markup": markup,
-                "final_price": float(item["price"]) + float(markup)
+                "final_price": base_price + markup
             })
 
-        return {"prices": result}
+        return {
+            "status": "success",
+            "prices": result
+        }
 
     except Exception as e:
         print("AGENT PRICING ERROR:", str(e))
-        return {"prices": []}
-
+        return {
+            "status": "error",
+            "prices": []
+        }
 
 @app.post("/agent/pricing/save")
 def save_agent_pricing(payload: dict):
