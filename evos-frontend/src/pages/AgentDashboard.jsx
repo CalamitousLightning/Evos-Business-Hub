@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
 
-export default function AgentDashboard({
-  user,
-  setPage,
-}) {
-  const [loading, setLoading] =
-    useState(true);
-
+export default function AgentDashboard({ user, setPage }) {
+  const [loading, setLoading] = useState(true);
   const [dark, setDark] = useState(true);
+  const [error, setError] = useState(null);
 
   const [stats, setStats] = useState({
     wallet_balance: 0,
@@ -44,29 +40,32 @@ export default function AgentDashboard({
 
     const loadAgent = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
         const res = await fetch(
-          `https://evos-business-hub.onrender.com/agent/dashboard/${user.id}`
+          `https://YOUR-BACKEND-URL/agent/dashboard/${user.id}`
         );
+
+        if (!res.ok) {
+          throw new Error("Failed to load agent dashboard");
+        }
 
         const data = await res.json();
 
         setStats({
-          wallet_balance:
-            data.wallet_balance || 0,
-          total_sales:
-            data.total_sales || 0,
-          total_profit:
-            data.total_profit || 0,
-          total_orders:
-            data.total_orders || 0,
+          wallet_balance: data.wallet_balance || 0,
+          total_sales: data.total_sales || 0,
+          total_profit: data.total_profit || 0,
+          total_orders: data.total_orders || 0,
           store_link:
             data.store_link ||
             `${window.location.origin}/store/${user.id}`,
-          transactions:
-            data.transactions || [],
+          transactions: data.transactions || [],
         });
-      } catch (error) {
-        console.log(error);
+      } catch (err) {
+        console.log("Agent dashboard error:", err);
+        setError("Failed to load dashboard data");
       } finally {
         setLoading(false);
       }
@@ -76,11 +75,12 @@ export default function AgentDashboard({
   }, [user]);
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(
-      stats.store_link
-    );
-
-    alert("Store link copied");
+    try {
+      await navigator.clipboard.writeText(stats.store_link);
+      alert("Store link copied");
+    } catch (e) {
+      alert("Failed to copy link");
+    }
   };
 
   const logout = () => {
@@ -88,52 +88,24 @@ export default function AgentDashboard({
     setPage("login");
   };
 
-  const bg = dark
-    ? "#020617"
-    : "#f8fafc";
-
-  const cardBg = dark
-    ? "#0f172a"
-    : "#ffffff";
-
-  const text = dark
-    ? "#e5e7eb"
-    : "#111827";
-
-  const soft = dark
-    ? "#94a3b8"
-    : "#64748b";
+  const bg = dark ? "#020617" : "#f8fafc";
+  const cardBg = dark ? "#0f172a" : "#ffffff";
+  const text = dark ? "#e5e7eb" : "#111827";
+  const soft = dark ? "#94a3b8" : "#64748b";
 
   return (
-    <div
-      style={{
-        ...styles.container,
-        background: bg,
-        color: text,
-      }}
-    >
+    <div style={{ ...styles.container, background: bg, color: text }}>
+
       {/* HEADER */}
       <div style={styles.header}>
-        <div style={styles.brand}>
-          AGENT HUB
-        </div>
+        <div style={styles.brand}>AGENT HUB</div>
 
         <div style={styles.headBtns}>
-          <button
-            style={styles.topBtn}
-            onClick={() =>
-              setDark(!dark)
-            }
-          >
+          <button style={styles.topBtn} onClick={() => setDark(!dark)}>
             {dark ? "☀️" : "🌙"}
           </button>
 
-          <button
-            style={styles.topBtn}
-            onClick={() =>
-              setPage("dashboard")
-            }
-          >
+          <button style={styles.topBtn} onClick={() => setPage("dashboard")}>
             🏠
           </button>
         </div>
@@ -142,13 +114,10 @@ export default function AgentDashboard({
       {/* MAIN */}
       <div style={styles.main}>
         <div style={styles.hero}>
-          <h1 style={styles.title}>
-            Welcome Agent
-          </h1>
+          <h1 style={styles.title}>Welcome Agent</h1>
 
           <p style={{ color: soft }}>
-            {user?.username ||
-              user?.email}
+            {user?.username || user?.email}
           </p>
 
           <div style={styles.status}>
@@ -156,6 +125,11 @@ export default function AgentDashboard({
             Approved Agent Account
           </div>
         </div>
+
+        {/* ERROR */}
+        {error && (
+          <p style={{ color: "red" }}>{error}</p>
+        )}
 
         {/* LOADING */}
         {loading ? (
@@ -166,266 +140,100 @@ export default function AgentDashboard({
           <>
             {/* TOP STATS */}
             <div style={styles.grid2}>
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-              >
-                <div style={styles.small}>
-                  Wallet Balance
-                </div>
-
-                <div
-                  style={
-                    styles.bigMoney
-                  }
-                >
-                  GH₵{" "}
-                  {Number(
-                    stats.wallet_balance
-                  ).toFixed(2)}
+              <div style={{ ...styles.card, background: cardBg }}>
+                <div style={styles.small}>Wallet Balance</div>
+                <div style={styles.bigMoney}>
+                  GH₵ {Number(stats.wallet_balance).toFixed(2)}
                 </div>
               </div>
 
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-              >
-                <div style={styles.small}>
-                  Total Profit
-                </div>
-
-                <div
-                  style={
-                    styles.bigMoney
-                  }
-                >
-                  GH₵{" "}
-                  {Number(
-                    stats.total_profit
-                  ).toFixed(2)}
+              <div style={{ ...styles.card, background: cardBg }}>
+                <div style={styles.small}>Total Profit</div>
+                <div style={styles.bigMoney}>
+                  GH₵ {Number(stats.total_profit).toFixed(2)}
                 </div>
               </div>
 
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-              >
-                <div style={styles.small}>
-                  Total Orders
-                </div>
-
-                <div
-                  style={
-                    styles.bigNumber
-                  }
-                >
-                  {
-                    stats.total_orders
-                  }
+              <div style={{ ...styles.card, background: cardBg }}>
+                <div style={styles.small}>Total Orders</div>
+                <div style={styles.bigNumber}>
+                  {stats.total_orders}
                 </div>
               </div>
 
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-              >
-                <div style={styles.small}>
-                  Total Sales
-                </div>
-
-                <div
-                  style={
-                    styles.bigNumber
-                  }
-                >
-                  {
-                    stats.total_sales
-                  }
+              <div style={{ ...styles.card, background: cardBg }}>
+                <div style={styles.small}>Total Sales</div>
+                <div style={styles.bigNumber}>
+                  {stats.total_sales}
                 </div>
               </div>
             </div>
 
             {/* STORE LINK */}
-            <div
-              style={{
-                ...styles.card,
-                background: cardBg,
-                marginTop: "14px",
-              }}
-            >
-              <div style={styles.small}>
-                My Store Link
-              </div>
+            <div style={{ ...styles.card, background: cardBg, marginTop: 14 }}>
+              <div style={styles.small}>My Store Link</div>
 
-              <div
-                style={
-                  styles.linkText
-                }
-              >
+              <div style={styles.linkText}>
                 {stats.store_link}
               </div>
 
-              <button
-                style={
-                  styles.copyBtn
-                }
-                onClick={copyLink}
-              >
+              <button style={styles.copyBtn} onClick={copyLink}>
                 Copy Link
               </button>
             </div>
 
             {/* QUICK ACTIONS */}
-            <div
-              style={
-                styles.sectionTitle
-              }
-            >
-              Quick Actions
-            </div>
+            <div style={styles.sectionTitle}>Quick Actions</div>
 
             <div style={styles.grid}>
               <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-                onClick={() =>
-                  setPage(
-                    "agent-pricing"
-                  )
-                }
+                style={{ ...styles.card, background: cardBg }}
+                onClick={() => setPage("agent-pricing")}
               >
-                <h3>
-                  💰 Pricing
-                </h3>
-                <p
-                  style={{
-                    color: soft,
-                  }}
-                >
-                  Set your markup
-                </p>
+                <h3>💰 Pricing</h3>
+                <p style={{ color: soft }}>Set your markup</p>
               </div>
 
               <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-                onClick={() =>
-                  setPage(
-                    "agent-withdraw"
-                  )
-                }
+                style={{ ...styles.card, background: cardBg }}
+                onClick={() => setPage("agent-withdraw")}
               >
-                <h3>
-                  💳 Withdraw
-                </h3>
-                <p
-                  style={{
-                    color: soft,
-                  }}
-                >
-                  Request payout
-                </p>
+                <h3>💳 Withdraw</h3>
+                <p style={{ color: soft }}>Request payout</p>
               </div>
 
               <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-                onClick={() =>
-                  setPage(
-                    "agent-transactions"
-                  )
-                }
+                style={{ ...styles.card, background: cardBg }}
+                onClick={() => setPage("agent-transactions")}
               >
-                <h3>
-                  📜 Transactions
-                </h3>
-                <p
-                  style={{
-                    color: soft,
-                  }}
-                >
-                  Wallet history
-                </p>
+                <h3>📜 Transactions</h3>
+                <p style={{ color: soft }}>Wallet history</p>
               </div>
 
               <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
+                style={{ ...styles.card, background: cardBg }}
                 onClick={logout}
               >
-                <h3>
-                  🚪 Logout
-                </h3>
-                <p
-                  style={{
-                    color: soft,
-                  }}
-                >
-                  Secure sign out
-                </p>
+                <h3>🚪 Logout</h3>
+                <p style={{ color: soft }}>Secure sign out</p>
               </div>
             </div>
 
             {/* RECENT TX */}
-            <div
-              style={
-                styles.sectionTitle
-              }
-            >
-              Recent Transactions
-            </div>
+            <div style={styles.sectionTitle}>Recent Transactions</div>
 
-            {stats.transactions
-              .length === 0 ? (
-              <p
-                style={{
-                  color: soft,
-                }}
-              >
-                No records yet
-              </p>
+            {stats.transactions.length === 0 ? (
+              <p style={{ color: soft }}>No records yet</p>
             ) : (
-              stats.transactions
-                .slice(0, 5)
-                .map((tx, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      ...styles.tx,
-                      background:
-                        cardBg,
-                    }}
-                  >
-                    <div>
-                      {tx.type}
-                    </div>
-
-                    <div>
-                      GH₵{" "}
-                      {Number(
-                        tx.amount
-                      ).toFixed(
-                        2
-                      )}
-                    </div>
-                  </div>
-                ))
+              stats.transactions.slice(0, 5).map((tx, i) => (
+                <div
+                  key={i}
+                  style={{ ...styles.tx, background: cardBg }}
+                >
+                  <div>{tx.type}</div>
+                  <div>GH₵ {Number(tx.amount).toFixed(2)}</div>
+                </div>
+              ))
             )}
           </>
         )}
@@ -433,7 +241,6 @@ export default function AgentDashboard({
     </div>
   );
 }
-
 const styles = {
   container: {
     minHeight: "100vh",
