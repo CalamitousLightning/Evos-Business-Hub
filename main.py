@@ -283,10 +283,6 @@ def handle_successful_order(order):
         )
 
 
-
-def calculate_agent_price(base_price, markup_price):
-    return float(base_price) + float(markup_price)
-    
 # =========================
 # WALLET UPDATE SYS
 # =========================
@@ -1188,7 +1184,101 @@ async def reject_withdrawal(withdrawal_id: int):
 
     return {"status": "rejected"}
 
-    
+
+@app.get("/agent/pricing/{agent_id}")
+def get_agent_pricing(agent_id: str):
+
+    try:
+        # 1. get base prices
+        base_res = supabase.table("prices").select("*").execute()
+
+        # 2. get agent markup
+        agent_res = supabase.table("agent_prices") \
+            .select("*") \
+            .eq("agent_id", agent_id) \
+            .execute()
+
+        agent_map = {}
+
+        for row in agent_res.data:
+            key = f"{row['network']}-{row['bundle']}"
+            agent_map[key] = row["markup"]
+
+        result = []
+
+        for item in base_res.data:
+            key = f"{item['network']}-{item['bundle']}"
+
+            markup = agent_map.get(key, 0)
+
+            result.append({
+                "network": item["network"],
+                "bundle": item["bundle"],
+                "base_price": item["price"],
+                "markup": markup,
+                "final_price": float(item["price"]) + float(markup)
+            })
+
+        return {"prices": result}
+
+    except Exception as e:
+        print("AGENT PRICING ERROR:", str(e))
+        return {"prices": []}
+
+
+@app.post("/agent/pricing/save")
+def save_agent_pricing(payload: dict):
+
+    try:
+        agent_id = payload["agent_id"]
+        prices = payload["prices"]
+
+        for item in prices:
+
+            network = item["network"]
+            bundle = item["bundle"]
+            markup = item.get("markup", 0)
+
+            # upsert logic
+            existing = supabase.table("agent_prices") \
+                .select("*") \
+                .eq("agent_id", agent_id) \
+                .eq("network", network) \
+                .eq("bundle", bundle) \
+                .execute()
+
+            if existing.data:
+
+                supabase.table("agent_prices") \
+                    .update({
+                        "markup": markup
+                    }) \
+                    .eq("agent_id", agent_id) \
+                    .eq("network", network) \
+                    .eq("bundle", bundle) \
+                    .execute()
+
+            else:
+
+                supabase.table("agent_prices") \
+                    .insert({
+                        "agent_id": agent_id,
+                        "network": network,
+                        "bundle": bundle,
+                        "markup": markup
+                    }) \
+                    .execute()
+
+        return {"status": "success"}
+
+    except Exception as e:
+        print("SAVE AGENT PRICING ERROR:", str(e))
+        return {"status": "failed"}
+        
+
+
+
+
 # =========================
 # AGENT STORE
 # =========================
