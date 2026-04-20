@@ -1497,6 +1497,9 @@ def register(data: RegisterRequest):
 # =========================
 # LOGIN ROUTE
 # =========================
+# =========================
+# LOGIN ROUTE (FIXED)
+# =========================
 @app.post("/auth/login")
 def login(data: LoginRequest):
 
@@ -1507,10 +1510,10 @@ def login(data: LoginRequest):
             raise HTTPException(status_code=400, detail="Username required")
 
         # =========================
-        # FIND USER (OPTIMIZED)
+        # FETCH USER
         # =========================
         user_res = supabase.table("users") \
-            .select("id,username,email,full_name,password,referral_code,rank") \
+            .select("*") \
             .or_(f"username.eq.{username},email.eq.{username}") \
             .limit(1) \
             .execute()
@@ -1521,7 +1524,7 @@ def login(data: LoginRequest):
         user = user_res.data[0]
 
         # =========================
-        # PASSWORD CHECK (SAFE)
+        # PASSWORD CHECK
         # =========================
         stored_password = user.get("password")
 
@@ -1531,24 +1534,32 @@ def login(data: LoginRequest):
         try:
             if not pwd_context.verify(data.password, stored_password):
                 return {"status": "invalid_credentials"}
-
         except Exception as e:
             print("PASSWORD VERIFY ERROR:", str(e))
             return {"status": "invalid_credentials"}
 
         # =========================
-        # SUCCESS
+        # NORMALIZE USER (IMPORTANT FIX)
+        # =========================
+        user_data = {
+            "id": user.get("id"),
+            "username": user.get("username"),
+            "email": user.get("email"),
+            "full_name": user.get("full_name"),
+            "referral_code": user.get("referral_code"),
+            "rank": user.get("rank", 1),
+
+            # 🔥 CRITICAL FIX FOR AGENT SYSTEM
+            "role": user.get("role", "user"),
+            "agent_status": user.get("agent_status", "pending"),
+        }
+
+        # =========================
+        # SUCCESS RESPONSE
         # =========================
         return {
             "status": "ok",
-            "user": {
-                "id": user.get("id"),   # ✅ ADDED ID
-                "username": user.get("username"),
-                "email": user.get("email"),
-                "full_name": user.get("full_name"),
-                "referral_code": user.get("referral_code"),
-                "rank": user.get("rank", 1)
-            }
+            "user": user_data
         }
 
     except HTTPException:
@@ -1557,6 +1568,10 @@ def login(data: LoginRequest):
     except Exception as e:
         print("LOGIN ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Server error")
+
+
+
+
 from fastapi import HTTPException
 
 
