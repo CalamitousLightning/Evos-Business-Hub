@@ -42,7 +42,7 @@ export default function Shop() {
   // ======================
   // OUT OF STOCK NETWORKS
   // ======================
-  const OUT_OF_STOCK = ["TELECEL", "AIRTELTIGO"];
+  const OUT_OF_STOCK = ["TELECEL", ""];
 
   const isOutOfStock = (name) => OUT_OF_STOCK.includes(name);
 
