@@ -1278,54 +1278,61 @@ def get_agent_pricing(agent_id: str):
             "prices": []
         }
 
+# =========================
+# SAVE AGENT PRICING (UPDATED)
+# =========================
 @app.post("/agent/pricing/save")
 def save_agent_pricing(payload: dict):
 
     try:
-        agent_id = payload["agent_id"]
-        prices = payload["prices"]
+        agent_id = str(payload.get("agent_id", "")).strip()
+        prices = payload.get("prices", [])
+
+        if not agent_id:
+            return {"status": "failed", "message": "agent_id required"}
+
+        # =========================
+        # DELETE OLD ROWS FIRST
+        # =========================
+        supabase.table("agent_prices") \
+            .delete() \
+            .eq("agent_id", agent_id) \
+            .execute()
+
+        rows = []
 
         for item in prices:
+            network = str(item.get("network", "")).strip()
+            bundle = str(item.get("bundle", "")).strip()
 
-            network = item["network"]
-            bundle = item["bundle"]
-            markup = item.get("markup", 0)
+            try:
+                markup = float(item.get("markup", 0) or 0)
+            except:
+                markup = 0
 
-            # upsert logic
-            existing = supabase.table("agent_prices") \
-                .select("*") \
-                .eq("agent_id", agent_id) \
-                .eq("network", network) \
-                .eq("bundle", bundle) \
+            rows.append({
+                "agent_id": agent_id,
+                "network": network,
+                "bundle": bundle,
+                "markup": markup
+            })
+
+        # =========================
+        # BULK INSERT
+        # =========================
+        if rows:
+            supabase.table("agent_prices") \
+                .insert(rows) \
                 .execute()
-
-            if existing.data:
-
-                supabase.table("agent_prices") \
-                    .update({
-                        "markup": markup
-                    }) \
-                    .eq("agent_id", agent_id) \
-                    .eq("network", network) \
-                    .eq("bundle", bundle) \
-                    .execute()
-
-            else:
-
-                supabase.table("agent_prices") \
-                    .insert({
-                        "agent_id": agent_id,
-                        "network": network,
-                        "bundle": bundle,
-                        "markup": markup
-                    }) \
-                    .execute()
 
         return {"status": "success"}
 
     except Exception as e:
         print("SAVE AGENT PRICING ERROR:", str(e))
-        return {"status": "failed"}
+        return {
+            "status": "failed",
+            "message": "Unable to save pricing"
+        }
         
 
 
