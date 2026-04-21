@@ -1339,108 +1339,233 @@ def save_agent_pricing(payload: dict):
 
 
 # =========================
-# AGENT STORE
+# AGENT STORE (CORRECTED + PRODUCTION READY)
 # =========================
 @app.get("/store/{agent_id}")
 async def public_agent_store(agent_id: int):
 
-    user = supabase.table("users") \
-        .select("role,agent_status") \
-        .eq("id", agent_id) \
-        .limit(1) \
-        .execute()
+    try:
+        # =========================
+        # VERIFY AGENT ACCOUNT
+        # =========================
+        user = supabase.table("users") \
+            .select("id,username,full_name,role,agent_status") \
+            .eq("id", agent_id) \
+            .limit(1) \
+            .execute()
 
-    if not user.data:
-        return {"error": "Store not found"}
+        if not user.data:
+            return {
+                "status": "error",
+                "message": "Store not found"
+            }
 
-    u = user.data[0]
+        u = user.data[0]
 
-    if u["role"] != "agent" or u["agent_status"] != "approved":
-        return {"error": "Store unavailable"}
+        if (
+            u.get("role") != "agent" or
+            u.get("agent_status") != "approved"
+        ):
+            return {
+                "status": "error",
+                "message": "Store unavailable"
+            }
 
-    prices = supabase.table("base_prices") \
-        .select("*") \
-        .execute()
+        # =========================
+        # GET BASE PRICES
+        # =========================
+        prices = supabase.table("base_prices") \
+            .select("*") \
+            .order("network") \
+            .execute()
 
-    markups = supabase.table("agent_prices") \
-        .select("*") \
-        .eq("agent_id", agent_id) \
-        .execute()
+        base_rows = prices.data or []
 
-    markup_map = {}
-    for m in markups.data or []:
-        key = f'{m["network"]}:{m["bundle"]}'
-        markup_map[key] = float(m["markup"])
+        # =========================
+        # GET AGENT MARKUPS
+        # =========================
+        markups = supabase.table("agent_prices") \
+            .select("*") \
+            .eq("agent_id", agent_id) \
+            .execute()
 
-    bundles = []
+        markup_rows = markups.data or []
 
-    for row in prices.data or []:
-        key = f'{row["network"]}:{row["bundle"]}'
-        markup = markup_map.get(key, 0)
+        # =========================
+        # BUILD MARKUP MAP
+        # =========================
+        markup_map = {}
 
-        final_price = float(row["cost_price"]) + markup
+        for row in markup_rows:
+            key = f"{row['network'].strip().lower()}-{row['bundle'].strip().lower()}"
+            markup_map[key] = float(row.get("markup", 0) or 0)
 
-        bundles.append({
-            "network": row["network"],
-            "bundle": row["bundle"],
-            "price": final_price
-        })
+        # =========================
+        # BUILD STORE PRODUCTS
+        # =========================
+        bundles = []
 
-    return {
-        "agent_id": agent_id,
-        "bundles": bundles
-    }
+        for row in base_rows:
+            network = row.get("network", "").strip()
+            bundle = row.get("bundle", "").strip()
+
+            key = f"{network.lower()}-{bundle.lower()}"
+
+            base_price = float(row.get("cost_price", 0) or 0)
+            markup = float(markup_map.get(key, 0) or 0)
+
+            final_price = round(base_price + markup, 2)
+
+            bundles.append({
+                "network": network,
+                "bundle": bundle,
+                "base_price": base_price,
+                "markup": markup,
+                "price": final_price
+            })
+
+        # =========================
+        # SUCCESS
+        # =========================
+        return {
+            "status": "success",
+            "agent_id": agent_id,
+            "agent_name": u.get("full_name") or u.get("username"),
+            "bundles": bundles
+        }
+
+    except Exception as e:
+        print("STORE ERROR:", str(e))
+
+        return {
+            "status": "error",
+            "message": "Failed to load store"
+        }
 
 # =========================
-# STORE/ORDER
+# STORE ORDER (CORRECTED + PROFIT READY)
 # =========================
 @app.post("/store/order")
 async def create_store_order(payload: dict):
 
-    agent_id = payload["agent_id"]
-    network = payload["network"]
-    bundle = payload["bundle"]
+    try:
+        # =========================
+        # GET INPUTS
+        # =========================
+        agent_id = int(payload["agent_id"])
+        network = str(payload["network"]).strip()
+        bundle = str(payload["bundle"]).strip()
+        phone_number = str(payload["phone_number"]).strip()
 
-    base = supabase.table("base_prices") \
-        .select("*") \
-        .eq("network", network) \
-        .eq("bundle", bundle) \
-        .limit(1) \
-        .execute()
+        # =========================
+        # VERIFY AGENT
+        # =========================
+        agent = supabase.table("users") \
+            .select("id,role,agent_status") \
+            .eq("id", agent_id) \
+            .limit(1) \
+            .execute()
 
-    markup = supabase.table("agent_prices") \
-        .select("*") \
-        .eq("agent_id", agent_id) \
-        .eq("network", network) \
-        .eq("bundle", bundle) \
-        .limit(1) \
-        .execute()
+        if not agent.data:
+            return {
+                "status": "error",
+                "message": "Store not found"
+            }
 
-    base_price = float(base.data[0]["cost_price"])
-    markup_price = 0
+        user = agent.data[0]
 
-    if markup.data:
-        markup_price = float(markup.data[0]["markup"])
+        if (
+            user.get("role") != "agent" or
+            user.get("agent_status") != "approved"
+        ):
+            return {
+                "status": "error",
+                "message": "Store unavailable"
+            }
 
-    agent_price = base_price + markup_price
+        # =========================
+        # GET BASE PRICE
+        # =========================
+        base = supabase.table("base_prices") \
+            .select("*") \
+            .eq("network", network) \
+            .eq("bundle", bundle) \
+            .limit(1) \
+            .execute()
 
-    # create paystack order row
-    order = supabase.table("orders") \
-        .insert({
-            "agent_id": agent_id,
-            "network": network,
-            "bundle": bundle,
-            "phone_number": payload["phone_number"],
-            "base_price": base_price,
-            "agent_price": agent_price,
-            "status": "pending_payment"
-        }) \
-        .execute()
+        if not base.data:
+            return {
+                "status": "error",
+                "message": "Bundle not found"
+            }
 
-    return {
-        "status": "created",
-        "order": order.data[0]
-    }
+        base_price = float(base.data[0]["cost_price"])
+
+        # =========================
+        # GET AGENT MARKUP
+        # =========================
+        markup = supabase.table("agent_prices") \
+            .select("markup") \
+            .eq("agent_id", agent_id) \
+            .eq("network", network) \
+            .eq("bundle", bundle) \
+            .limit(1) \
+            .execute()
+
+        markup_price = 0
+
+        if markup.data:
+            markup_price = float(
+                markup.data[0].get("markup", 0)
+            )
+
+        # =========================
+        # FINAL CUSTOMER PRICE
+        # =========================
+        agent_price = round(
+            base_price + markup_price, 2
+        )
+
+        # =========================
+        # CREATE ORDER
+        # =========================
+        order = supabase.table("orders") \
+            .insert({
+                "agent_id": agent_id,
+                "network": network,
+                "bundle": bundle,
+                "phone_number": phone_number,
+                "base_price": base_price,
+                "markup": markup_price,
+                "agent_price": agent_price,
+                "amount": agent_price,
+                "status": "pending_payment",
+                "source": "agent_store"
+            }) \
+            .execute()
+
+        if not order.data:
+            return {
+                "status": "error",
+                "message": "Failed to create order"
+            }
+
+        # =========================
+        # SUCCESS
+        # =========================
+        return {
+            "status": "created",
+            "order": order.data[0],
+            "pay_amount": agent_price
+        }
+
+    except Exception as e:
+        print("STORE ORDER ERROR:", str(e))
+
+        return {
+            "status": "error",
+            "message": "Failed to create order"
+        }
     
 # =========================
 # AUTH (PRODUCTION SAFE)
