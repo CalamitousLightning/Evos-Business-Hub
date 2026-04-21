@@ -1337,9 +1337,8 @@ def save_agent_pricing(payload: dict):
 
 
 
-
 # =========================
-# AGENT STORE (CORRECTED + PRODUCTION READY)
+# AGENT STORE (FULL CORRECTED + PRODUCTION READY)
 # =========================
 @app.get("/store/{agent_id}")
 async def public_agent_store(agent_id: int):
@@ -1372,47 +1371,41 @@ async def public_agent_store(agent_id: int):
             }
 
         # =========================
-        # GET BASE PRICES
+        # LOAD BASE PRICES
         # =========================
         prices = supabase.table("base_prices") \
             .select("*") \
             .order("network") \
             .execute()
 
-        base_rows = prices.data or []
-
         # =========================
-        # GET AGENT MARKUPS
+        # LOAD AGENT MARKUPS
         # =========================
         markups = supabase.table("agent_prices") \
             .select("*") \
             .eq("agent_id", agent_id) \
             .execute()
 
-        markup_rows = markups.data or []
-
-        # =========================
-        # BUILD MARKUP MAP
-        # =========================
         markup_map = {}
 
-        for row in markup_rows:
-            key = f"{row['network'].strip().lower()}-{row['bundle'].strip().lower()}"
-            markup_map[key] = float(row.get("markup", 0) or 0)
+        for m in (markups.data or []):
+            key = f"{m['network'].strip().lower()}::{m['bundle'].strip().lower()}"
+            markup_map[key] = float(m.get("markup", 0) or 0)
 
         # =========================
         # BUILD STORE PRODUCTS
         # =========================
         bundles = []
 
-        for row in base_rows:
+        for row in (prices.data or []):
+
             network = row.get("network", "").strip()
             bundle = row.get("bundle", "").strip()
 
-            key = f"{network.lower()}-{bundle.lower()}"
+            key = f"{network.lower()}::{bundle.lower()}"
 
             base_price = float(row.get("cost_price", 0) or 0)
-            markup = float(markup_map.get(key, 0) or 0)
+            markup = float(markup_map.get(key, 0))
 
             final_price = round(base_price + markup, 2)
 
@@ -1421,17 +1414,21 @@ async def public_agent_store(agent_id: int):
                 "bundle": bundle,
                 "base_price": base_price,
                 "markup": markup,
-                "price": final_price
+                "final_price": final_price
             })
 
         # =========================
-        # SUCCESS
+        # RETURN STORE
         # =========================
         return {
             "status": "success",
             "agent_id": agent_id,
-            "agent_name": u.get("full_name") or u.get("username"),
-            "bundles": bundles
+            "agent_name": (
+                u.get("full_name")
+                or u.get("username")
+                or "Agent"
+            ),
+            "prices": bundles
         }
 
     except Exception as e:
