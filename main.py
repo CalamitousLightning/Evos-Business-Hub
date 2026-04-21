@@ -1253,7 +1253,7 @@ def get_agent_pricing(agent_id: str):
 
             network = item.get("network", "").strip()
             bundle = item.get("bundle", "").strip()
-            base_price = float(item.get("price", 0) or 0)
+            base_price = float(item.get("cost_price", 0) or 0)
 
             key = f"{network.lower()}-{bundle.lower()}"
             markup = float(agent_map.get(key, 0) or 0)
