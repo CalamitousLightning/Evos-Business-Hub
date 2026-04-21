@@ -18,14 +18,41 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [theme, setTheme] = useState("dark");
 
+  // =========================
+  // INITIAL LOAD + ROUTING
+  // =========================
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
 
     const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) setTheme(savedTheme);
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
 
+    detectRoute();
+
+    window.addEventListener("popstate", detectRoute);
+
+    return () => {
+      window.removeEventListener("popstate", detectRoute);
+    };
+  }, []);
+
+  // =========================
+  // ROUTE DETECTOR
+  // =========================
+  const detectRoute = () => {
     const path = window.location.pathname;
+
+    // IMPORTANT FIX:
+    // /store/1 must load StorePage
+    if (path.startsWith("/store/")) {
+      setPage("store");
+      return;
+    }
 
     const routeMap = {
       "/": "home",
@@ -43,28 +70,36 @@ export default function App() {
     };
 
     setPage(routeMap[path] || "home");
-  }, []);
+  };
 
   const isAgentActive =
     user?.role === "agent" &&
     user?.agent_status === "approved";
 
+  // =========================
+  // THEME
+  // =========================
   const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("theme", next);
   };
 
+  // =========================
+  // LOGOUT
+  // =========================
   const logout = () => {
     localStorage.clear();
     setUser(null);
-    setPage("home");
-    window.history.pushState({}, "", "/");
+    navigate("home");
   };
 
-  const navigate = (p) => {
-    setPage(p);
+  // =========================
+  // NAVIGATE
+  // =========================
+  const navigate = (target) => {
     setMenuOpen(false);
+    setPage(target);
 
     const routes = {
       home: "/",
@@ -81,9 +116,13 @@ export default function App() {
       "track-order": "/track",
     };
 
-    window.history.pushState({}, "", routes[p] || "/");
+    const url = routes[target] || "/";
+    window.history.pushState({}, "", url);
   };
 
+  // =========================
+  // PAGE RENDERER
+  // =========================
   const renderPage = () => {
     switch (page) {
       case "home":
@@ -96,28 +135,70 @@ export default function App() {
         return <Orders user={user} theme={theme} />;
 
       case "login":
-        return <Login setUser={setUser} setPage={navigate} theme={theme} />;
+        return (
+          <Login
+            setUser={setUser}
+            setPage={navigate}
+            theme={theme}
+          />
+        );
 
       case "register":
-        return <Register setPage={navigate} theme={theme} />;
+        return (
+          <Register
+            setPage={navigate}
+            theme={theme}
+          />
+        );
 
       case "dashboard":
-        return <Dashboard user={user} setPage={navigate} theme={theme} />;
+        return (
+          <Dashboard
+            user={user}
+            setPage={navigate}
+            theme={theme}
+          />
+        );
 
       case "agent-dashboard":
-        return <AgentDashboard user={user} setPage={navigate} theme={theme} />;
+        return (
+          <AgentDashboard
+            user={user}
+            setPage={navigate}
+            theme={theme}
+          />
+        );
 
       case "agent-pricing":
-        return <AgentPricing user={user} setPage={navigate} />;
+        return (
+          <AgentPricing
+            user={user}
+            setPage={navigate}
+          />
+        );
 
       case "agent-store":
-        return <AgentStore user={user} setPage={navigate} />;
+        return (
+          <AgentStore
+            user={user}
+            setPage={navigate}
+          />
+        );
 
       case "store":
-        return <StorePage setPage={navigate} />;
+        return (
+          <StorePage
+            setPage={navigate}
+          />
+        );
 
       case "track-order":
-        return <OrderTracking user={user} setPage={navigate} />;
+        return (
+          <OrderTracking
+            user={user}
+            setPage={navigate}
+          />
+        );
 
       case "success":
         return <Success theme={theme} />;
@@ -127,25 +208,36 @@ export default function App() {
     }
   };
 
-  const isDark = theme === "dark";
+  const dark = theme === "dark";
 
   return (
-    <div style={appStyle(isDark)}>
-      <div style={overlayStyle(isDark)} />
+    <div style={appStyle(dark)}>
+      <div style={overlayStyle(dark)} />
 
       <div style={{ position: "relative", zIndex: 2 }}>
-        {/* NAV */}
-        <nav style={navStyle(isDark)}>
-          <div style={logoStyle} onClick={() => navigate("home")}>
+        {/* NAVBAR */}
+        <nav style={navStyle(dark)}>
+          <div
+            style={logoStyle}
+            onClick={() => navigate("home")}
+          >
             EVOS HUB
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={toggleTheme} style={themeBtn}>
-              {theme === "dark" ? "☀️" : "🌙"}
+            <button
+              onClick={toggleTheme}
+              style={themeBtn}
+            >
+              {dark ? "☀️" : "🌙"}
             </button>
 
-            <div onClick={() => setMenuOpen(!menuOpen)} style={menuIcon}>
+            <div
+              style={menuIcon}
+              onClick={() =>
+                setMenuOpen(!menuOpen)
+              }
+            >
               ☰
             </div>
           </div>
@@ -153,39 +245,65 @@ export default function App() {
 
         {/* MENU */}
         {menuOpen && (
-          <div style={dropdownStyle(isDark)}>
-            <button onClick={() => navigate("shop")} style={menuBtn(isDark)}>
+          <div style={dropdownStyle(dark)}>
+            <button
+              onClick={() => navigate("shop")}
+              style={menuBtn(dark)}
+            >
               Buy Data
             </button>
 
-            <button onClick={() => navigate("orders")} style={menuBtn(isDark)}>
+            <button
+              onClick={() => navigate("orders")}
+              style={menuBtn(dark)}
+            >
               Orders
             </button>
 
-            <button onClick={() => navigate("dashboard")} style={menuBtn(isDark)}>
+            <button
+              onClick={() => navigate("dashboard")}
+              style={menuBtn(dark)}
+            >
               Dashboard
             </button>
 
             {user && (
               <button
-                onClick={() => navigate("agent-dashboard")}
+                onClick={() =>
+                  navigate("agent-dashboard")
+                }
                 style={agentBtn}
               >
-                {isAgentActive ? "🚀 Agent Dashboard" : "🚀 Become Agent"}
+                {isAgentActive
+                  ? "🚀 Agent Dashboard"
+                  : "🚀 Become Agent"}
               </button>
             )}
 
             {user ? (
-              <button onClick={logout} style={dangerBtn}>
+              <button
+                onClick={logout}
+                style={dangerBtn}
+              >
                 Logout
               </button>
             ) : (
               <>
-                <button onClick={() => navigate("login")} style={menuBtn(isDark)}>
+                <button
+                  onClick={() =>
+                    navigate("login")
+                  }
+                  style={menuBtn(dark)}
+                >
                   Login
                 </button>
 
-                <button onClick={() => navigate("register")} style={primaryBtn}>
+                <button
+                  onClick={() =>
+                    navigate("register")
+                  }
+                  style={primaryBtn}
+                >
                   Register
                 </button>
               </>
@@ -194,13 +312,15 @@ export default function App() {
         )}
 
         {/* PAGE */}
-        <main style={contentStyle}>{renderPage()}</main>
+        <main style={contentStyle}>
+          {renderPage()}
+        </main>
       </div>
     </div>
   );
 }
 
-/* ================= UI STYLES ================= */
+/* ================= UI ================= */
 
 const appStyle = (dark) => ({
   minHeight: "100vh",
@@ -209,7 +329,9 @@ const appStyle = (dark) => ({
   backgroundSize: "cover",
   backgroundPosition: "center",
   backgroundRepeat: "no-repeat",
-  backgroundColor: dark ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.35)",
+  backgroundColor: dark
+    ? "rgba(0,0,0,0.65)"
+    : "rgba(255,255,255,0.35)",
   color: dark ? "#e5e7eb" : "#0f172a",
 });
 
@@ -230,12 +352,27 @@ const navStyle = (dark) => ({
   position: "sticky",
   top: 0,
   backdropFilter: "blur(12px)",
-  background: dark ? "rgba(15,23,42,0.6)" : "rgba(255,255,255,0.7)",
+  background: dark
+    ? "rgba(15,23,42,0.6)"
+    : "rgba(255,255,255,0.7)",
 });
 
-const logoStyle = { color: "#38bdf8", fontWeight: 800, cursor: "pointer" };
-const themeBtn = { padding: 8, borderRadius: 8, border: "none" };
-const menuIcon = { fontSize: 22, cursor: "pointer" };
+const logoStyle = {
+  color: "#38bdf8",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const themeBtn = {
+  padding: 8,
+  borderRadius: 8,
+  border: "none",
+};
+
+const menuIcon = {
+  fontSize: 22,
+  cursor: "pointer",
+};
 
 const dropdownStyle = (dark) => ({
   display: "flex",
@@ -265,7 +402,8 @@ const primaryBtn = {
 
 const agentBtn = {
   padding: 10,
-  background: "linear-gradient(135deg,#22c55e,#16a34a)",
+  background:
+    "linear-gradient(135deg,#22c55e,#16a34a)",
   border: "none",
   borderRadius: 8,
   color: "white",
