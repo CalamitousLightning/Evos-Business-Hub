@@ -28,39 +28,43 @@ export default function AgentPricing({ user, setPage }) {
   // =========================
   // LOAD PRICING
   // =========================
-  useEffect(() => {
+  const loadPricing = async () => {
     if (!user?.id) return;
 
-    const loadPricing = async () => {
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const res = await fetch(
-          `${API}/agent/pricing/${user.id}`
-        );
+      const res = await fetch(
+        `${API}/agent/pricing/${user.id}`
+      );
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch pricing");
-        }
-
-        const data = await res.json();
-
-        const normalized = (data.prices || []).map((item) => ({
-          ...item,
-          markup: item.markup || 0,
-          final_price:
-            Number(item.base_price) + Number(item.markup || 0),
-        }));
-
-        setRows(normalized);
-      } catch (err) {
-        console.log("Pricing load error:", err);
-        setRows([]);
-      } finally {
-        setLoading(false);
+      if (!res.ok) {
+        throw new Error("Failed to fetch pricing");
       }
-    };
 
+      const data = await res.json();
+
+      const normalized = (data.prices || []).map((item) => {
+        const base = Number(item.base_price || 0);
+        const markup = Number(item.markup || 0);
+
+        return {
+          ...item,
+          markup,
+          final_price: base + markup,
+        };
+      });
+
+      setRows(normalized);
+    } catch (err) {
+      console.log("Pricing load error:", err);
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadPricing();
   }, [user]);
 
@@ -70,7 +74,10 @@ export default function AgentPricing({ user, setPage }) {
   const updateMarkup = (index, value) => {
     const copy = [...rows];
 
-    const markup = Number(value || 0);
+    let markup = Number(value || 0);
+
+    if (markup < 0) markup = 0;
+
     const base = Number(copy[index].base_price || 0);
 
     copy[index].markup = markup;
@@ -83,15 +90,16 @@ export default function AgentPricing({ user, setPage }) {
   // SAVE PRICING
   // =========================
   const savePricing = async () => {
-    setSaving(true);
-
     try {
+      setSaving(true);
+
       const res = await fetch(
         `${API}/agent/pricing/save`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
           body: JSON.stringify({
             agent_id: user.id,
@@ -103,9 +111,13 @@ export default function AgentPricing({ user, setPage }) {
       const data = await res.json();
 
       if (data.status === "success") {
-        alert("Pricing updated successfully");
+        alert("Pricing updated");
+        loadPricing();
       } else {
-        alert(data.message || "Failed to save pricing");
+        alert(
+          data.message ||
+            "Failed to save pricing"
+        );
       }
     } catch (err) {
       console.log(err);
@@ -117,84 +129,112 @@ export default function AgentPricing({ user, setPage }) {
 
   return (
     <div style={styles.wrap}>
-      {/* HEADER */}
       <div style={styles.top}>
         <button
           style={styles.back}
-          onClick={() => setPage("agent-dashboard")}
+          onClick={() =>
+            setPage("agent-dashboard")
+          }
         >
           ← Back
         </button>
 
-        <h1 style={styles.title}>Agent Pricing</h1>
+        <h1 style={styles.title}>
+          Agent Pricing
+        </h1>
       </div>
 
       <p style={styles.sub}>
-        Set your markup. Customers will pay: Base Price + Your Markup
+        Base Price + Your Markup = Customer Price
       </p>
 
-      {/* LOADING */}
       {loading ? (
         <p>Loading pricing...</p>
       ) : rows.length === 0 ? (
-        <p>No pricing data found</p>
+        <p>No pricing found</p>
       ) : (
         <>
-          {/* PRICE LIST */}
           {rows.map((item, index) => (
-            <div key={index} style={styles.card}>
+            <div
+              key={`${item.network}-${item.bundle}`}
+              style={styles.card}
+            >
               <div style={styles.row}>
                 <div>
-                  <strong>{item.network}</strong>
+                  <strong>
+                    {item.network}
+                  </strong>
                   <br />
                   {item.bundle}
                 </div>
 
-                <div>GH₵ {item.base_price}</div>
+                <div>
+                  GH₵{" "}
+                  {Number(
+                    item.base_price
+                  ).toFixed(2)}
+                </div>
               </div>
 
-              <div style={{ marginTop: "12px" }}>
-                <label>Markup (Your Profit)</label>
+              <div
+                style={{
+                  marginTop: 12,
+                }}
+              >
+                <label>
+                  Markup
+                </label>
 
                 <input
                   type="number"
                   min="0"
+                  step="0.01"
                   value={item.markup}
                   onChange={(e) =>
-                    updateMarkup(index, e.target.value)
+                    updateMarkup(
+                      index,
+                      e.target.value
+                    )
                   }
                   style={styles.input}
                 />
               </div>
 
-              <div style={{ marginTop: "12px" }}>
+              <div
+                style={{
+                  marginTop: 12,
+                }}
+              >
                 Final Price:{" "}
-                <strong>GH₵ {item.final_price}</strong>
+                <strong>
+                  GH₵{" "}
+                  {Number(
+                    item.final_price
+                  ).toFixed(2)}
+                </strong>
               </div>
             </div>
           ))}
 
-          {/* SAVE BUTTON */}
           <button
             style={{
               ...styles.save,
-              opacity: saving ? 0.7 : 1,
-              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving
+                ? 0.7
+                : 1,
             }}
             onClick={savePricing}
             disabled={saving}
           >
-            {saving ? "Saving..." : "Save Pricing"}
+            {saving
+              ? "Saving..."
+              : "Save Pricing"}
           </button>
         </>
       )}
     </div>
   );
 }
-
-/* =======================
-   STYLES
-======================= */
 
 const styles = {
   wrap: {
@@ -233,7 +273,8 @@ const styles = {
 
   card: {
     background: "#0f172a",
-    border: "1px solid rgba(255,255,255,0.06)",
+    border:
+      "1px solid rgba(255,255,255,0.06)",
     padding: "18px",
     borderRadius: "18px",
     marginBottom: "14px",
@@ -241,7 +282,8 @@ const styles = {
 
   row: {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     gap: "10px",
     alignItems: "center",
   },
@@ -251,7 +293,8 @@ const styles = {
     marginTop: "8px",
     padding: "12px",
     borderRadius: "12px",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border:
+      "1px solid rgba(255,255,255,0.08)",
     background: "#020617",
     color: "white",
   },
@@ -263,7 +306,9 @@ const styles = {
     borderRadius: "14px",
     marginTop: "10px",
     fontWeight: "900",
-    background: "linear-gradient(135deg,#38bdf8,#0ea5e9)",
+    background:
+      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
     color: "#00111f",
+    cursor: "pointer",
   },
 };
