@@ -37,6 +37,7 @@ export default function StorePage({ setPage }) {
           await res.json();
 
         if (
+          !res.ok ||
           data.status === "error"
         ) {
           setStore(null);
@@ -83,7 +84,7 @@ export default function StorePage({ setPage }) {
               "application/json",
           },
           body: JSON.stringify({
-            agent_id: agentId,
+            agent_id: Number(agentId),
             network:
               selected.network,
             bundle:
@@ -102,7 +103,7 @@ export default function StorePage({ setPage }) {
         "created"
       ) {
         alert(
-          `Order created. Amount: GH₵ ${data.pay_amount}`
+          `Order created successfully`
         );
 
         setPage("success");
@@ -113,6 +114,7 @@ export default function StorePage({ setPage }) {
         );
       }
     } catch (err) {
+      console.log(err);
       alert("Network error");
     } finally {
       setProcessing(false);
@@ -150,7 +152,7 @@ export default function StorePage({ setPage }) {
 
       {/* BUNDLES */}
       <div style={styles.grid}>
-        {(store.bundles || []).map(
+        {(store.prices || []).map(
           (item, i) => (
             <div
               key={i}
@@ -177,7 +179,10 @@ export default function StorePage({ setPage }) {
               </p>
 
               <h2>
-                GH₵ {item.price}
+                GH₵{" "}
+                {Number(
+                  item.final_price
+                ).toFixed(2)}
               </h2>
             </div>
           )
