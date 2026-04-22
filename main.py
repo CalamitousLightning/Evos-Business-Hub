@@ -1440,25 +1440,33 @@ async def public_agent_store(agent_id: int):
         }
 
 # =========================
-# STORE ORDER (CORRECTED + PROFIT READY)
+# STORE ORDER (PAYSTACK READY + PROFIT READY)
 # =========================
 @app.post("/store/order")
 async def create_store_order(payload: dict):
 
     try:
+        import uuid
+        import requests
+
         # =========================
-        # GET INPUTS
+        # INPUTS
         # =========================
         agent_id = int(payload["agent_id"])
         network = str(payload["network"]).strip()
         bundle = str(payload["bundle"]).strip()
         phone_number = str(payload["phone_number"]).strip()
 
+        # optional customer email
+        customer_email = str(
+            payload.get("email", "customer@evoshub.store")
+        ).strip()
+
         # =========================
         # VERIFY AGENT
         # =========================
         agent = supabase.table("users") \
-            .select("id,role,agent_status") \
+            .select("id,role,agent_status,full_name,username") \
             .eq("id", agent_id) \
             .limit(1) \
             .execute()
@@ -1484,7 +1492,7 @@ async def create_store_order(payload: dict):
         # GET BASE PRICE
         # =========================
         base = supabase.table("base_prices") \
-            .select("*") \
+            .select("cost_price") \
             .eq("network", network) \
             .eq("bundle", bundle) \
             .limit(1) \
@@ -1509,19 +1517,24 @@ async def create_store_order(payload: dict):
             .limit(1) \
             .execute()
 
-        markup_price = 0
+        markup_price = 0.0
 
         if markup.data:
             markup_price = float(
-                markup.data[0].get("markup", 0)
+                markup.data[0].get("markup", 0) or 0
             )
 
         # =========================
-        # FINAL CUSTOMER PRICE
+        # FINAL PRICE
         # =========================
         agent_price = round(
             base_price + markup_price, 2
         )
+
+        # =========================
+        # CREATE UNIQUE REFERENCE
+        # =========================
+        reference = f"STORE-{agent_id}-{uuid.uuid4().hex[:10].upper()}"
 
         # =========================
         # CREATE ORDER
@@ -1536,6 +1549,7 @@ async def create_store_order(payload: dict):
                 "markup": markup_price,
                 "agent_price": agent_price,
                 "amount": agent_price,
+                "paystack_ref": reference,
                 "status": "pending_payment",
                 "source": "agent_store"
             }) \
@@ -1547,13 +1561,56 @@ async def create_store_order(payload: dict):
                 "message": "Failed to create order"
             }
 
+        order_id = order.data[0]["id"]
+
+        # =========================
+        # INITIALIZE PAYSTACK
+        # =========================
+        paystack_payload = {
+            "email": customer_email,
+            "amount": int(agent_price * 100),   # pesewas
+            "reference": reference,
+            "callback_url": "https://evosdata.netlify.app/success",
+            "metadata": {
+                "order_id": order_id,
+                "source": "agent_store",
+                "agent_id": agent_id,
+                "network": network,
+                "bundle": bundle
+            }
+        }
+
+        paystack_headers = {
+            "Authorization": f"Bearer {PAYSTACK_SECRET}",
+            "Content-Type": "application/json"
+        }
+
+        pay = requests.post(
+            "https://api.paystack.co/transaction/initialize",
+            json=paystack_payload,
+            headers=paystack_headers,
+            timeout=30
+        )
+
+        pay_data = pay.json()
+
+        if not pay_data.get("status"):
+            return {
+                "status": "error",
+                "message": "Payment initialization failed"
+            }
+
+        auth_url = pay_data["data"]["authorization_url"]
+
         # =========================
         # SUCCESS
         # =========================
         return {
             "status": "created",
-            "order": order.data[0],
-            "pay_amount": agent_price
+            "order_id": order_id,
+            "reference": reference,
+            "pay_amount": agent_price,
+            "payment_url": auth_url
         }
 
     except Exception as e:
@@ -1563,7 +1620,10 @@ async def create_store_order(payload: dict):
             "status": "error",
             "message": "Failed to create order"
         }
-    
+
+
+
+
 # =========================
 # AUTH (PRODUCTION SAFE)
 # =========================
