@@ -35,12 +35,12 @@ export default function AgentDashboard({ user, setPage }) {
   }, [user, setPage]);
 
   // =========================
-  // LOAD DATA
+  // LOAD DASHBOARD
   // =========================
   useEffect(() => {
     if (!user?.id) return;
 
-    const load = async () => {
+    const loadDashboard = async () => {
       try {
         setLoading(true);
         setError("");
@@ -50,41 +50,49 @@ export default function AgentDashboard({ user, setPage }) {
         );
 
         if (!res.ok) {
-          throw new Error(`Server error: ${res.status}`);
+          throw new Error("Dashboard failed");
         }
 
         const data = await res.json();
 
         setStats({
-          wallet_balance: data.wallet_balance ?? 0,
-          total_sales: data.total_sales ?? 0,
-          total_profit: data.total_profit ?? 0,
-          total_orders: data.total_orders ?? 0,
+          wallet_balance: Number(data.wallet_balance || 0),
+          total_sales: Number(data.total_sales || 0),
+          total_profit: Number(data.total_profit || 0),
+          total_orders: Number(data.total_orders || 0),
           store_link:
             data.store_link ||
             `${window.location.origin}/store/${user.id}`,
-          transactions: data.transactions ?? [],
+          transactions: data.transactions || [],
         });
       } catch (err) {
-        console.log("Agent dashboard error:", err);
-        setError("Failed to load dashboard. Check backend URL.");
+        console.log(err);
+        setError("Failed to load dashboard");
       } finally {
         setLoading(false);
       }
     };
 
-    load();
+    loadDashboard();
   }, [user]);
 
+  // =========================
+  // COPY LINK
+  // =========================
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(stats.store_link);
+      await navigator.clipboard.writeText(
+        stats.store_link
+      );
       alert("Copied!");
     } catch {
       alert("Copy failed");
     }
   };
 
+  // =========================
+  // LOGOUT
+  // =========================
   const logout = () => {
     localStorage.clear();
     setPage("login");
@@ -96,96 +104,206 @@ export default function AgentDashboard({ user, setPage }) {
   const soft = dark ? "#94a3b8" : "#64748b";
 
   return (
-    <div style={{ ...styles.container, background: bg, color: text }}>
-
+    <div
+      style={{
+        ...styles.container,
+        background: bg,
+        color: text,
+      }}
+    >
       {/* HEADER */}
       <div style={styles.header}>
-        <div style={styles.brand}>AGENT HUB</div>
+        <div style={styles.brand}>
+          AGENT HUB
+        </div>
 
         <div style={styles.headBtns}>
-          <button style={styles.topBtn} onClick={() => setDark(!dark)}>
+          <button
+            style={styles.topBtn}
+            onClick={() =>
+              setDark(!dark)
+            }
+          >
             {dark ? "☀️" : "🌙"}
           </button>
 
-          <button style={styles.topBtn} onClick={() => setPage("dashboard")}>
+          <button
+            style={styles.topBtn}
+            onClick={() =>
+              setPage("dashboard")
+            }
+          >
             🏠
           </button>
         </div>
       </div>
 
       <div style={styles.main}>
-        <h1 style={styles.title}>Welcome Agent</h1>
-        <p style={{ color: soft }}>{user?.username}</p>
+        <h1 style={styles.title}>
+          Welcome Agent
+        </h1>
+
+        <p style={{ color: soft }}>
+          {user?.username}
+        </p>
 
         {/* ERROR */}
         {error && (
-          <div style={{ color: "red", marginBottom: 10 }}>
+          <div style={styles.error}>
             {error}
           </div>
         )}
 
         {/* LOADING */}
         {loading ? (
-          <p style={{ color: soft }}>Loading...</p>
+          <p style={{ color: soft }}>
+            Loading...
+          </p>
         ) : (
           <>
             {/* STATS */}
             <div style={styles.grid2}>
-              <div style={{ ...styles.card, background: cardBg }}>
-                Wallet
-                <h2>GH₵ {stats.wallet_balance.toFixed(2)}</h2>
+              <div
+                style={{
+                  ...styles.card,
+                  background: cardBg,
+                }}
+              >
+                <p style={styles.label}>
+                  Wallet
+                </p>
+                <h2>
+                  GH₵{" "}
+                  {stats.wallet_balance.toFixed(
+                    2
+                  )}
+                </h2>
               </div>
 
-              <div style={{ ...styles.card, background: cardBg }}>
-                Profit
-                <h2>GH₵ {stats.total_profit.toFixed(2)}</h2>
+              <div
+                style={{
+                  ...styles.card,
+                  background: cardBg,
+                }}
+              >
+                <p style={styles.label}>
+                  Profit
+                </p>
+                <h2>
+                  GH₵{" "}
+                  {stats.total_profit.toFixed(
+                    2
+                  )}
+                </h2>
               </div>
 
-              <div style={{ ...styles.card, background: cardBg }}>
-                Orders
-                <h2>{stats.total_orders}</h2>
+              <div
+                style={{
+                  ...styles.card,
+                  background: cardBg,
+                }}
+              >
+                <p style={styles.label}>
+                  Orders
+                </p>
+                <h2>
+                  {stats.total_orders}
+                </h2>
               </div>
 
-              <div style={{ ...styles.card, background: cardBg }}>
-                Sales
-                <h2>{stats.total_sales}</h2>
+              <div
+                style={{
+                  ...styles.card,
+                  background: cardBg,
+                }}
+              >
+                <p style={styles.label}>
+                  Sales
+                </p>
+                <h2>
+                  {stats.total_sales}
+                </h2>
               </div>
             </div>
 
             {/* STORE LINK */}
-            <div style={{ ...styles.card, background: cardBg }}>
-              <p>Store Link</p>
-              <div style={styles.linkText}>{stats.store_link}</div>
-              <button style={styles.copyBtn} onClick={copyLink}>
+            <div
+              style={{
+                ...styles.card,
+                background: cardBg,
+                marginTop: 14,
+              }}
+            >
+              <p style={styles.label}>
+                Store Link
+              </p>
+
+              <div style={styles.linkText}>
+                {stats.store_link}
+              </div>
+
+              <button
+                style={styles.copyBtn}
+                onClick={copyLink}
+              >
                 Copy
               </button>
             </div>
 
             {/* ACTIONS */}
-            <div style={styles.grid}>
+            <div
+              style={{
+                ...styles.grid,
+                marginTop: 14,
+              }}
+            >
               <div
-                style={{ ...styles.card, background: cardBg }}
-                onClick={() => setPage("agent-pricing")}
+                style={{
+                  ...styles.card,
+                  background: cardBg,
+                }}
+                onClick={() =>
+                  setPage(
+                    "agent-pricing"
+                  )
+                }
               >
                 💰 Pricing
               </div>
 
               <div
-                style={{ ...styles.card, background: cardBg }}
-                onClick={() => setPage("agent-store")}
+                style={{
+                  ...styles.card,
+                  background: cardBg,
+                }}
+                onClick={() =>
+                  setPage(
+                    "agent-store"
+                  )
+                }
               >
                 🏪 Store
               </div>
 
               <div
-                style={{ ...styles.card, background: cardBg }}
-                onClick={() => setPage("agent-withdraw")}
+                style={{
+                  ...styles.card,
+                  background: cardBg,
+                }}
+                onClick={() =>
+                  setPage(
+                    "agent-withdraw"
+                  )
+                }
               >
                 💳 Withdraw
               </div>
 
               <div
-                style={{ ...styles.card, background: cardBg }}
+                style={{
+                  ...styles.card,
+                  background: cardBg,
+                }}
                 onClick={logout}
               >
                 🚪 Logout
@@ -193,17 +311,69 @@ export default function AgentDashboard({ user, setPage }) {
             </div>
 
             {/* TRANSACTIONS */}
-            <h3>Recent</h3>
+            <h3 style={styles.sectionTitle}>
+              Recent Transactions
+            </h3>
 
-            {stats.transactions.length === 0 ? (
-              <p style={{ color: soft }}>No transactions</p>
+            {stats.transactions.length ===
+            0 ? (
+              <p style={{ color: soft }}>
+                No transactions
+              </p>
             ) : (
-              stats.transactions.slice(0, 5).map((t, i) => (
-                <div key={i} style={{ ...styles.tx, background: cardBg }}>
-                  <span>{t.type}</span>
-                  <span>GH₵ {Number(t.amount).toFixed(2)}</span>
-                </div>
-              ))
+              stats.transactions
+                .slice(0, 10)
+                .map((tx, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      ...styles.tx,
+                      background:
+                        cardBg,
+                    }}
+                  >
+                    <div>
+                      <strong>
+                        {tx.type ===
+                        "credit"
+                          ? "Credit"
+                          : "Debit"}
+                      </strong>
+
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: soft,
+                          marginTop: 4,
+                        }}
+                      >
+                        Ref:{" "}
+                        {tx.reference ||
+                          "N/A"}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        color:
+                          tx.type ===
+                          "credit"
+                            ? "#22c55e"
+                            : "#ef4444",
+                      }}
+                    >
+                      {tx.type ===
+                      "credit"
+                        ? "+"
+                        : "-"}
+                      GH₵{" "}
+                      {Number(
+                        tx.amount || 0
+                      ).toFixed(2)}
+                    </div>
+                  </div>
+                ))
             )}
           </>
         )}
@@ -212,32 +382,39 @@ export default function AgentDashboard({ user, setPage }) {
   );
 }
 
-/* STYLES */
+/* =========================
+STYLES
+========================= */
 const styles = {
-  container: { minHeight: "100vh" },
+  container: {
+    minHeight: "100vh",
+  },
+
   header: {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     padding: 16,
-    borderBottom: "1px solid rgba(255,255,255,0.05)"
+    borderBottom:
+      "1px solid rgba(255,255,255,0.05)",
   },
-  
+
   brand: {
     color: "#38bdf8",
-    fontSize: "22px",
-    fontWeight: "900",
+    fontSize: 22,
+    fontWeight: 900,
   },
 
   headBtns: {
     display: "flex",
-    gap: "10px",
+    gap: 10,
   },
 
   topBtn: {
-    width: "42px",
-    height: "42px",
+    width: 42,
+    height: 42,
     border: "none",
-    borderRadius: "12px",
+    borderRadius: 12,
     background:
       "rgba(56,189,248,0.12)",
     color: "#38bdf8",
@@ -245,111 +422,83 @@ const styles = {
   },
 
   main: {
-    maxWidth: "900px",
+    maxWidth: 900,
     margin: "0 auto",
-    padding: "18px",
-  },
-
-  hero: {
-    marginBottom: "18px",
+    padding: 18,
   },
 
   title: {
-    fontSize: "30px",
-    fontWeight: "900",
-    marginBottom: "4px",
+    fontSize: 30,
+    fontWeight: 900,
+    marginBottom: 4,
   },
 
-  status: {
-    marginTop: "10px",
-    display: "flex",
-    gap: "8px",
-    alignItems: "center",
-    color: "#22c55e",
-    fontSize: "14px",
+  label: {
+    opacity: 0.7,
+    marginBottom: 8,
+    fontSize: 14,
   },
 
-  dot: {
-    width: "10px",
-    height: "10px",
-    borderRadius: "50%",
-    background: "#22c55e",
+  error: {
+    color: "#ef4444",
+    marginBottom: 12,
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns:
-      "1fr",
-    gap: "14px",
+    gridTemplateColumns: "1fr",
+    gap: 14,
   },
 
   grid2: {
     display: "grid",
     gridTemplateColumns:
       "1fr 1fr",
-    gap: "14px",
+    gap: 14,
+    marginTop: 16,
   },
 
   card: {
-    padding: "18px",
-    borderRadius: "18px",
+    padding: 18,
+    borderRadius: 18,
     border:
       "1px solid rgba(255,255,255,0.06)",
     cursor: "pointer",
   },
 
-  small: {
-    fontSize: "13px",
-    color: "#94a3b8",
-  },
-
-  bigNumber: {
-    fontSize: "34px",
-    fontWeight: "900",
-    color: "#38bdf8",
-    marginTop: "8px",
-  },
-
-  bigMoney: {
-    fontSize: "28px",
-    fontWeight: "900",
-    color: "#22c55e",
-    marginTop: "8px",
-  },
-
   sectionTitle: {
-    marginTop: "16px",
-    marginBottom: "12px",
-    fontWeight: "800",
-    fontSize: "14px",
+    marginTop: 20,
+    marginBottom: 12,
+    fontWeight: 800,
   },
 
   copyBtn: {
     width: "100%",
-    marginTop: "12px",
-    padding: "12px",
+    marginTop: 12,
+    padding: 12,
     border: "none",
-    borderRadius: "14px",
+    borderRadius: 14,
     background:
       "linear-gradient(135deg,#38bdf8,#0ea5e9)",
     color: "#00111f",
-    fontWeight: "900",
+    fontWeight: 900,
     cursor: "pointer",
   },
 
   linkText: {
-    marginTop: "10px",
     wordBreak: "break-word",
-    fontSize: "14px",
+    fontSize: 14,
+    marginTop: 8,
   },
 
   tx: {
-    padding: "14px",
-    borderRadius: "14px",
+    padding: 14,
+    borderRadius: 14,
     display: "flex",
     justifyContent:
       "space-between",
-    marginBottom: "10px",
+    alignItems: "center",
+    marginBottom: 10,
     border:
       "1px solid rgba(255,255,255,0.06)",
   },
