@@ -39,7 +39,7 @@ export default function StorePage({ setPage }) {
   }, [agentId]);
 
   // =========================
-  // PLACE ORDER
+  // PLACE ORDER (FIXED PAYSTACK FLOW)
   // =========================
   const placeOrder = async () => {
     if (!selected) return alert("Select a bundle");
@@ -50,7 +50,9 @@ export default function StorePage({ setPage }) {
     try {
       const res = await fetch(`${API}/store/order`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           agent_id: Number(agentId),
           network: selected.network,
@@ -61,10 +63,17 @@ export default function StorePage({ setPage }) {
 
       const data = await res.json();
 
-      // ✅ IMPORTANT FIX HERE
-      if (data.status === "created" && data.payment_url) {
-        // 🔥 REDIRECT TO PAYSTACK
-        window.location.href = data.payment_url;
+      // =========================
+      // 🔥 CRITICAL FIX HERE
+      // =========================
+      if (data.status === "created") {
+        if (data.payment_url) {
+          // 👉 REDIRECT TO PAYSTACK
+          window.location.href = data.payment_url;
+          return;
+        }
+
+        alert("Payment URL missing");
         return;
       }
 
@@ -92,7 +101,7 @@ export default function StorePage({ setPage }) {
 
       {/* BUNDLES */}
       <div style={styles.grid}>
-        {(store.bundles || []).map((item, i) => (
+        {(store.prices || []).map((item, i) => (
           <div
             key={i}
             style={{
@@ -107,7 +116,7 @@ export default function StorePage({ setPage }) {
           >
             <h3>{item.network}</h3>
             <p>{item.bundle}</p>
-            <h2>GH₵ {item.price}</h2>
+            <h2>GH₵ {Number(item.final_price).toFixed(2)}</h2>
           </div>
         ))}
       </div>
@@ -139,7 +148,6 @@ export default function StorePage({ setPage }) {
     </div>
   );
 }
-
 const styles = {
   wrap: {
     maxWidth: "900px",
