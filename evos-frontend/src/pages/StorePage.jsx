@@ -3,23 +3,13 @@ import { useEffect, useState } from "react";
 const API = "https://evos-business-hub.onrender.com";
 
 export default function StorePage({ setPage }) {
-  const agentId =
-    window.location.pathname.split("/").pop();
+  const agentId = window.location.pathname.split("/").pop();
 
-  const [loading, setLoading] =
-    useState(true);
-
-  const [store, setStore] =
-    useState(null);
-
-  const [selected, setSelected] =
-    useState(null);
-
-  const [phone, setPhone] =
-    useState("");
-
-  const [processing, setProcessing] =
-    useState(false);
+  const [loading, setLoading] = useState(true);
+  const [store, setStore] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [phone, setPhone] = useState("");
+  const [processing, setProcessing] = useState(false);
 
   // =========================
   // LOAD STORE
@@ -29,26 +19,16 @@ export default function StorePage({ setPage }) {
       try {
         setLoading(true);
 
-        const res = await fetch(
-          `${API}/store/${agentId}`
-        );
+        const res = await fetch(`${API}/store/${agentId}`);
+        const data = await res.json();
 
-        const data =
-          await res.json();
-
-        if (
-          !res.ok ||
-          data.status === "error"
-        ) {
+        if (!res.ok || data.status === "error") {
           setStore(null);
         } else {
           setStore(data);
         }
       } catch (err) {
-        console.log(
-          "Store error:",
-          err
-        );
+        console.log("Store error:", err);
         setStore(null);
       } finally {
         setLoading(false);
@@ -62,57 +42,33 @@ export default function StorePage({ setPage }) {
   // PLACE ORDER
   // =========================
   const placeOrder = async () => {
-    if (!selected) {
-      alert("Select a bundle");
-      return;
-    }
-
-    if (!phone.trim()) {
-      alert("Enter phone number");
-      return;
-    }
+    if (!selected) return alert("Select a bundle");
+    if (!phone.trim()) return alert("Enter phone number");
 
     setProcessing(true);
 
     try {
-      const res = await fetch(
-        `${API}/store/order`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            agent_id: Number(agentId),
-            network:
-              selected.network,
-            bundle:
-              selected.bundle,
-            phone_number:
-              phone.trim(),
-          }),
-        }
-      );
+      const res = await fetch(`${API}/store/order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent_id: Number(agentId),
+          network: selected.network,
+          bundle: selected.bundle,
+          phone_number: phone.trim(),
+        }),
+      });
 
-      const data =
-        await res.json();
+      const data = await res.json();
 
-      if (
-        data.status ===
-        "created"
-      ) {
-        alert(
-          `Order created successfully`
-        );
-
-        setPage("success");
-      } else {
-        alert(
-          data.message ||
-            "Failed to create order"
-        );
+      // ✅ IMPORTANT FIX HERE
+      if (data.status === "created" && data.payment_url) {
+        // 🔥 REDIRECT TO PAYSTACK
+        window.location.href = data.payment_url;
+        return;
       }
+
+      alert(data.message || "Failed to create order");
     } catch (err) {
       console.log(err);
       alert("Network error");
@@ -124,80 +80,43 @@ export default function StorePage({ setPage }) {
   // =========================
   // UI STATES
   // =========================
-  if (loading) {
-    return (
-      <p style={{ padding: 20 }}>
-        Loading store...
-      </p>
-    );
-  }
+  if (loading) return <p style={{ padding: 20 }}>Loading store...</p>;
 
-  if (!store) {
-    return (
-      <p style={{ padding: 20 }}>
-        Store not found
-      </p>
-    );
-  }
+  if (!store) return <p style={{ padding: 20 }}>Store not found</p>;
 
   return (
     <div style={styles.wrap}>
-      <h1 style={styles.title}>
-        {store.agent_name}'s Store
-      </h1>
+      <h1 style={styles.title}>{store.agent_name}'s Store</h1>
 
-      <p style={styles.sub}>
-        Buy data bundles instantly
-      </p>
+      <p style={styles.sub}>Buy data bundles instantly</p>
 
       {/* BUNDLES */}
       <div style={styles.grid}>
-        {(store.prices || []).map(
-          (item, i) => (
-            <div
-              key={i}
-              style={{
-                ...styles.card,
-                border:
-                  selected?.network ===
-                    item.network &&
-                  selected?.bundle ===
-                    item.bundle
-                    ? "2px solid #38bdf8"
-                    : "1px solid rgba(255,255,255,0.08)",
-              }}
-              onClick={() =>
-                setSelected(item)
-              }
-            >
-              <h3>
-                {item.network}
-              </h3>
-
-              <p>
-                {item.bundle}
-              </p>
-
-              <h2>
-                GH₵{" "}
-                {Number(
-                  item.final_price
-                ).toFixed(2)}
-              </h2>
-            </div>
-          )
-        )}
+        {(store.bundles || []).map((item, i) => (
+          <div
+            key={i}
+            style={{
+              ...styles.card,
+              border:
+                selected?.network === item.network &&
+                selected?.bundle === item.bundle
+                  ? "2px solid #38bdf8"
+                  : "1px solid rgba(255,255,255,0.08)",
+            }}
+            onClick={() => setSelected(item)}
+          >
+            <h3>{item.network}</h3>
+            <p>{item.bundle}</p>
+            <h2>GH₵ {item.price}</h2>
+          </div>
+        ))}
       </div>
 
       {/* PHONE */}
       <input
         placeholder="Enter phone number"
         value={phone}
-        onChange={(e) =>
-          setPhone(
-            e.target.value
-          )
-        }
+        onChange={(e) => setPhone(e.target.value)}
         style={styles.input}
       />
 
@@ -207,25 +126,14 @@ export default function StorePage({ setPage }) {
         disabled={processing}
         style={{
           ...styles.btn,
-          opacity: processing
-            ? 0.7
-            : 1,
+          opacity: processing ? 0.7 : 1,
         }}
       >
-        {processing
-          ? "Processing..."
-          : "Buy Now"}
+        {processing ? "Processing..." : "Buy Now"}
       </button>
 
       {/* TRACK */}
-      <button
-        style={styles.track}
-        onClick={() =>
-          setPage(
-            "order-tracking"
-          )
-        }
-      >
+      <button style={styles.track} onClick={() => setPage("order-tracking")}>
         Track Order
       </button>
     </div>
