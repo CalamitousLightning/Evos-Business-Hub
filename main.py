@@ -1440,7 +1440,7 @@ async def public_agent_store(agent_id: int):
         }
 
 # =========================
-# STORE ORDER (PAYSTACK READY + PROFIT READY)
+# STORE ORDER (PAYSTACK READY + MATCHES DB)
 # =========================
 @app.post("/store/order")
 async def create_store_order(payload: dict):
@@ -1457,7 +1457,6 @@ async def create_store_order(payload: dict):
         bundle = str(payload["bundle"]).strip()
         phone_number = str(payload["phone_number"]).strip()
 
-        # optional customer email
         customer_email = str(
             payload.get("email", "customer@evoshub.store")
         ).strip()
@@ -1532,26 +1531,26 @@ async def create_store_order(payload: dict):
         )
 
         # =========================
-        # CREATE UNIQUE REFERENCE
+        # UNIQUE REFERENCE
         # =========================
         reference = f"STORE-{agent_id}-{uuid.uuid4().hex[:10].upper()}"
 
         # =========================
-        # CREATE ORDER
+        # CREATE ORDER (MATCHES DB)
         # =========================
         order = supabase.table("orders") \
             .insert({
                 "agent_id": agent_id,
+                "email": customer_email,
                 "network": network,
                 "bundle": bundle,
+                "price": agent_price,
                 "phone_number": phone_number,
-                "base_price": base_price,
-                "markup": markup_price,
-                "agent_price": agent_price,
-                "amount": agent_price,
                 "paystack_ref": reference,
                 "status": "pending_payment",
-                "source": "agent_store"
+                "base_price": base_price,
+                "agent_price": agent_price,
+                "profit": markup_price
             }) \
             .execute()
 
@@ -1568,12 +1567,11 @@ async def create_store_order(payload: dict):
         # =========================
         paystack_payload = {
             "email": customer_email,
-            "amount": int(agent_price * 100),   # pesewas
+            "amount": int(agent_price * 100),
             "reference": reference,
             "callback_url": "https://evosdata.netlify.app/success",
             "metadata": {
                 "order_id": order_id,
-                "source": "agent_store",
                 "agent_id": agent_id,
                 "network": network,
                 "bundle": bundle
@@ -1595,6 +1593,12 @@ async def create_store_order(payload: dict):
         pay_data = pay.json()
 
         if not pay_data.get("status"):
+            # optional cleanup if payment init fails
+            supabase.table("orders") \
+                .delete() \
+                .eq("id", order_id) \
+                .execute()
+
             return {
                 "status": "error",
                 "message": "Payment initialization failed"
@@ -1620,7 +1624,6 @@ async def create_store_order(payload: dict):
             "status": "error",
             "message": "Failed to create order"
         }
-
 
 
 
