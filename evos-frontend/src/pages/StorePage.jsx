@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "https://evos-business-hub.onrender.com";
+const API = "https://api.evosdata.xyz";
 
 export default function StorePage({ setPage }) {
   const agentId = window.location.pathname.split("/").pop();
