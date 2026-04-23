@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "https://api.evosdata.xyz";
+const API = "https://evos-business-hub.onrender.com";
 
 export default function AgentStore({ setPage }) {
   const [loading, setLoading] = useState(true);
