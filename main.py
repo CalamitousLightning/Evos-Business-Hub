@@ -86,6 +86,8 @@ REQUEST_TIMEOUT = 10
 # MODELS
 # =========================
 
+
+
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=20)
     full_name: str = Field(min_length=2, max_length=50)
@@ -99,8 +101,6 @@ class LoginRequest(BaseModel):
     username: str = Field(min_length=3)
     password: str = Field(min_length=6)
 
-from pydantic import BaseModel, EmailStr
-from typing import Optional
 
 class CreateOrderRequest(BaseModel):
     user_id: Optional[int] = None
@@ -108,20 +108,52 @@ class CreateOrderRequest(BaseModel):
     bundle: str
     phone: str
     email: Optional[EmailStr] = None
-    
+
+
 # =========================
-# HELPERS
+# INTERNAL NETWORK NAMES
+# (Use these everywhere in app/db)
 # =========================
 
-NETWORK_MAP = {
-    "MTN": "YELLO",
-    "TELECEL": "TELECEL",
-    "AIRTELTIGO": "AT_PREMIUM"
+SUPPORTED_NETWORKS = {
+    "MTN",
+    "TELECEL",
+    "AIRTELTIGO"
 }
+
+
+# =========================
+# PROVIDER-SPECIFIC MAPPINGS
+# =========================
+
+PROVIDER_NETWORK_MAP = {
+    "datamart": {
+        "MTN": "YELLO",
+        "TELECEL": "TELECEL",
+        "AIRTELTIGO": "AT_PREMIUM"
+    },
+
+    "databoss": {
+        "MTN": {
+            "endpoint": "mtn.php",
+            "network": "MTN"
+        },
+        "TELECEL": {
+            "endpoint": "telecel.php",
+            "network": "Telecel"
+        },
+        "AIRTELTIGO": {
+            "endpoint": "at.php",
+            "network": "AT"
+        }
+    }
+}
+
 
 # =========================
 # PASSWORD SECURITY
 # =========================
+
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     bcrypt__rounds=12,
@@ -132,6 +164,7 @@ pwd_context = CryptContext(
 def hash_password(password: str) -> str:
     try:
         return pwd_context.hash(password)
+
     except Exception as e:
         print("HASH ERROR:", str(e))
         raise HTTPException(
@@ -143,6 +176,7 @@ def hash_password(password: str) -> str:
 def verify_password(plain: str, hashed: str) -> bool:
     try:
         return pwd_context.verify(plain, hashed)
+
     except Exception as e:
         print("VERIFY ERROR:", str(e))
         return False
@@ -151,21 +185,57 @@ def verify_password(plain: str, hashed: str) -> bool:
 # =========================
 # UTILITIES
 # =========================
-def extract_capacity(bundle: str) -> str:
-    if not bundle:
+
+def normalize_network(network: str) -> str:
+    if not network:
         return ""
 
-    return (
-        bundle.upper()
-        .replace("GB", "")
-        .replace("MB", "")
-        .strip()
-    )
+    net = network.strip().upper()
+
+    aliases = {
+        "VODAFONE": "TELECEL",
+        "TELECEL": "TELECEL",
+        "AT": "AIRTELTIGO",
+        "AIRTELTIGO": "AIRTELTIGO",
+        "AIRTEL TIGO": "AIRTELTIGO",
+        "MTN": "MTN"
+    }
+
+    return aliases.get(net, net)
+
+
+def extract_capacity(bundle: str) -> float:
+    """
+    Converts:
+    1GB -> 1.0
+    2 GB DAILY -> 2.0
+    500MB -> 0.5
+    """
+    if not bundle:
+        return 0.0
+
+    text = bundle.upper().strip()
+
+    gb_match = re.search(r'(\d+(\.\d+)?)\s*GB', text)
+    if gb_match:
+        return float(gb_match.group(1))
+
+    mb_match = re.search(r'(\d+(\.\d+)?)\s*MB', text)
+    if mb_match:
+        mb = float(mb_match.group(1))
+        return round(mb / 1000, 2)
+
+    num_match = re.search(r'(\d+(\.\d+)?)', text)
+    if num_match:
+        return float(num_match.group(1))
+
+    return 0.0
+
 
 # =========================
 # PAYSTACK SIGNATURE
-# Uses SHA512
 # =========================
+
 def verify_paystack_signature(
     body: bytes,
     signature: str,
@@ -173,7 +243,6 @@ def verify_paystack_signature(
 ) -> bool:
     try:
         if not signature:
-            print("PAYSTACK SIGNATURE ERROR: missing signature")
             return False
 
         computed = hmac.new(
@@ -191,8 +260,8 @@ def verify_paystack_signature(
 
 # =========================
 # DATAMART SIGNATURE
-# Uses SHA256 + WEBHOOK SECRET
 # =========================
+
 def verify_datamart_signature(
     body: bytes,
     signature: str,
@@ -200,7 +269,6 @@ def verify_datamart_signature(
 ) -> bool:
     try:
         if not signature:
-            print("DATAMART SIGNATURE ERROR: missing signature")
             return False
 
         computed = hmac.new(
@@ -217,36 +285,42 @@ def verify_datamart_signature(
 
 
 # =========================
-# LEGACY WRAPPER (OPTIONAL)
-# Defaults to Paystack
+# LEGACY WRAPPER
 # =========================
+
 def verify_signature(
     body: bytes,
     signature: str,
     secret: str
 ) -> bool:
-    return verify_paystack_signature(
-        body,
-        signature,
-        secret
-    )
+    return verify_paystack_signature(body, signature, secret)
+
 
 # =========================
 # NETWORK PROVIDERS
 # =========================
 
 def get_provider(network: str):
+    """
+    Reads provider_routes table
+    Example:
+    MTN -> datamart
+    TELECEL -> databoss
+    AIRTELTIGO -> databoss
+    """
     try:
+        clean_network = normalize_network(network)
+
         res = supabase.table("provider_routes") \
             .select("provider") \
-            .eq("network", network.upper()) \
+            .eq("network", clean_network) \
             .eq("active", True) \
             .order("priority") \
             .limit(1) \
             .execute()
 
         if res.data:
-            return res.data[0]["provider"]
+            return res.data[0]["provider"].lower()
 
         return None
 
@@ -254,9 +328,39 @@ def get_provider(network: str):
         print("PROVIDER LOOKUP ERROR:", str(e))
         return None
 
+
+def get_provider_payload(network: str):
+    """
+    Returns provider + proper mapping
+    """
+    clean_network = normalize_network(network)
+    provider = get_provider(clean_network)
+
+    if not provider:
+        return None
+
+    if provider == "datamart":
+        return {
+            "provider": "datamart",
+            "network": PROVIDER_NETWORK_MAP["datamart"][clean_network]
+        }
+
+    if provider == "databoss":
+        cfg = PROVIDER_NETWORK_MAP["databoss"][clean_network]
+
+        return {
+            "provider": "databoss",
+            "network": cfg["network"],
+            "endpoint": cfg["endpoint"]
+        }
+
+    return None
+
+
 # =========================
-# AGENTS STATUS
+# AGENT STATUS
 # =========================
+
 def can_access_agent_system(user):
     return (
         user.role == "agent"
@@ -265,37 +369,42 @@ def can_access_agent_system(user):
 
 
 # =========================
-# CORE PROFIT SYS
+# PROFIT SYSTEM
 # =========================
+
 def handle_successful_order(order):
-    base = order.base_price
-    agent_price = order.agent_price
+    base = float(order.base_price or 0)
+    agent_price = float(order.agent_price or 0)
     agent_id = order.agent_id
 
     if agent_id:
         profit = agent_price - base
 
-        credit_wallet(agent_id, profit)
+        if profit > 0:
+            credit_wallet(agent_id, profit)
 
-        log_transaction(
-            agent_id=agent_id,
-            amount=profit,
-            order_id=order.id,
-            type="credit"
-        )
+            log_transaction(
+                agent_id=agent_id,
+                amount=profit,
+                order_id=order.id,
+                type="credit"
+            )
 
 
 # =========================
-# WALLET UPDATE SYS
+# WALLET SYSTEM
 # =========================
+
 def update_wallet(agent_id, amount):
     wallet = get_wallet(agent_id)
 
     if not wallet:
         create_wallet(agent_id, amount)
+
     else:
         wallet.balance += amount
         save(wallet)
+        
 # =========================
 # PRICES
 # =========================
@@ -627,7 +736,9 @@ def increment_user_orders(user_id: int):
 
 # =========================
 # PAYSTACK WEBHOOK
+# UPDATED HYBRID PROVIDER VERSION
 # =========================
+
 @app.post("/webhook/paystack")
 async def paystack_webhook(request: Request):
 
@@ -635,7 +746,11 @@ async def paystack_webhook(request: Request):
         body = await request.body()
         signature = request.headers.get("x-paystack-signature")
 
-        if not signature or not verify_signature(body, signature, PAYSTACK_SECRET):
+        if not signature or not verify_signature(
+            body,
+            signature,
+            PAYSTACK_SECRET
+        ):
             return {"status": "invalid signature"}
 
         payload = await request.json()
@@ -663,7 +778,7 @@ async def paystack_webhook(request: Request):
             return {"status": "already processed"}
 
         # =========================
-        # MARK PAID
+        # MARK AS PAID
         # =========================
         supabase.table("orders") \
             .update({"status": "paid"}) \
@@ -671,15 +786,18 @@ async def paystack_webhook(request: Request):
             .execute()
 
         # =========================
-        # UPDATE USER STATS
+        # USER STATS
         # =========================
         if order.get("user_id"):
             increment_user_orders(order["user_id"])
 
         # =========================
-        # GET PROVIDER FROM SUPABASE
+        # PROVIDER CONFIG
         # =========================
-        provider = get_provider(order["network"])
+        provider_data = get_provider_payload(order["network"])
+
+        if not provider_data:
+            raise Exception("No provider assigned")
 
         # =========================
         # PURCHASE FLOW
@@ -687,16 +805,18 @@ async def paystack_webhook(request: Request):
         try:
 
             # =====================================
-            # DATAMART (MTN)
+            # DATAMART
             # =====================================
-            if provider == "DATAMART":
+            if provider_data["provider"] == "datamart":
 
                 dm_response = requests.post(
                     f"{DATAMART_BASE}/purchase",
-                    headers={"X-API-Key": DATAMART_API_KEY},
+                    headers={
+                        "X-API-Key": DATAMART_API_KEY
+                    },
                     json={
                         "phoneNumber": order["phone_number"],
-                        "network": NETWORK_MAP.get(order["network"]),
+                        "network": provider_data["network"],
                         "capacity": extract_capacity(order["bundle"]),
                         "gateway": "wallet"
                     },
@@ -704,41 +824,40 @@ async def paystack_webhook(request: Request):
                 )
 
                 dm = dm_response.json()
+
                 dm_data = dm.get("data", {})
+
+                if not dm.get("success", True):
+                    raise Exception(
+                        dm.get("message", "Datamart failed")
+                    )
 
                 supabase.table("orders") \
                     .update({
                         "status": "processing",
+                        "provider_used": "datamart",
                         "datamart_ref": dm_data.get("orderReference"),
                         "datamart_order_id": dm_data.get("orderId")
                     }) \
                     .eq("paystack_ref", reference) \
                     .execute()
 
-                # ✅ FIXED: OUTSIDE CHAIN
-                process_agent_profit(order["id"], reference)
+                process_agent_profit(
+                    order["id"],
+                    reference
+                )
 
             # =====================================
-            # DATABOSS (TELECEL / AIRTELTIGO)
+            # DATABOSS
             # =====================================
-            elif provider == "DATABOSS":
-
-                endpoint = "telecel.php"
-
-                network_name = order["network"].upper()
-
-                if network_name in ["AIRTELTIGO", "AT"]:
-                    endpoint = "at.php"
-
-                elif network_name in ["MTN"]:
-                    endpoint = "mtn.php"
+            elif provider_data["provider"] == "databoss":
 
                 db_response = requests.post(
-                    f"{DATABOSS_BASE}/{endpoint}",
+                    f"{DATABOSS_BASE}/{provider_data['endpoint']}",
                     json={
                         "api_key": DATABOSS_API_KEY,
                         "api_secret": DATABOSS_API_SECRET,
-                        "network": network_name,
+                        "network": provider_data["network"],
                         "package_gb": extract_capacity(order["bundle"]),
                         "phone_number": order["phone_number"]
                     },
@@ -748,38 +867,49 @@ async def paystack_webhook(request: Request):
                 db = db_response.json()
 
                 if not db.get("success"):
-                    raise Exception(db.get("message", "Databoss failed"))
+                    raise Exception(
+                        db.get("message", "Databoss failed")
+                    )
 
                 supabase.table("orders") \
                     .update({
                         "status": "successful",
+                        "provider_used": "databoss",
                         "databoss_ref": str(db.get("order_id"))
                     }) \
                     .eq("paystack_ref", reference) \
                     .execute()
 
-                # ✅ FIXED: OUTSIDE CHAIN
-                process_agent_profit(order["id"], reference)
+                process_agent_profit(
+                    order["id"],
+                    reference
+                )
 
             else:
-                raise Exception("No provider assigned")
+                raise Exception("Invalid provider")
 
             return {"status": "success"}
 
         except Exception as e:
+
             print("PURCHASE ERROR:", str(e))
 
             supabase.table("orders") \
-                .update({"status": "failed"}) \
+                .update({
+                    "status": "failed",
+                    "failure_reason": str(e)
+                }) \
                 .eq("paystack_ref", reference) \
                 .execute()
 
             return {"status": "purchase failed"}
 
     except Exception as e:
-        print("PAYSTACK WEBHOOK ERROR:", str(e))
-        return {"status": "error"}
 
+        print("PAYSTACK WEBHOOK ERROR:", str(e))
+
+        return {"status": "error"}
+        
 # =========================
 # DATAMART WEBHOOK
 # =========================
@@ -866,15 +996,20 @@ def sync_order(reference: str):
 
         tracker = order.get("datamart_order_id") or order.get("datamart_ref")
 
-        if not tracker:
-            return {"status": "not processed yet"}
+        provider_data = get_provider_payload(order["network"])
 
-        provider = get_provider(order["network"])
+        if not provider_data:
+            return {"status": order["status"]}
+
+        provider = provider_data["provider"]
 
         # =========================
         # DATAMART
         # =========================
-        if provider == "DATAMART":
+        if provider == "datamart":
+
+            if not tracker:
+                return {"status": "processing"}
 
             dm = requests.get(
                 f"{DATAMART_BASE}/order-status/{tracker}",
@@ -893,10 +1028,9 @@ def sync_order(reference: str):
         # =========================
         # DATABOSS
         # =========================
-        elif provider == "DATABOSS":
+        elif provider == "databoss":
 
-            # Databoss has no separate tracker endpoint currently.
-            # Use existing DB status until manual/auto success logic added.
+            # Databoss no tracker endpoint yet
             status = order["status"].lower()
 
         else:
@@ -905,13 +1039,23 @@ def sync_order(reference: str):
         # =========================
         # MAP STATUS
         # =========================
-        final_status = (
+        if status in [
+            "completed",
+            "success",
+            "delivered",
             "successful"
-            if status in ["completed", "success", "delivered", "successful"]
-            else "failed"
-            if status in ["failed", "cancelled", "refunded"]
-            else "processing"
-        )
+        ]:
+            final_status = "successful"
+
+        elif status in [
+            "failed",
+            "cancelled",
+            "refunded"
+        ]:
+            final_status = "failed"
+
+        else:
+            final_status = "processing"
 
         supabase.table("orders") \
             .update({"status": final_status}) \
