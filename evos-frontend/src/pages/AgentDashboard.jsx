@@ -37,44 +37,55 @@ export default function AgentDashboard({ user, setPage }) {
   // =========================
   // LOAD DASHBOARD
   // =========================
-  useEffect(() => {
-    if (!user?.id) return;
+useEffect(() => {
+  if (!user?.id) return;
 
-    const loadDashboard = async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const res = await fetch(
-          `${API_BASE}/agent/dashboard/${user.id}`
-        );
+      // =========================
+      // 1. LOAD STATS
+      // =========================
+      const res = await fetch(
+        `${API_BASE}/agent/dashboard/${user.id}`
+      );
 
-        if (!res.ok) {
-          throw new Error("Dashboard failed");
-        }
+      if (!res.ok) throw new Error("Dashboard failed");
 
-        const data = await res.json();
+      const data = await res.json();
 
-        setStats({
-          wallet_balance: Number(data.wallet_balance || 0),
-          total_sales: Number(data.total_sales || 0),
-          total_profit: Number(data.total_profit || 0),
-          total_orders: Number(data.total_orders || 0),
-          store_link:
-            data.store_link ||
-            `${window.location.origin}/store/${user.id}`,
-          transactions: data.transactions || [],
-        });
-      } catch (err) {
-        console.log(err);
-        setError("Failed to load dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
+      // =========================
+      // 2. LOAD TRANSACTIONS (FIX HERE)
+      // =========================
+      const txRes = await fetch(
+        `${API_BASE}/agent/transactions/${user.id}`
+      );
 
-    loadDashboard();
-  }, [user]);
+      const txData = await txRes.json();
+
+      setStats({
+        wallet_balance: Number(data.wallet_balance || 0),
+        total_sales: Number(data.total_sales || 0),
+        total_profit: Number(data.total_profit || 0),
+        total_orders: Number(data.total_orders || 0),
+        store_link:
+          data.store_link ||
+          `${window.location.origin}/store/${user.id}`,
+        transactions: txData.transactions || [],
+      });
+
+    } catch (err) {
+      console.log(err);
+      setError("Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadDashboard();
+}, [user]);
 
   // =========================
   // COPY LINK
