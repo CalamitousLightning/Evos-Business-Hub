@@ -12,7 +12,7 @@ export default function OrderTracking() {
 
     try {
       const res = await fetch(
-        `https://evos-business-hub.onrender.com/orders/sync/${ref}`,
+        `https://api.evosdata.xyz/orders/sync/${ref}`,
         {
           method: "POST",
         }
