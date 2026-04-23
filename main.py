@@ -32,7 +32,8 @@ app = FastAPI()
 # =========================
 
 ALLOWED_ORIGINS = [
-    "https://evosdata.netlify.app"
+    "https://evosdata.netlify.app",
+    "https://evosdata.xyz"
 ]
 
 app.add_middleware(
@@ -431,7 +432,7 @@ def create_order(data: CreateOrderRequest):
                 json={
                     "email": customer_email,
                     "amount": int(price * 100),
-                    "callback_url": "https://evosdata.netlify.app/success"
+                    "callback_url": "https://evosdata.xyz/success"
                 },
                 timeout=REQUEST_TIMEOUT
             ).json()
