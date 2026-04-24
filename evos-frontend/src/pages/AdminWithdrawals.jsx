@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API_BASE = "https://evos-business-hub.onrender.com";
+const API_BASE = "https://api.evosdata.xyz";
 
 export default function AdminWithdrawals() {
   const [withdrawals, setWithdrawals] = useState([]);
