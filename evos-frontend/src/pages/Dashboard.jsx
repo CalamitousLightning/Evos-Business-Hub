@@ -402,7 +402,7 @@ export default function Dashboard({ setPage, user }) {
               }}
               onClick={() =>
                 window.location.href =
-                  "mailto:support@evosdata.com"
+                  "mailto:support@evosdata.xyz"
               }
             >
               📧 Email Support
