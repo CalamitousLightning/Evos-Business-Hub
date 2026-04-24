@@ -12,14 +12,20 @@ export default function Shop() {
   const [network, setNetwork] = useState("");
   const [bundle, setBundle] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState(localStorage.getItem("email") || "");
+  const [confirmPhone, setConfirmPhone] = useState("");
+  const [email, setEmail] = useState(
+    localStorage.getItem("email") || ""
+  );
 
   const [prices, setPrices] = useState([]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [agree, setAgree] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
+
   const user_id = user?.id || null;
 
   // ======================
@@ -31,7 +37,7 @@ export default function Shop() {
         const res = await API.get("/prices");
         const data = res.data?.data;
         setPrices(Array.isArray(data) ? data : []);
-      } catch (err) {
+      } catch {
         setPrices([]);
       }
     };
@@ -40,16 +46,25 @@ export default function Shop() {
   }, []);
 
   // ======================
-  // OUT OF STOCK NETWORKS
+  // OUT OF STOCK
   // ======================
-  const OUT_OF_STOCK = ["TELECEL", "AIRTELTIGO"];
+  const OUT_OF_STOCK = [
+    "TELECEL",
+    "AIRTELTIGO",
+  ];
 
-  const isOutOfStock = (name) => OUT_OF_STOCK.includes(name);
+  const isOutOfStock = (name) =>
+    OUT_OF_STOCK.includes(name);
+
+  const bundles = prices.filter(
+    (p) => p.network === network
+  );
 
   // ======================
-  // FILTER BUNDLES
+  // VALIDATE PHONE
   // ======================
-  const bundles = prices.filter((p) => p.network === network);
+  const validPhone = (num) =>
+    /^0\d{9}$/.test(num);
 
   // ======================
   // BUY ORDER
@@ -59,70 +74,142 @@ export default function Shop() {
       setError("");
 
       if (!network || !bundle) {
-        setError("Select network and bundle");
+        setError(
+          "Select network and bundle"
+        );
         return;
       }
 
       if (!phone) {
-        setError("Enter phone number");
+        setError(
+          "Enter phone number"
+        );
+        return;
+      }
+
+      if (!validPhone(phone)) {
+        setError(
+          "Phone must be 10 digits and start with 0"
+        );
+        return;
+      }
+
+      if (phone !== confirmPhone) {
+        setError(
+          "Phone numbers do not match"
+        );
+        return;
+      }
+
+      if (!agree) {
+        setError(
+          "You must confirm refund policy"
+        );
         return;
       }
 
       setLoading(true);
 
-      const res = await API.post("/orders/create", {
-        user_id,
-        network,
-        bundle,
-        phone,
-        email: email || "guest@evoshub.com",
-      });
+      const res = await API.post(
+        "/orders/create",
+        {
+          user_id,
+          network,
+          bundle,
+          phone,
+          email:
+            email ||
+            "guest@evoshub.com",
+        }
+      );
 
-      // IMPORTANT FIX
       const paymentUrl =
         res.data?.payment_url ||
-        res.data?.authorization_url ||
-        res.data?.data?.authorization_url;
+        res.data
+          ?.authorization_url ||
+        res.data?.data
+          ?.authorization_url;
 
       if (!paymentUrl) {
         setLoading(false);
-        setError("Payment link not received");
+        setError(
+          "Payment link not received"
+        );
         return;
       }
 
-      window.location.href = paymentUrl;
+      localStorage.setItem(
+        "email",
+        email
+      );
+
+      window.location.href =
+        paymentUrl;
     } catch (err) {
       setLoading(false);
+
       setError(
-        err.response?.data?.detail ||
-          err.response?.data?.message ||
+        err.response?.data
+          ?.detail ||
+          err.response?.data
+            ?.message ||
           "Order failed"
       );
     }
   };
 
   // ======================
-  // RETURN UI
+  // UI
   // ======================
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>Buy Data</h2>
+      <h2 style={styles.title}>
+        Buy Data
+      </h2>
 
-      {error && <div style={styles.error}>{error}</div>}
+      <p style={styles.subTitle}>
+        Fast automated delivery
+      </p>
+
+      {error && (
+        <div style={styles.error}>
+          {error}
+        </div>
+      )}
 
       <div style={styles.wrapper}>
-
         {/* STEP 1 */}
         {step === 1 && (
           <div style={styles.box}>
-            <h3 style={styles.step}>Select Network</h3>
+            <h3 style={styles.step}>
+              Select Network
+            </h3>
 
             {[
-              { name: "MTN", icon: "🟡", style: styles.optionMTN },
-              { name: "TELECEL", icon: "🔴", style: styles.optionTELECEL },
-              { name: "AIRTELTIGO", icon: "🔵", style: styles.optionAIRTEL },
+              {
+                name: "MTN",
+                icon: "🟡",
+                style:
+                  styles.optionMTN,
+              },
+              {
+                name: "TELECEL",
+                icon: "🔴",
+                style:
+                  styles.optionTELECEL,
+              },
+              {
+                name:
+                  "AIRTELTIGO",
+                icon: "🔵",
+                style:
+                  styles.optionAIRTEL,
+              },
             ].map((n) => {
-              const disabled = isOutOfStock(n.name);
+              const disabled =
+                isOutOfStock(
+                  n.name
+                );
 
               return (
                 <div
@@ -130,26 +217,38 @@ export default function Shop() {
                   style={{
                     ...styles.option,
                     ...n.style,
-                    opacity: disabled ? 0.45 : 1,
-                    cursor: disabled ? "not-allowed" : "pointer",
+                    opacity:
+                      disabled
+                        ? 0.45
+                        : 1,
+                    cursor:
+                      disabled
+                        ? "not-allowed"
+                        : "pointer",
                   }}
                   onClick={() => {
-                    if (disabled) return;
-                    setNetwork(n.name);
+                    if (
+                      disabled
+                    )
+                      return;
+
+                    setNetwork(
+                      n.name
+                    );
                     setStep(2);
                   }}
                 >
-                  <span>{n.icon}</span>
+                  <span>
+                    {n.icon}
+                  </span>
+
                   {n.name}
 
                   {disabled && (
                     <span
-                      style={{
-                        marginLeft: "auto",
-                        color: "#ef4444",
-                        fontSize: "13px",
-                        fontWeight: "700",
-                      }}
+                      style={
+                        styles.stock
+                      }
                     >
                       Out of Stock
                     </span>
@@ -165,37 +264,42 @@ export default function Shop() {
           <div style={styles.box}>
             <button
               style={styles.back}
-              onClick={() => setStep(1)}
+              onClick={() =>
+                setStep(1)
+              }
             >
               ← Back
             </button>
 
-            <h3 style={styles.step}>Select Bundle</h3>
+            <h3 style={styles.step}>
+              Select Bundle
+            </h3>
 
-            {bundles.length === 0 && (
-              <p style={{ color: "#94a3b8" }}>
-                No bundles found
-              </p>
+            {bundles.map(
+              (b, i) => (
+                <div
+                  key={i}
+                  style={
+                    styles.card
+                  }
+                  onClick={() => {
+                    setBundle(
+                      b.bundle
+                    );
+                    setStep(3);
+                  }}
+                >
+                  <h4>
+                    {b.bundle}
+                  </h4>
+
+                  <p>
+                    GH₵{" "}
+                    {b.price}
+                  </p>
+                </div>
+              )
             )}
-
-            {bundles.map((b, i) => (
-              <div
-                key={i}
-                style={styles.card}
-                onClick={() => {
-                  setBundle(b.bundle);
-                  setStep(3);
-                }}
-              >
-                <h4 style={{ color: "#e5e7eb" }}>
-                  {b.bundle}
-                </h4>
-
-                <p style={{ color: "#94a3b8" }}>
-                  GH₵ {b.price}
-                </p>
-              </div>
-            ))}
           </div>
         )}
 
@@ -204,42 +308,108 @@ export default function Shop() {
           <div style={styles.box}>
             <button
               style={styles.back}
-              onClick={() => setStep(2)}
+              onClick={() =>
+                setStep(2)
+              }
             >
               ← Back
             </button>
 
-            <h3 style={styles.step}>Complete Order</h3>
+            <h3 style={styles.step}>
+              Complete Order
+            </h3>
 
-            <div style={styles.summary}>
+            <div
+              style={
+                styles.summary
+              }
+            >
               <p>{network}</p>
               <h3>{bundle}</h3>
             </div>
 
             <input
               style={styles.input}
-              placeholder="Enter phone number"
+              placeholder="Phone Number"
               value={phone}
               onChange={(e) =>
-                setPhone(e.target.value)
+                setPhone(
+                  e.target.value
+                )
               }
             />
 
             <input
               style={styles.input}
-              placeholder="Email for receipt"
-              value={email}
+              placeholder="Confirm Phone Number"
+              value={
+                confirmPhone
+              }
               onChange={(e) =>
-                setEmail(e.target.value)
+                setConfirmPhone(
+                  e.target.value
+                )
               }
             />
 
+            <input
+              style={styles.input}
+              placeholder="Email (receipt)"
+              value={email}
+              onChange={(e) =>
+                setEmail(
+                  e.target.value
+                )
+              }
+            />
+
+            <div
+              style={
+                styles.notice
+              }
+            >
+              <label
+                style={
+                  styles.checkWrap
+                }
+              >
+                <input
+                  type="checkbox"
+                  checked={
+                    agree
+                  }
+                  onChange={() =>
+                    setAgree(
+                      !agree
+                    )
+                  }
+                />
+
+                <span>
+                  I confirm
+                  number is
+                  correct.
+                  Wrong
+                  numbers
+                  are not
+                  refundable.
+                </span>
+              </label>
+            </div>
+
             <button
-              onClick={handleBuy}
-              disabled={loading}
+              onClick={
+                handleBuy
+              }
+              disabled={
+                loading
+              }
               style={{
                 ...styles.buyBtn,
-                opacity: loading ? 0.6 : 1,
+                opacity:
+                  loading
+                    ? 0.6
+                    : 1,
               }}
             >
               {loading
@@ -248,7 +418,6 @@ export default function Shop() {
             </button>
           </div>
         )}
-
       </div>
     </div>
   );
@@ -396,4 +565,36 @@ const styles = {
     marginBottom: "12px",
     border: "1px solid rgba(255,255,255,0.08)",
   },
+ /* KEEP YOUR EXISTING STYLES
+   ONLY ADD THESE BELOW */
+
+styles.subTitle = {
+  color: "#94a3b8",
+  marginBottom: "14px",
+};
+
+styles.notice = {
+  background:
+    "rgba(245,158,11,0.08)",
+  border:
+    "1px solid rgba(245,158,11,0.25)",
+  padding: "12px",
+  borderRadius: "12px",
+  marginBottom: "14px",
+  textAlign: "left",
+};
+
+styles.checkWrap = {
+  display: "flex",
+  gap: "10px",
+  alignItems: "flex-start",
+  fontSize: "14px",
+};
+
+styles.stock = {
+  marginLeft: "auto",
+  color: "#ef4444",
+  fontSize: "13px",
+  fontWeight: "700",
+};
 };
