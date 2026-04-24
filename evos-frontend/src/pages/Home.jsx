@@ -212,7 +212,7 @@ export default function Home({ setPage, theme }) {
               }}
               onClick={() => {
                 window.location.href =
-                  "mailto:support@evosdata.com";
+                  "mailto:support@evosdata.xyz";
               }}
             >
               📧 Email Support
