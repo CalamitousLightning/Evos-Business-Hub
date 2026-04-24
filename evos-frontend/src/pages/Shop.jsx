@@ -425,7 +425,7 @@ export default function Shop() {
 
 
 /* ======================
-   SHOP UI (UPGRADED SaaS STYLE)
+   SHOP UI (FIXED + CLEAN)
 ====================== */
 const styles = {
   container: {
@@ -436,18 +436,24 @@ const styles = {
   },
 
   title: {
+    marginBottom: "6px",
+    fontSize: "26px",
+    fontWeight: "800",
+  },
+
+  subTitle: {
+    color: "#94a3b8",
     marginBottom: "22px",
-    fontSize: "22px",
-    fontWeight: "700",
+    fontSize: "14px",
   },
 
   wrapper: {
     maxWidth: "440px",
-    margin: "auto",
+    margin: "0 auto",
   },
 
   box: {
-    background: "rgba(15, 23, 42, 0.85)",
+    background: "rgba(15, 23, 42, 0.88)",
     backdropFilter: "blur(16px)",
     WebkitBackdropFilter: "blur(16px)",
     padding: "22px",
@@ -457,14 +463,16 @@ const styles = {
   },
 
   step: {
-    marginBottom: "15px",
+    marginBottom: "16px",
     color: "#38bdf8",
-    fontWeight: "600",
+    fontWeight: "700",
     fontSize: "14px",
+    textTransform: "uppercase",
+    letterSpacing: "0.6px",
   },
 
   /* ======================
-     NETWORK OPTIONS (UPGRADED)
+     NETWORK OPTIONS
   ====================== */
   option: {
     padding: "16px",
@@ -474,29 +482,39 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "10px",
-    fontWeight: "600",
+    fontWeight: "700",
     transition: "0.2s ease",
     border: "1px solid rgba(255,255,255,0.06)",
     background: "rgba(255,255,255,0.03)",
   },
 
   optionMTN: {
-    background: "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))",
+    background:
+      "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))",
     border: "1px solid rgba(255,193,7,0.3)",
   },
 
   optionTELECEL: {
-    background: "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))",
+    background:
+      "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))",
     border: "1px solid rgba(239,68,68,0.3)",
   },
 
   optionAIRTEL: {
-    background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(239,68,68,0.08))",
+    background:
+      "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))",
     border: "1px solid rgba(59,130,246,0.3)",
   },
 
+  stock: {
+    marginLeft: "auto",
+    color: "#ef4444",
+    fontSize: "12px",
+    fontWeight: "800",
+  },
+
   /* ======================
-     BUNDLES (FIXED READABILITY + HOVER)
+     BUNDLE CARDS
   ====================== */
   card: {
     padding: "16px",
@@ -508,19 +526,8 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.06)",
   },
 
-  cardHover: {
-    transform: "translateY(-2px)",
-    background: "rgba(255,255,255,0.06)",
-  },
-
-  selectedCard: {
-    border: "2px solid #38bdf8",
-    background: "rgba(56, 189, 248, 0.08)",
-    boxShadow: "0 10px 25px rgba(56, 189, 248, 0.15)",
-  },
-
   summary: {
-    background: "rgba(2, 6, 23, 0.6)",
+    background: "rgba(2, 6, 23, 0.65)",
     padding: "14px",
     borderRadius: "12px",
     marginBottom: "15px",
@@ -529,23 +536,45 @@ const styles = {
 
   input: {
     width: "100%",
-    padding: "13px",
+    padding: "14px",
     marginBottom: "12px",
     borderRadius: "12px",
     border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(2, 6, 23, 0.7)",
-    color: "white",
+    background: "rgba(2, 6, 23, 0.75)",
+    color: "#ffffff",
+    outline: "none",
+    fontSize: "14px",
+    boxSizing: "border-box",
+  },
+
+  notice: {
+    background: "rgba(245,158,11,0.08)",
+    border: "1px solid rgba(245,158,11,0.25)",
+    padding: "12px",
+    borderRadius: "12px",
+    marginBottom: "14px",
+    textAlign: "left",
+  },
+
+  checkWrap: {
+    display: "flex",
+    gap: "10px",
+    alignItems: "flex-start",
+    fontSize: "14px",
+    lineHeight: "1.5",
   },
 
   buyBtn: {
     width: "100%",
     padding: "14px",
     borderRadius: "14px",
-    background: "linear-gradient(135deg, #10b981, #22c55e)",
+    background:
+      "linear-gradient(135deg, #10b981, #22c55e)",
     border: "none",
-    color: "white",
-    fontWeight: "700",
+    color: "#ffffff",
+    fontWeight: "800",
     cursor: "pointer",
+    fontSize: "15px",
   },
 
   back: {
@@ -554,47 +583,18 @@ const styles = {
     border: "none",
     color: "#38bdf8",
     cursor: "pointer",
-    fontWeight: "600",
+    fontWeight: "700",
+    fontSize: "14px",
   },
 
   error: {
     background: "rgba(127, 29, 29, 0.8)",
-    color: "white",
+    color: "#ffffff",
     padding: "12px",
     borderRadius: "12px",
-    marginBottom: "12px",
+    marginBottom: "14px",
     border: "1px solid rgba(255,255,255,0.08)",
+    maxWidth: "440px",
+    marginInline: "auto",
   },
- /* KEEP YOUR EXISTING STYLES
-   ONLY ADD THESE BELOW */
-
-styles.subTitle = {
-  color: "#94a3b8",
-  marginBottom: "14px",
-};
-
-styles.notice = {
-  background:
-    "rgba(245,158,11,0.08)",
-  border:
-    "1px solid rgba(245,158,11,0.25)",
-  padding: "12px",
-  borderRadius: "12px",
-  marginBottom: "14px",
-  textAlign: "left",
-};
-
-styles.checkWrap = {
-  display: "flex",
-  gap: "10px",
-  alignItems: "flex-start",
-  fontSize: "14px",
-};
-
-styles.stock = {
-  marginLeft: "auto",
-  color: "#ef4444",
-  fontSize: "13px",
-  fontWeight: "700",
-};
 };
