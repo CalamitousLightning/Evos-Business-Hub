@@ -33,7 +33,7 @@ export default function Dashboard({ setPage, user }) {
     const loadDashboard = async () => {
       try {
         const res = await fetch(
-          `https://evos-business-hub.onrender.com/today/${user.id}`
+          `https://api.evosdata.xyz/today/${user.id}`
         );
 
         const data = await res.json();
