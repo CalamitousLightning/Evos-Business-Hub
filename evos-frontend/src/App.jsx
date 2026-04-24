@@ -9,6 +9,8 @@ import Success from "./pages/Success";
 import AgentDashboard from "./pages/AgentDashboard";
 import AgentPricing from "./pages/AgentPricing";
 import AgentStore from "./pages/AgentStore";
+import AgentWithdraw from "./pages/AgentWithdraw";
+import AdminWithdrawals from "./pages/AdminWithdrawals";
 import StorePage from "./pages/StorePage";
 import OrderTracking from "./pages/OrderTracking";
 
@@ -19,7 +21,7 @@ export default function App() {
   const [theme, setTheme] = useState("dark");
 
   // =========================
-  // INITIAL LOAD + ROUTING
+  // INITIAL LOAD
   // =========================
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -37,7 +39,10 @@ export default function App() {
     window.addEventListener("popstate", detectRoute);
 
     return () => {
-      window.removeEventListener("popstate", detectRoute);
+      window.removeEventListener(
+        "popstate",
+        detectRoute
+      );
     };
   }, []);
 
@@ -45,10 +50,9 @@ export default function App() {
   // ROUTE DETECTOR
   // =========================
   const detectRoute = () => {
-    const path = window.location.pathname;
+    const path =
+      window.location.pathname;
 
-    // IMPORTANT FIX:
-    // /store/1 must load StorePage
     if (path.startsWith("/store/")) {
       setPage("store");
       return;
@@ -62,27 +66,48 @@ export default function App() {
       "/login": "login",
       "/register": "register",
       "/success": "success",
-      "/agent-dashboard": "agent-dashboard",
-      "/agent-pricing": "agent-pricing",
-      "/agent-store": "agent-store",
-      "/store": "store",
-      "/track": "track-order",
+      "/agent-dashboard":
+        "agent-dashboard",
+      "/agent-pricing":
+        "agent-pricing",
+      "/agent-store":
+        "agent-store",
+      "/agent-withdraw":
+        "agent-withdraw",
+      "/admin-withdrawals":
+        "admin-withdrawals",
+      "/track":
+        "track-order",
     };
 
-    setPage(routeMap[path] || "home");
+    setPage(
+      routeMap[path] || "home"
+    );
   };
 
   const isAgentActive =
     user?.role === "agent" &&
-    user?.agent_status === "approved";
+    user?.agent_status ===
+      "approved";
+
+  const isAdmin =
+    user?.role === "admin";
 
   // =========================
   // THEME
   // =========================
   const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark";
+    const next =
+      theme === "dark"
+        ? "light"
+        : "dark";
+
     setTheme(next);
-    localStorage.setItem("theme", next);
+
+    localStorage.setItem(
+      "theme",
+      next
+    );
   };
 
   // =========================
@@ -109,30 +134,59 @@ export default function App() {
       login: "/login",
       register: "/register",
       success: "/success",
-      "agent-dashboard": "/agent-dashboard",
-      "agent-pricing": "/agent-pricing",
-      "agent-store": "/agent-store",
+      "agent-dashboard":
+        "/agent-dashboard",
+      "agent-pricing":
+        "/agent-pricing",
+      "agent-store":
+        "/agent-store",
+      "agent-withdraw":
+        "/agent-withdraw",
+      "admin-withdrawals":
+        "/admin-withdrawals",
       store: "/store",
-      "track-order": "/track",
+      "track-order":
+        "/track",
     };
 
-    const url = routes[target] || "/";
-    window.history.pushState({}, "", url);
+    const url =
+      routes[target] || "/";
+
+    window.history.pushState(
+      {},
+      "",
+      url
+    );
   };
 
   // =========================
-  // PAGE RENDERER
+  // PAGE RENDER
   // =========================
   const renderPage = () => {
     switch (page) {
       case "home":
-        return <Home setPage={navigate} theme={theme} />;
+        return (
+          <Home
+            setPage={navigate}
+            theme={theme}
+          />
+        );
 
       case "shop":
-        return <Shop user={user} theme={theme} />;
+        return (
+          <Shop
+            user={user}
+            theme={theme}
+          />
+        );
 
       case "orders":
-        return <Orders user={user} theme={theme} />;
+        return (
+          <Orders
+            user={user}
+            theme={theme}
+          />
+        );
 
       case "login":
         return (
@@ -185,6 +239,22 @@ export default function App() {
           />
         );
 
+      case "agent-withdraw":
+        return (
+          <AgentWithdraw
+            user={user}
+            setPage={navigate}
+          />
+        );
+
+      case "admin-withdrawals":
+        return (
+          <AdminWithdrawals
+            user={user}
+            setPage={navigate}
+          />
+        );
+
       case "store":
         return (
           <StorePage
@@ -201,41 +271,69 @@ export default function App() {
         );
 
       case "success":
-        return <Success theme={theme} />;
+        return (
+          <Success theme={theme} />
+        );
 
       default:
-        return <Home setPage={navigate} theme={theme} />;
+        return (
+          <Home
+            setPage={navigate}
+            theme={theme}
+          />
+        );
     }
   };
 
-  const dark = theme === "dark";
+  const dark =
+    theme === "dark";
 
   return (
     <div style={appStyle(dark)}>
-      <div style={overlayStyle(dark)} />
+      <div
+        style={overlayStyle(dark)}
+      />
 
-      <div style={{ position: "relative", zIndex: 2 }}>
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
         {/* NAVBAR */}
         <nav style={navStyle(dark)}>
           <div
             style={logoStyle}
-            onClick={() => navigate("home")}
+            onClick={() =>
+              navigate("home")
+            }
           >
             EVOS HUB
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+            }}
+          >
             <button
-              onClick={toggleTheme}
+              onClick={
+                toggleTheme
+              }
               style={themeBtn}
             >
-              {dark ? "☀️" : "🌙"}
+              {dark
+                ? "☀️"
+                : "🌙"}
             </button>
 
             <div
               style={menuIcon}
               onClick={() =>
-                setMenuOpen(!menuOpen)
+                setMenuOpen(
+                  !menuOpen
+                )
               }
             >
               ☰
@@ -245,24 +343,46 @@ export default function App() {
 
         {/* MENU */}
         {menuOpen && (
-          <div style={dropdownStyle(dark)}>
+          <div
+            style={dropdownStyle(
+              dark
+            )}
+          >
             <button
-              onClick={() => navigate("shop")}
-              style={menuBtn(dark)}
+              onClick={() =>
+                navigate(
+                  "shop"
+                )
+              }
+              style={menuBtn(
+                dark
+              )}
             >
               Buy Data
             </button>
 
             <button
-              onClick={() => navigate("orders")}
-              style={menuBtn(dark)}
+              onClick={() =>
+                navigate(
+                  "orders"
+                )
+              }
+              style={menuBtn(
+                dark
+              )}
             >
               Orders
             </button>
 
             <button
-              onClick={() => navigate("dashboard")}
-              style={menuBtn(dark)}
+              onClick={() =>
+                navigate(
+                  "dashboard"
+                )
+              }
+              style={menuBtn(
+                dark
+              )}
             >
               Dashboard
             </button>
@@ -270,9 +390,13 @@ export default function App() {
             {user && (
               <button
                 onClick={() =>
-                  navigate("agent-dashboard")
+                  navigate(
+                    "agent-dashboard"
+                  )
                 }
-                style={agentBtn}
+                style={
+                  agentBtn
+                }
               >
                 {isAgentActive
                   ? "🚀 Agent Dashboard"
@@ -280,10 +404,44 @@ export default function App() {
               </button>
             )}
 
+            {isAgentActive && (
+              <button
+                onClick={() =>
+                  navigate(
+                    "agent-withdraw"
+                  )
+                }
+                style={menuBtn(
+                  dark
+                )}
+              >
+                💳 Withdraw
+              </button>
+            )}
+
+            {isAdmin && (
+              <button
+                onClick={() =>
+                  navigate(
+                    "admin-withdrawals"
+                  )
+                }
+                style={menuBtn(
+                  dark
+                )}
+              >
+                🛠 Withdrawals
+              </button>
+            )}
+
             {user ? (
               <button
-                onClick={logout}
-                style={dangerBtn}
+                onClick={
+                  logout
+                }
+                style={
+                  dangerBtn
+                }
               >
                 Logout
               </button>
@@ -291,18 +449,26 @@ export default function App() {
               <>
                 <button
                   onClick={() =>
-                    navigate("login")
+                    navigate(
+                      "login"
+                    )
                   }
-                  style={menuBtn(dark)}
+                  style={menuBtn(
+                    dark
+                  )}
                 >
                   Login
                 </button>
 
                 <button
                   onClick={() =>
-                    navigate("register")
+                    navigate(
+                      "register"
+                    )
                   }
-                  style={primaryBtn}
+                  style={
+                    primaryBtn
+                  }
                 >
                   Register
                 </button>
@@ -312,7 +478,9 @@ export default function App() {
         )}
 
         {/* PAGE */}
-        <main style={contentStyle}>
+        <main
+          style={contentStyle}
+        >
           {renderPage()}
         </main>
       </div>
