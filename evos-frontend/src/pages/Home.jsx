@@ -515,4 +515,214 @@ const styles = {
     fontWeight:
       "800",
     background:
-      "linear
+      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
+  },
+
+  secondaryBtn: {
+    padding:
+      "12px 18px",
+    borderRadius:
+      "12px",
+    background:
+      "transparent",
+    cursor:
+      "pointer",
+  },
+
+  supportBtn: {
+    padding:
+      "12px 18px",
+    border: "none",
+    borderRadius:
+      "12px",
+    background:
+      "#22c55e",
+    color:
+      "white",
+    fontWeight:
+      "800",
+    cursor:
+      "pointer",
+  },
+
+  stats: {
+    display: "flex",
+    justifyContent:
+      "center",
+    gap: "14px",
+    flexWrap:
+      "wrap",
+  },
+
+  statBox: {
+    minWidth:
+      "140px",
+    padding:
+      "14px",
+    borderRadius:
+      "14px",
+    background:
+      "rgba(255,255,255,0.04)",
+  },
+
+  section: {
+    padding:
+      "20px 0 40px",
+  },
+
+  sectionTitle: {
+    fontSize:
+      "28px",
+    fontWeight:
+      "800",
+    textAlign:
+      "center",
+    marginBottom:
+      "22px",
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit,minmax(220px,1fr))",
+    gap: "16px",
+  },
+
+  card: {
+    padding:
+      "20px",
+    borderRadius:
+      "18px",
+  },
+
+  rule: {
+    marginBottom:
+      "10px",
+    lineHeight:
+      "1.6",
+  },
+
+  cta: {
+    textAlign:
+      "center",
+    padding:
+      "70px 20px",
+    borderRadius:
+      "22px",
+    marginTop:
+      "20px",
+  },
+
+  ctaBtn: {
+    marginTop:
+      "14px",
+    padding:
+      "12px 20px",
+    border: "none",
+    borderRadius:
+      "12px",
+    cursor:
+      "pointer",
+    fontWeight:
+      "800",
+  },
+
+  footer: {
+    marginTop:
+      "45px",
+    padding:
+      "30px 0",
+    borderTop:
+      "1px solid rgba(255,255,255,0.06)",
+  },
+
+  footerGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit,minmax(220px,1fr))",
+    gap: "20px",
+  },
+
+  footerTitle: {
+    marginBottom:
+      "10px",
+    fontWeight:
+      "800",
+  },
+
+  link: {
+    cursor:
+      "pointer",
+    color:
+      "#38bdf8",
+    marginBottom:
+      "8px",
+  },
+
+  copy: {
+    marginTop:
+      "25px",
+    textAlign:
+      "center",
+    fontSize:
+      "14px",
+  },
+
+  overlay: {
+    position:
+      "fixed",
+    inset: 0,
+    background:
+      "rgba(0,0,0,0.55)",
+    zIndex: 1000,
+  },
+
+  modal: {
+    position:
+      "fixed",
+    left: "50%",
+    top: "50%",
+    transform:
+      "translate(-50%,-50%)",
+    width: "92%",
+    maxWidth:
+      "420px",
+    background:
+      "#0f172a",
+    padding:
+      "22px",
+    borderRadius:
+      "20px",
+    zIndex: 1200,
+  },
+
+  helpCard: {
+    padding:
+      "14px",
+    borderRadius:
+      "14px",
+    marginTop:
+      "10px",
+    background:
+      "rgba(255,255,255,0.04)",
+    cursor:
+      "pointer",
+  },
+
+  closeBtn: {
+    width: "100%",
+    marginTop:
+      "14px",
+    padding:
+      "12px",
+    border: "none",
+    borderRadius:
+      "14px",
+    fontWeight:
+      "800",
+    cursor:
+      "pointer",
+    background:
+      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
+  },
+};
