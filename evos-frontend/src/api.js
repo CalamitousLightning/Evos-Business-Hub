@@ -4,7 +4,7 @@ import axios from "axios";
 // BASE CONFIG
 // =========================
 const API = axios.create({
-  baseURL: "https://evos-business-hub.onrender.com",
+  baseURL: "https://api.evosdata.xyz",
   timeout: 60000,
   headers: {
     "Content-Type": "application/json",
