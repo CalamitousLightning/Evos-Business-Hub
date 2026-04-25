@@ -308,7 +308,7 @@ export default function App() {
               navigate("home")
             }
           >
-            EVOS HUB
+            Evosdata
           </div>
 
           <div
