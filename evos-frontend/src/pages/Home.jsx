@@ -350,7 +350,7 @@ export default function Home({ setPage, theme }) {
             </p>
 
             <p>
-              support@evosdata.com
+              support@evosdata.xyz
             </p>
           </div>
         </div>
@@ -425,7 +425,7 @@ export default function Home({ setPage, theme }) {
               }
               onClick={() =>
                 (window.location.href =
-                  "mailto:support@evosdata.com")
+                  "mailto:support@evosdata.xyz")
               }
             >
               📧 Email
