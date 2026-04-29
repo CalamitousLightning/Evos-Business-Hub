@@ -181,7 +181,10 @@ export default function Home({ setPage, theme }) {
             >
               EVOS GPT
             </p>
-
+            <p>Evos Business Hub (coming Soon)</p>
+          </div>
+          
+          <div>  <h3 style={styles.footerTitle}>Other Products</h3>
             <p style={styles.link} onClick={() => setAboutOpen(true)}>
               About Us
             </p>
@@ -189,7 +192,8 @@ export default function Home({ setPage, theme }) {
             <p style={styles.link} onClick={() => setPrivacyOpen(true)}>
               Privacy Policy
             </p>
-          </div>
+                    
+          </div>           
 
           <div>
             <h3 style={styles.footerTitle}>Support</h3>
