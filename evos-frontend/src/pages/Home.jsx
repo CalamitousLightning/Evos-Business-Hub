@@ -1,38 +1,30 @@
 import { useEffect, useState } from "react";
 
 export default function Home({ setPage, theme }) {
-  const [supportOpen, setSupportOpen] =
-    useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   useEffect(() => {}, []);
 
-  const isDark =
-    theme === "dark";
+  const isDark = theme === "dark";
 
   const features = [
     {
-      title:
-        "⚡ Instant Data Delivery",
-      desc:
-        "Orders are processed automatically after successful payment.",
+      title: "⚡ Instant Data Delivery",
+      desc: "Orders are processed automatically after successful payment.",
     },
     {
-      title:
-        "🔒 Secure Payments",
-      desc:
-        "Trusted Paystack checkout for safe and reliable transactions.",
+      title: "🔒 Secure Payments",
+      desc: "Trusted Paystack checkout for safe and reliable transactions.",
     },
     {
-      title:
-        "📡 Multi-Network Support",
-      desc:
-        "Buy MTN, Telecel and AirtelTigo bundles in one place.",
+      title: "📡 Multi-Network Support",
+      desc: "Buy MTN, Telecel and AirtelTigo bundles in one place.",
     },
     {
-      title:
-        "📊 Live Order Tracking",
-      desc:
-        "Track your orders anytime using your payment reference.",
+      title: "📊 Live Order Tracking",
+      desc: "Track your orders anytime using your payment reference.",
     },
   ];
 
@@ -56,104 +48,54 @@ export default function Home({ setPage, theme }) {
       >
         <h1 style={styles.title}>
           Buy Mobile Data
-          <span
-            style={
-              styles.highlight
-            }
-          >
-            {" "}
-            Instantly
-          </span>
+          <span style={styles.highlight}> Instantly</span>
         </h1>
 
         <p
           style={{
             ...styles.subtitle,
-            color: isDark
-              ? "#94a3b8"
-              : "#475569",
+            color: isDark ? "#94a3b8" : "#475569",
           }}
         >
-          Fast, secure and
-          automated data
-          delivery powered by
-          EVOS Business HUB.
+          Fast, secure and automated data delivery powered by EVOS Business HUB.
         </p>
 
         <div style={styles.buttons}>
-          <button
-            style={
-              styles.primaryBtn
-            }
-            onClick={() =>
-              setPage("shop")
-            }
-          >
+          <button style={styles.primaryBtn} onClick={() => setPage("shop")}>
             Buy Data Now
           </button>
 
           <button
             style={{
               ...styles.secondaryBtn,
-              color: isDark
-                ? "#e5e7eb"
-                : "#111827",
+              color: isDark ? "#e5e7eb" : "#111827",
               border: isDark
                 ? "1px solid rgba(255,255,255,0.15)"
                 : "1px solid rgba(0,0,0,0.15)",
             }}
-            onClick={() =>
-              setPage(
-                "orders"
-              )
-            }
+            onClick={() => setPage("orders")}
           >
             Track Orders
           </button>
 
-          <button
-            style={
-              styles.supportBtn
-            }
-            onClick={() =>
-              setSupportOpen(
-                true
-              )
-            }
-          >
+          <button style={styles.supportBtn} onClick={() => setSupportOpen(true)}>
             Support
           </button>
         </div>
 
         {/* STATS */}
         <div style={styles.stats}>
-          <div
-            style={
-              styles.statBox
-            }
-          >
-            <h3>
-              ⚡ Instant - 2hr
-            </h3>
-            <p>
-              Delivery Time
-            </p>
+          <div style={styles.statBox}>
+            <h3>⚡ Instant - 2hr</h3>
+            <p>Delivery Time</p>
           </div>
 
-          <div
-            style={
-              styles.statBox
-            }
-          >
+          <div style={styles.statBox}>
             <h3>📶 3</h3>
             <p>Networks</p>
           </div>
 
-          <div
-            style={
-              styles.statBox
-            }
-          >
+          <div style={styles.statBox}>
             <h3>🔁 24/7</h3>
             <p>Automation</p>
           </div>
@@ -161,91 +103,42 @@ export default function Home({ setPage, theme }) {
       </section>
 
       {/* FEATURES */}
-      <section
-        style={
-          styles.section
-        }
-      >
-        <h2
-          style={
-            styles.sectionTitle
-          }
-        >
-          Why Choose EVOS HUB?
-        </h2>
+      <section style={styles.section}>
+        <h2 style={styles.sectionTitle}>Why Choose EVOS HUB?</h2>
 
         <div style={styles.grid}>
-          {features.map(
-            (item, i) => (
-              <div
-                key={i}
-                style={{
-                  ...styles.card,
-                  background:
-                    isDark
-                      ? "rgba(255,255,255,0.04)"
-                      : "#ffffff",
-                }}
-              >
-                <h3>
-                  {
-                    item.title
-                  }
-                </h3>
-
-                <p
-                  style={{
-                    color:
-                      isDark
-                        ? "#94a3b8"
-                        : "#475569",
-                  }}
-                >
-                  {
-                    item.desc
-                  }
-                </p>
-              </div>
-            )
-          )}
+          {features.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                ...styles.card,
+                background: isDark ? "rgba(255,255,255,0.04)" : "#ffffff",
+              }}
+            >
+              <h3>{item.title}</h3>
+              <p style={{ color: isDark ? "#94a3b8" : "#475569" }}>
+                {item.desc}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* RULES */}
-      <section
-        style={
-          styles.section
-        }
-      >
-        <h2
-          style={
-            styles.sectionTitle
-          }
-        >
-          Purchase Policy
-        </h2>
+      <section style={styles.section}>
+        <h2 style={styles.sectionTitle}>Purchase Policy</h2>
 
         <div
           style={{
             ...styles.card,
-            background:
-              isDark
-                ? "rgba(255,255,255,0.03)"
-                : "#ffffff",
+            background: isDark ? "rgba(255,255,255,0.03)" : "#ffffff",
           }}
         >
-          {rules.map(
-            (rule, i) => (
-              <p
-                key={i}
-                style={
-                  styles.rule
-                }
-              >
-                • {rule}
-              </p>
-            )
-          )}
+          {rules.map((rule, i) => (
+            <p key={i} style={styles.rule}>
+              • {rule}
+            </p>
+          ))}
         </div>
       </section>
 
@@ -258,25 +151,10 @@ export default function Home({ setPage, theme }) {
             : "linear-gradient(135deg,#38bdf8,#22c55e)",
         }}
       >
-        <h2>
-          Start Buying Data
-          in Seconds
-        </h2>
+        <h2>Start Buying Data in Seconds</h2>
+        <p>No stress. No delays. Just fast delivery.</p>
 
-        <p>
-          No stress. No
-          delays. Just fast
-          delivery.
-        </p>
-
-        <button
-          style={
-            styles.ctaBtn
-          }
-          onClick={() =>
-            setPage("shop")
-          }
-        >
+        <button style={styles.ctaBtn} onClick={() => setPage("shop")}>
           Get Started
         </button>
       </section>
@@ -285,130 +163,62 @@ export default function Home({ setPage, theme }) {
       <footer
         style={{
           ...styles.footer,
-          color: isDark
-            ? "#94a3b8"
-            : "#475569",
+          color: isDark ? "#94a3b8" : "#475569",
         }}
       >
         <div style={styles.footerGrid}>
           <div>
-            <h3
-              style={
-                styles.footerTitle
-              }
-            >
-              EVOS HUB
-            </h3>
-            <p>
-              Secure automated
-              telecom services.
-            </p>
+            <h3 style={styles.footerTitle}>EVOS HUB</h3>
+            <p>Secure automated telecom services.</p>
           </div>
 
           <div>
-            <h3
-              style={
-                styles.footerTitle
-              }
-            >
-              Other Products
-            </h3>
+            <h3 style={styles.footerTitle}>Other Products</h3>
 
             <p
-              style={
-                styles.link
-              }
-              onClick={() =>
-                window.open(
-                  "https://evosgpt.xyz",
-                  "_blank"
-                )
-              }
+              style={styles.link}
+              onClick={() => window.open("https://evosgpt.xyz", "_blank")}
             >
               EVOS GPT
             </p>
 
-            <p>
-              EVOS Business
-              Hub (Coming
-              Soon)
+            <p style={styles.link} onClick={() => setAboutOpen(true)}>
+              About Us
+            </p>
+
+            <p style={styles.link} onClick={() => setPrivacyOpen(true)}>
+              Privacy Policy
             </p>
           </div>
 
           <div>
-            <h3
-              style={
-                styles.footerTitle
-              }
-            >
-              Support
-            </h3>
-
-            <p>
-              WhatsApp:
-              0208718943
-            </p>
-
-            <p>
-              support@evosdata.xyz
-            </p>
+            <h3 style={styles.footerTitle}>Support</h3>
+            <p>WhatsApp: 0208718943</p>
+            <p>support@evosdata.xyz</p>
           </div>
         </div>
 
-        <div
-          style={
-            styles.copy
-          }
-        >
-          Powered by EVOS
-          Business HUB •
-          EVOS
-          Technologies
+        <div style={styles.copy}>
+          Powered by EVOS Business HUB • EVOS Technologies
         </div>
       </footer>
 
       {/* SUPPORT MODAL */}
       {supportOpen && (
         <>
-          <div
-            style={
-              styles.overlay
-            }
-            onClick={() =>
-              setSupportOpen(
-                false
-              )
-            }
-          />
-
-          <div
-            style={
-              styles.modal
-            }
-          >
-            <h2>
-              Support Center
-            </h2>
+          <div style={styles.overlay} onClick={() => setSupportOpen(false)} />
+          <div style={styles.modal}>
+            <h2>Support Center</h2>
 
             <div
-              style={
-                styles.helpCard
-              }
-              onClick={() =>
-                window.open(
-                  "https://wa.me/233208718943",
-                  "_blank"
-                )
-              }
+              style={styles.helpCard}
+              onClick={() => window.open("https://wa.me/233208718943", "_blank")}
             >
-              💬 WhatsApp
-              Support
+              💬 WhatsApp Support
             </div>
 
             <div
-              style={
-                styles.helpCard
-              }
+              style={styles.helpCard}
               onClick={() =>
                 window.open(
                   "https://whatsapp.com/channel/0029VaTrnsZEgGfFXkIcjt1M",
@@ -420,28 +230,53 @@ export default function Home({ setPage, theme }) {
             </div>
 
             <div
-              style={
-                styles.helpCard
-              }
+              style={styles.helpCard}
               onClick={() =>
-                (window.location.href =
-                  "mailto:support@evosdata.xyz")
+                (window.location.href = "mailto:support@evosdata.xyz")
               }
             >
-              📧 Email
-              Support
+              📧 Email Support
             </div>
 
-            <button
-              style={
-                styles.closeBtn
-              }
-              onClick={() =>
-                setSupportOpen(
-                  false
-                )
-              }
-            >
+            <button style={styles.closeBtn} onClick={() => setSupportOpen(false)}>
+              Close
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ABOUT MODAL */}
+      {aboutOpen && (
+        <>
+          <div style={styles.overlay} onClick={() => setAboutOpen(false)} />
+          <div style={styles.modal}>
+            <h2>About EVOSDATA</h2>
+            <p>
+              EVOSDATA is a secure digital platform for automated mobile data
+              purchases in Ghana.
+            </p>
+            <p>Powered by EVOS Business HUB infrastructure.</p>
+
+            <button style={styles.closeBtn} onClick={() => setAboutOpen(false)}>
+              Close
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* PRIVACY MODAL */}
+      {privacyOpen && (
+        <>
+          <div style={styles.overlay} onClick={() => setPrivacyOpen(false)} />
+          <div style={styles.modal}>
+            <h2>Privacy Policy</h2>
+            <p>
+              We only collect necessary data for order processing and support.
+            </p>
+            <p>All payments are securely handled via Paystack.</p>
+            <p>We do not sell or share user data.</p>
+
+            <button style={styles.closeBtn} onClick={() => setPrivacyOpen(false)}>
               Close
             </button>
           </div>
