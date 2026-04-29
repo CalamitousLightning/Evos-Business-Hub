@@ -184,7 +184,7 @@ export default function Home({ setPage, theme }) {
             <p>Evos Business Hub (coming Soon)</p>
           </div>
           
-          <div>  <h3 style={styles.footerTitle}>Other Products</h3>
+          <div>  <h3 style={styles.footerTitle}>Policy and Terms</h3>
             <p style={styles.link} onClick={() => setAboutOpen(true)}>
               About Us
             </p>
