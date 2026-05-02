@@ -801,7 +801,14 @@ async def paystack_webhook(request: Request):
             elif provider == "BUNDLES_GHANA":
 
                 # 1. Find the matching bundle_id from Bundles Ghana
-                network_name = order["network"].upper()
+                # Bundles Ghana expects exact casing: MTN, Telecel, AirtelTigo
+                BG_NETWORK_MAP = {
+                    "MTN": "MTN",
+                    "TELECEL": "Telecel",
+                    "AIRTELTIGO": "AirtelTigo",
+                    "AT": "AirtelTigo",
+                }
+                network_name = BG_NETWORK_MAP.get(order["network"].upper(), order["network"])
                 bg_bundles = call_bundles_ghana(f"/bundles?network={network_name}")
 
                 if not bg_bundles.get("success"):
