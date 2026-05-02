@@ -282,19 +282,6 @@ useEffect(() => {
                 💰 Pricing
               </div>
 
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-                onClick={() =>
-                  setPage(
-                    "agent-store"
-                  )
-                }
-              >
-                🏪 Store
-              </div>
 
               <div
                 style={{
