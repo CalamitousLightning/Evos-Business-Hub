@@ -423,6 +423,13 @@ def create_order(data: CreateOrderRequest):
         # =========================
         # PAYSTACK INIT
         # =========================
+
+        # 🔥 ONLY CHANGE MADE HERE (CALLBACK FIX)
+        callback_url = "https://evosdata.xyz/success"
+
+        if hasattr(data, "agent_id") and data.agent_id:
+            callback_url = f"https://evosdata.xyz/store/{data.agent_id}?success=true"
+
         try:
             paystack = requests.post(
                 "https://api.paystack.co/transaction/initialize",
@@ -433,7 +440,7 @@ def create_order(data: CreateOrderRequest):
                 json={
                     "email": customer_email,
                     "amount": int(price * 100),
-                    "callback_url": "https://evosdata.xyz/success"
+                    "callback_url": callback_url
                 },
                 timeout=REQUEST_TIMEOUT
             ).json()
