@@ -130,8 +130,8 @@ NETWORK_MAP = {
 # =========================
 def call_bundles_ghana(endpoint: str, method: str = "GET", body: dict = None):
     headers = {
-        "X-API-KEY": BUNDLES_GHANA_API_KEY,
-        "X-API-SECRET": BUNDLES_GHANA_API_SECRET,
+        "X-API-Key": BUNDLES_GHANA_API_KEY,
+        "X-API-Secret": BUNDLES_GHANA_API_SECRET,
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
