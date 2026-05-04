@@ -142,6 +142,79 @@ export default function Home({ setPage, theme }) {
         </div>
       </section>
 
+      {/* BECOME AN AGENT */}
+      <section style={styles.section}>
+        <h2 style={styles.sectionTitle}>🤝 Become an Agent</h2>
+
+        <div
+          style={{
+            ...styles.agentCard,
+            background: isDark
+              ? "linear-gradient(135deg, rgba(56,189,248,0.08), rgba(14,165,233,0.04))"
+              : "linear-gradient(135deg, #e0f2fe, #f0fdf4)",
+            border: isDark
+              ? "1px solid rgba(56,189,248,0.2)"
+              : "1px solid rgba(56,189,248,0.3)",
+          }}
+        >
+          <p style={{ ...styles.agentIntro, color: isDark ? "#e5e7eb" : "#1e293b" }}>
+            Want to run your own data store and earn on every sale? Agent slots are
+            available — but not forever. Here's what you need to know before reaching out:
+          </p>
+
+          <div style={styles.agentRules}>
+            <div style={styles.agentRule}>
+              <span style={styles.agentIcon}>📦</span>
+              <span style={{ color: isDark ? "#cbd5e1" : "#334155" }}>
+                You must have completed <strong style={{ color: "#38bdf8" }}>at least 20 successful orders</strong> on
+                EVOS before you qualify to apply. This shows you understand the platform
+                and trust the service.
+              </span>
+            </div>
+
+            <div style={styles.agentRule}>
+              <span style={styles.agentIcon}>⏳</span>
+              <span style={{ color: isDark ? "#cbd5e1" : "#334155" }}>
+                Agent slots are <strong style={{ color: "#f87171" }}>limited</strong>. If
+                all slots are filled by the time you reach 20 orders, the opportunity
+                closes — so don't sleep on it.
+              </span>
+            </div>
+
+            <div style={styles.agentRule}>
+              <span style={styles.agentIcon}>💰</span>
+              <span style={{ color: isDark ? "#cbd5e1" : "#334155" }}>
+                As an agent you set your own markup, get a personal store link, and earn
+                profit on every order your customers place — automatically.
+              </span>
+            </div>
+
+            <div style={styles.agentRule}>
+              <span style={styles.agentIcon}>📩</span>
+              <span style={{ color: isDark ? "#cbd5e1" : "#334155" }}>
+                Once you hit 20 orders, reach out via WhatsApp or email with your account
+                username and order history. We'll verify and onboard you.
+              </span>
+            </div>
+          </div>
+
+          <div style={styles.agentBtns}>
+            <button
+              style={styles.agentContactBtn}
+              onClick={() => window.open("https://wa.me/233208718943?text=Hi, I'd like to become an EVOS agent", "_blank")}
+            >
+              💬 Contact via WhatsApp
+            </button>
+            <button
+              style={styles.agentShopBtn}
+              onClick={() => setPage("shop")}
+            >
+              Start Buying →
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section
         style={{
@@ -174,7 +247,6 @@ export default function Home({ setPage, theme }) {
 
           <div>
             <h3 style={styles.footerTitle}>Other Products</h3>
-
             <p
               style={styles.link}
               onClick={() => window.open("https://evosgpt.xyz", "_blank")}
@@ -183,17 +255,16 @@ export default function Home({ setPage, theme }) {
             </p>
             <p>Evos Business Hub (coming Soon)</p>
           </div>
-          
-          <div>  <h3 style={styles.footerTitle}>Policy and Terms</h3>
+
+          <div>
+            <h3 style={styles.footerTitle}>Policy and Terms</h3>
             <p style={styles.link} onClick={() => setAboutOpen(true)}>
               About Us
             </p>
-
             <p style={styles.link} onClick={() => setPrivacyOpen(true)}>
               Privacy Policy
             </p>
-                    
-          </div>           
+          </div>
 
           <div>
             <h3 style={styles.footerTitle}>Support</h3>
@@ -213,35 +284,26 @@ export default function Home({ setPage, theme }) {
           <div style={styles.overlay} onClick={() => setSupportOpen(false)} />
           <div style={styles.modal}>
             <h2>Support Center</h2>
-
             <div
               style={styles.helpCard}
               onClick={() => window.open("https://wa.me/233208718943", "_blank")}
             >
               💬 WhatsApp Support
             </div>
-
             <div
               style={styles.helpCard}
               onClick={() =>
-                window.open(
-                  "https://whatsapp.com/channel/0029VaTrnsZEgGfFXkIcjt1M",
-                  "_blank"
-                )
+                window.open("https://whatsapp.com/channel/0029VaTrnsZEgGfFXkIcjt1M", "_blank")
               }
             >
               👥 Community
             </div>
-
             <div
               style={styles.helpCard}
-              onClick={() =>
-                (window.location.href = "mailto:support@evosdata.xyz")
-              }
+              onClick={() => (window.location.href = "mailto:support@evosdata.xyz")}
             >
               📧 Email Support
             </div>
-
             <button style={styles.closeBtn} onClick={() => setSupportOpen(false)}>
               Close
             </button>
@@ -260,7 +322,6 @@ export default function Home({ setPage, theme }) {
               purchases in Ghana.
             </p>
             <p>Powered by EVOS Business HUB infrastructure.</p>
-
             <button style={styles.closeBtn} onClick={() => setAboutOpen(false)}>
               Close
             </button>
@@ -274,12 +335,9 @@ export default function Home({ setPage, theme }) {
           <div style={styles.overlay} onClick={() => setPrivacyOpen(false)} />
           <div style={styles.modal}>
             <h2>Privacy Policy</h2>
-            <p>
-              We only collect necessary data for order processing and support.
-            </p>
+            <p>We only collect necessary data for order processing and support.</p>
             <p>All payments are securely handled via Paystack.</p>
             <p>We do not sell or share user data.</p>
-
             <button style={styles.closeBtn} onClick={() => setPrivacyOpen(false)}>
               Close
             </button>
@@ -291,277 +349,225 @@ export default function Home({ setPage, theme }) {
 }
 
 const styles = {
-  container: {
-    transition:
-      "0.3s ease",
-  },
+  container: { transition: "0.3s ease" },
 
   hero: {
-    textAlign:
-      "center",
-    padding:
-      "80px 20px",
-    borderRadius:
-      "22px",
-    marginBottom:
-      "35px",
-    border:
-      "1px solid rgba(255,255,255,0.06)",
+    textAlign: "center",
+    padding: "80px 20px",
+    borderRadius: "22px",
+    marginBottom: "35px",
+    border: "1px solid rgba(255,255,255,0.06)",
   },
 
   title: {
-    fontSize:
-      "clamp(32px,5vw,56px)",
-    fontWeight:
-      "900",
-    marginBottom:
-      "12px",
+    fontSize: "clamp(32px,5vw,56px)",
+    fontWeight: "900",
+    marginBottom: "12px",
   },
 
-  highlight: {
-    color:
-      "#38bdf8",
-  },
+  highlight: { color: "#38bdf8" },
 
   subtitle: {
-    maxWidth:
-      "700px",
-    margin:
-      "0 auto 22px",
-    lineHeight:
-      "1.6",
+    maxWidth: "700px",
+    margin: "0 auto 22px",
+    lineHeight: "1.6",
   },
 
   buttons: {
     display: "flex",
-    justifyContent:
-      "center",
+    justifyContent: "center",
     gap: "12px",
-    flexWrap:
-      "wrap",
-    marginBottom:
-      "26px",
+    flexWrap: "wrap",
+    marginBottom: "26px",
   },
 
   primaryBtn: {
-    padding:
-      "12px 18px",
+    padding: "12px 18px",
     border: "none",
-    borderRadius:
-      "12px",
-    cursor:
-      "pointer",
-    fontWeight:
-      "800",
-    background:
-      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
+    borderRadius: "12px",
+    cursor: "pointer",
+    fontWeight: "800",
+    background: "linear-gradient(135deg,#38bdf8,#0ea5e9)",
   },
 
   secondaryBtn: {
-    padding:
-      "12px 18px",
-    borderRadius:
-      "12px",
-    background:
-      "transparent",
-    cursor:
-      "pointer",
+    padding: "12px 18px",
+    borderRadius: "12px",
+    background: "transparent",
+    cursor: "pointer",
   },
 
   supportBtn: {
-    padding:
-      "12px 18px",
+    padding: "12px 18px",
     border: "none",
-    borderRadius:
-      "12px",
-    background:
-      "#22c55e",
-    color:
-      "white",
-    fontWeight:
-      "800",
-    cursor:
-      "pointer",
+    borderRadius: "12px",
+    background: "#22c55e",
+    color: "white",
+    fontWeight: "800",
+    cursor: "pointer",
   },
 
   stats: {
     display: "flex",
-    justifyContent:
-      "center",
+    justifyContent: "center",
     gap: "14px",
-    flexWrap:
-      "wrap",
+    flexWrap: "wrap",
   },
 
   statBox: {
-    minWidth:
-      "140px",
-    padding:
-      "14px",
-    borderRadius:
-      "14px",
-    background:
-      "rgba(255,255,255,0.04)",
+    minWidth: "140px",
+    padding: "14px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.04)",
   },
 
-  section: {
-    padding:
-      "20px 0 40px",
-  },
+  section: { padding: "20px 0 40px" },
 
   sectionTitle: {
-    fontSize:
-      "28px",
-    fontWeight:
-      "800",
-    textAlign:
-      "center",
-    marginBottom:
-      "22px",
+    fontSize: "28px",
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: "22px",
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit,minmax(220px,1fr))",
+    gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
     gap: "16px",
   },
 
-  card: {
-    padding:
-      "20px",
-    borderRadius:
-      "18px",
+  card: { padding: "20px", borderRadius: "18px" },
+
+  rule: { marginBottom: "10px", lineHeight: "1.6" },
+
+  // Agent section
+  agentCard: {
+    padding: "24px",
+    borderRadius: "18px",
   },
 
-  rule: {
-    marginBottom:
-      "10px",
-    lineHeight:
-      "1.6",
+  agentIntro: {
+    fontSize: "15px",
+    lineHeight: "1.7",
+    marginBottom: "20px",
+    margin: "0 0 20px",
+  },
+
+  agentRules: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    marginBottom: "22px",
+  },
+
+  agentRule: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "12px",
+    fontSize: "14px",
+    lineHeight: "1.6",
+  },
+
+  agentIcon: { fontSize: "18px", flexShrink: 0, marginTop: "1px" },
+
+  agentBtns: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+  },
+
+  agentContactBtn: {
+    padding: "12px 18px",
+    border: "none",
+    borderRadius: "12px",
+    background: "#22c55e",
+    color: "white",
+    fontWeight: "800",
+    cursor: "pointer",
+    fontSize: "14px",
+  },
+
+  agentShopBtn: {
+    padding: "12px 18px",
+    border: "1px solid rgba(56,189,248,0.4)",
+    borderRadius: "12px",
+    background: "transparent",
+    color: "#38bdf8",
+    fontWeight: "800",
+    cursor: "pointer",
+    fontSize: "14px",
   },
 
   cta: {
-    textAlign:
-      "center",
-    padding:
-      "70px 20px",
-    borderRadius:
-      "22px",
-    marginTop:
-      "20px",
+    textAlign: "center",
+    padding: "70px 20px",
+    borderRadius: "22px",
+    marginTop: "20px",
   },
 
   ctaBtn: {
-    marginTop:
-      "14px",
-    padding:
-      "12px 20px",
+    marginTop: "14px",
+    padding: "12px 20px",
     border: "none",
-    borderRadius:
-      "12px",
-    cursor:
-      "pointer",
-    fontWeight:
-      "800",
+    borderRadius: "12px",
+    cursor: "pointer",
+    fontWeight: "800",
   },
 
   footer: {
-    marginTop:
-      "45px",
-    padding:
-      "30px 0",
-    borderTop:
-      "1px solid rgba(255,255,255,0.06)",
+    marginTop: "45px",
+    padding: "30px 0",
+    borderTop: "1px solid rgba(255,255,255,0.06)",
   },
 
   footerGrid: {
     display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit,minmax(220px,1fr))",
+    gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
     gap: "20px",
   },
 
-  footerTitle: {
-    marginBottom:
-      "10px",
-    fontWeight:
-      "800",
-  },
+  footerTitle: { marginBottom: "10px", fontWeight: "800" },
 
-  link: {
-    cursor:
-      "pointer",
-    color:
-      "#38bdf8",
-    marginBottom:
-      "8px",
-  },
+  link: { cursor: "pointer", color: "#38bdf8", marginBottom: "8px" },
 
-  copy: {
-    marginTop:
-      "25px",
-    textAlign:
-      "center",
-    fontSize:
-      "14px",
-  },
+  copy: { marginTop: "25px", textAlign: "center", fontSize: "14px" },
 
   overlay: {
-    position:
-      "fixed",
+    position: "fixed",
     inset: 0,
-    background:
-      "rgba(0,0,0,0.55)",
+    background: "rgba(0,0,0,0.55)",
     zIndex: 1000,
   },
 
   modal: {
-    position:
-      "fixed",
+    position: "fixed",
     left: "50%",
     top: "50%",
-    transform:
-      "translate(-50%,-50%)",
+    transform: "translate(-50%,-50%)",
     width: "92%",
-    maxWidth:
-      "420px",
-    background:
-      "#0f172a",
-    padding:
-      "22px",
-    borderRadius:
-      "20px",
+    maxWidth: "420px",
+    background: "#0f172a",
+    padding: "22px",
+    borderRadius: "20px",
     zIndex: 1200,
   },
 
   helpCard: {
-    padding:
-      "14px",
-    borderRadius:
-      "14px",
-    marginTop:
-      "10px",
-    background:
-      "rgba(255,255,255,0.04)",
-    cursor:
-      "pointer",
+    padding: "14px",
+    borderRadius: "14px",
+    marginTop: "10px",
+    background: "rgba(255,255,255,0.04)",
+    cursor: "pointer",
   },
 
   closeBtn: {
     width: "100%",
-    marginTop:
-      "14px",
-    padding:
-      "12px",
+    marginTop: "14px",
+    padding: "12px",
     border: "none",
-    borderRadius:
-      "14px",
-    fontWeight:
-      "800",
-    cursor:
-      "pointer",
-    background:
-      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
+    borderRadius: "14px",
+    fontWeight: "800",
+    cursor: "pointer",
+    background: "linear-gradient(135deg,#38bdf8,#0ea5e9)",
   },
 };
