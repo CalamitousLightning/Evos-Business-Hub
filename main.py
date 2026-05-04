@@ -923,17 +923,20 @@ async def datamart_webhook(request: Request):
             else "processing"
         )
 
-        query = supabase.table("orders").update({
-            "status": final_status
-        })
-
+# ✅ FIX: Execute update inside each branch — no variable reassignment
         if order_id:
-            query = query.eq("datamart_order_id", order_id)
+            result = supabase.table("orders") \
+                .update({"status": final_status}) \
+                .eq("datamart_order_id", order_id) \
+                .execute()
+            print("DATAMART UPDATE BY ORDER ID:", result.data)
         else:
-            query = query.eq("datamart_ref", order_ref)
-
-        query.execute()
-
+            result = supabase.table("orders") \
+                .update({"status": final_status}) \
+                .eq("datamart_ref", order_ref) \
+                .execute()
+            print("DATAMART UPDATE BY REF:", result.data)
+ 
         return {"received": True}
 
     except HTTPException as e:
