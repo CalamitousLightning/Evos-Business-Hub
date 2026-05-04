@@ -54,6 +54,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 PAYSTACK_SECRET = os.getenv("PAYSTACK_SECRET_KEY")
 
 DATAMART_API_KEY = os.getenv("DATAMART_API_KEY")
+DATAMART_WEBHOOK_SECRET = os.getenv("DATAMART_WEBHOOK_SECRET")
 DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
 
 BUNDLES_GHANA_API_KEY = os.getenv("BUNDLES_GHANA_API_KEY")
@@ -68,6 +69,7 @@ required_envs = {
     "SUPABASE_KEY": SUPABASE_KEY,
     "PAYSTACK_SECRET_KEY": PAYSTACK_SECRET,
     "DATAMART_API_KEY": DATAMART_API_KEY,
+    "DATAMART_WEBHOOK_SECRET": DATAMART_WEBHOOK_SECRET,
     "BUNDLES_GHANA_API_KEY": BUNDLES_GHANA_API_KEY,
     "BUNDLES_GHANA_API_SECRET": BUNDLES_GHANA_API_SECRET,
 }
@@ -129,6 +131,9 @@ NETWORK_MAP = {
 # BUNDLES GHANA HELPER
 # =========================
 def call_bundles_ghana(path, method="GET", payload=None):
+    if not path or not isinstance(path, str):
+        raise Exception(f"Invalid Bundles Ghana path: {path}")
+
     try:
         res = requests.post(
             BUNDLES_GHANA_BASE,
@@ -140,6 +145,7 @@ def call_bundles_ghana(path, method="GET", payload=None):
             timeout=REQUEST_TIMEOUT
         )
 
+        print("CALLING PATH:", path)  # 👈 ADD THIS
         print("BG PROXY STATUS:", res.status_code)
         print("BG PROXY BODY:", res.text[:200])
 
