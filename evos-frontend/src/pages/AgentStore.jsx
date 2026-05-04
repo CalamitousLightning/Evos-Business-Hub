@@ -2,13 +2,36 @@ import { useEffect, useState } from "react";
 
 const API = "https://api.evosdata.xyz";
 
-const NETWORK_LOGOS = {
-  MTN: { color: "#FFD700", text: "#000" },
-  Vodafone: { color: "#e30613", text: "#fff" },
-  Telecel: { color: "#e30613", text: "#fff" },
-  AirtelTigo: { color: "#e4002b", text: "#fff" },
-  Airteltigo: { color: "#e4002b", text: "#fff" },
-};
+// Networks config — flip available to true when stock is back
+const NETWORKS = [
+  {
+    name: "MTN",
+    icon: "🟡",
+    style: {
+      background: "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))",
+      border: "1px solid rgba(255,193,7,0.3)",
+    },
+    available: true,
+  },
+  {
+    name: "Telecel (Vodafone)",
+    icon: "🔴",
+    style: {
+      background: "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))",
+      border: "1px solid rgba(239,68,68,0.3)",
+    },
+    available: false,
+  },
+  {
+    name: "AirtelTigo",
+    icon: "🔵",
+    style: {
+      background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))",
+      border: "1px solid rgba(59,130,246,0.3)",
+    },
+    available: false,
+  },
+];
 
 // =========================
 // STEP INDICATOR
@@ -25,13 +48,15 @@ function Steps({ step }) {
           <div key={i} style={s.stepItem}>
             <div style={{
               ...s.stepCircle,
-              background: done ? "#38bdf8" : active ? "#38bdf8" : "#1e293b",
+              background: done || active ? "#38bdf8" : "#1e293b",
               color: done || active ? "#000" : "#475569",
-              border: active ? "2px solid #38bdf8" : done ? "2px solid #38bdf8" : "2px solid #334155",
+              border: done || active ? "2px solid #38bdf8" : "2px solid #334155",
             }}>
               {done ? "✓" : num}
             </div>
-            <span style={{ ...s.stepLabel, color: active || done ? "#e5e7eb" : "#475569" }}>{label}</span>
+            <span style={{ ...s.stepLabel, color: active || done ? "#e5e7eb" : "#475569" }}>
+              {label}
+            </span>
             {i < 2 && <div style={{ ...s.stepLine, background: done ? "#38bdf8" : "#1e293b" }} />}
           </div>
         );
@@ -43,20 +68,26 @@ function Steps({ step }) {
 // =========================
 // STEP 1 — NETWORK SELECT
 // =========================
-function StepNetwork({ networks, onSelect }) {
+function StepNetwork({ onSelect }) {
   return (
     <div>
       <p style={s.stepHint}>Choose your network</p>
-      <div style={s.networkGrid}>
-        {networks.map((net, i) => {
-          const brand = NETWORK_LOGOS[net] || { color: "#334155", text: "#fff" };
-          return (
-            <div key={i} style={{ ...s.networkCard, background: brand.color }} onClick={() => onSelect(net)}>
-              <span style={{ ...s.networkName, color: brand.text }}>{net}</span>
-            </div>
-          );
-        })}
-      </div>
+      {NETWORKS.map((n) => (
+        <div
+          key={n.name}
+          style={{
+            ...s.networkOption,
+            ...n.style,
+            opacity: n.available ? 1 : 0.45,
+            cursor: n.available ? "pointer" : "not-allowed",
+          }}
+          onClick={() => n.available && onSelect(n.name)}
+        >
+          <span>{n.icon}</span>
+          <span style={s.networkName}>{n.name}</span>
+          {!n.available && <span style={s.outOfStock}>Out of Stock</span>}
+        </div>
+      ))}
     </div>
   );
 }
@@ -68,15 +99,18 @@ function StepBundle({ bundles, network, onSelect, onBack }) {
   return (
     <div>
       <button style={s.backBtn} onClick={onBack}>← Back</button>
-      <p style={s.stepHint}>Pick a bundle for <strong style={{ color: "#38bdf8" }}>{network}</strong></p>
-      <div style={s.bundleList}>
+      <p style={s.stepHint}>
+        Select bundle for <strong style={{ color: "#38bdf8" }}>{network}</strong>
+      </p>
+      {bundles.length === 0 && (
+        <p style={{ color: "#64748b", fontSize: 13 }}>No bundles available.</p>
+      )}
+      <div style={s.bundleGrid}>
         {bundles.map((item, i) => (
           <div key={i} style={s.bundleCard} onClick={() => onSelect(item)}>
-            <div style={s.bundleRow}>
-              <span style={s.bundleName}>{item.bundle}</span>
-              <span style={s.bundlePrice}>GH₵ {Number(item.final_price).toFixed(2)}</span>
-            </div>
-            <div style={s.bundleArrow}>Tap to select →</div>
+            <span style={s.bundleName}>{item.bundle}</span>
+            <span style={s.bundlePrice}>GH₵ {Number(item.final_price).toFixed(2)}</span>
+            <div style={s.bundleArrow}>Tap →</div>
           </div>
         ))}
       </div>
@@ -85,20 +119,40 @@ function StepBundle({ bundles, network, onSelect, onBack }) {
 }
 
 // =========================
-// STEP 3 — PHONE + CONFIRM
+// STEP 3 — CHECKOUT
 // =========================
 function StepCheckout({ selected, onBack, onConfirm, processing }) {
   const [phone, setPhone] = useState("");
+  const [confirmPhone, setConfirmPhone] = useState("");
   const [accepted, setAccepted] = useState(false);
+  const [error, setError] = useState("");
 
-  const canPay = phone.trim().length >= 9 && accepted && !processing;
+  const validPhone = (num) => /^0\d{9}$/.test(num);
+
+  const handlePay = () => {
+    setError("");
+    if (!validPhone(phone)) {
+      setError("Phone must be 10 digits and start with 0");
+      return;
+    }
+    if (phone !== confirmPhone) {
+      setError("Phone numbers do not match");
+      return;
+    }
+    if (!accepted) {
+      setError("You must confirm the refund policy");
+      return;
+    }
+    onConfirm(phone.trim());
+  };
+
+  const canPay = phone.length >= 10 && confirmPhone.length >= 10 && accepted && !processing;
 
   return (
     <div>
       <button style={s.backBtn} onClick={onBack}>← Back</button>
       <p style={s.stepHint}>Almost done — confirm your details</p>
 
-      {/* Order summary */}
       <div style={s.summary}>
         <div style={s.summaryRow}>
           <span style={s.summaryLabel}>Network</span>
@@ -116,35 +170,48 @@ function StepCheckout({ selected, onBack, onConfirm, processing }) {
         </div>
       </div>
 
-      {/* Phone */}
-      <label style={s.label}>Recipient Phone Number</label>
+      {error && <div style={s.errorBox}>{error}</div>}
+
       <input
         type="tel"
-        placeholder="e.g. 0244000000"
+        placeholder="Phone Number (e.g. 0244000000)"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
         style={s.input}
       />
 
-      {/* Disclaimer */}
-      <label style={s.checkRow}>
-        <input
-          type="checkbox"
-          checked={accepted}
-          onChange={(e) => setAccepted(e.target.checked)}
-          style={{ width: 17, height: 17, accentColor: "#38bdf8", flexShrink: 0, marginTop: 2 }}
-        />
-        <span style={s.checkText}>
-          I confirm this number is correct.{" "}
-          <strong style={{ color: "#f87171" }}>Wrong numbers will NOT be refunded.</strong>{" "}
-          I take full responsibility for the number entered.
-        </span>
-      </label>
+      <input
+        type="tel"
+        placeholder="Confirm Phone Number"
+        value={confirmPhone}
+        onChange={(e) => setConfirmPhone(e.target.value)}
+        style={s.input}
+      />
+
+      <div style={s.notice}>
+        <label style={s.checkWrap}>
+          <input
+            type="checkbox"
+            checked={accepted}
+            onChange={() => setAccepted(!accepted)}
+            style={{ accentColor: "#38bdf8", flexShrink: 0, marginTop: 2 }}
+          />
+          <span style={s.checkText}>
+            I confirm this number is correct.{" "}
+            <strong style={{ color: "#f87171" }}>Wrong numbers will NOT be refunded.</strong>{" "}
+            I take full responsibility for the number entered.
+          </span>
+        </label>
+      </div>
 
       <button
-        onClick={() => onConfirm(phone.trim())}
-        disabled={!canPay}
-        style={{ ...s.payBtn, opacity: canPay ? 1 : 0.4, cursor: canPay ? "pointer" : "not-allowed" }}
+        onClick={handlePay}
+        disabled={!canPay || processing}
+        style={{
+          ...s.payBtn,
+          opacity: canPay && !processing ? 1 : 0.4,
+          cursor: canPay && !processing ? "pointer" : "not-allowed",
+        }}
       >
         {processing ? "Processing..." : `Pay GH₵ ${Number(selected.final_price).toFixed(2)} →`}
       </button>
@@ -189,7 +256,7 @@ export default function AgentStore({ setPage }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           agent_id: store.agent_id,
-          phone: phone,
+          phone_number: phone,
           network: selected.network,
           bundle: selected.bundle,
         }),
@@ -208,18 +275,15 @@ export default function AgentStore({ setPage }) {
     }
   };
 
-  if (loading) return <p style={{ padding: 20 }}>Loading store...</p>;
-  if (!store) return <p style={{ padding: 20 }}>Store not found</p>;
+  if (loading) return <p style={{ padding: 20, color: "#e5e7eb" }}>Loading store...</p>;
+  if (!store) return <p style={{ padding: 20, color: "#e5e7eb" }}>Store not found</p>;
 
-  // Unique networks from prices
-  const networks = [...new Set((store.prices || []).map((p) => p.network))];
   const bundlesForNetwork = (store.prices || []).filter((p) => p.network === network);
 
   return (
     <div style={s.wrap}>
-      {/* Header */}
       <div style={s.header}>
-        <h1 style={s.title}>{store.store_name || "Agent Store"}</h1>
+        <h1 style={s.title}>{store.store_name || store.agent_name || "Agent Store"}</h1>
         <p style={s.sub}>Fast Data Purchase • Powered by EVOS HUB</p>
       </div>
 
@@ -227,12 +291,8 @@ export default function AgentStore({ setPage }) {
 
       <div style={s.card}>
         {step === 1 && (
-          <StepNetwork
-            networks={networks}
-            onSelect={(net) => { setNetwork(net); setStep(2); }}
-          />
+          <StepNetwork onSelect={(net) => { setNetwork(net); setStep(2); }} />
         )}
-
         {step === 2 && (
           <StepBundle
             bundles={bundlesForNetwork}
@@ -241,7 +301,6 @@ export default function AgentStore({ setPage }) {
             onBack={() => setStep(1)}
           />
         )}
-
         {step === 3 && (
           <StepCheckout
             selected={selected}
@@ -276,132 +335,126 @@ const s = {
   title: { fontSize: 24, fontWeight: 900, margin: "0 0 4px" },
   sub: { color: "#64748b", fontSize: 13, margin: 0 },
 
-  // Steps
   stepsRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
-    gap: 0,
   },
-  stepItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-  },
+  stepItem: { display: "flex", alignItems: "center", gap: 6 },
   stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: "50%",
+    width: 28, height: 28, borderRadius: "50%",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: 12, fontWeight: 700,
+  },
+  stepLabel: { fontSize: 11, letterSpacing: "0.04em" },
+  stepLine: { width: 28, height: 2, margin: "0 6px" },
+
+  card: {
+    background: "rgba(15, 23, 42, 0.88)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    borderRadius: 18,
+    padding: "22px 18px",
+    border: "1px solid rgba(255,255,255,0.06)",
+    boxShadow: "0 25px 60px rgba(0,0,0,0.45)",
+  },
+  stepHint: { fontSize: 13, color: "#94a3b8", marginBottom: 14, marginTop: 0 },
+
+  networkOption: {
+    padding: "16px",
+    marginBottom: "12px",
+    borderRadius: "14px",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    fontSize: 12,
+    gap: "10px",
     fontWeight: 700,
   },
-  stepLabel: {
+  networkName: { fontSize: 15, fontWeight: 700, color: "#e5e7eb" },
+  outOfStock: {
+    marginLeft: "auto",
+    color: "#ef4444",
     fontSize: 11,
-    letterSpacing: "0.04em",
-  },
-  stepLine: {
-    width: 28,
-    height: 2,
-    margin: "0 6px",
+    fontWeight: 800,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
   },
 
-  // Card container
-  card: {
-    background: "#0f172a",
-    borderRadius: 16,
-    padding: "20px 16px",
-    border: "1px solid rgba(255,255,255,0.07)",
+  backBtn: {
+    background: "none", border: "none",
+    color: "#38bdf8", fontSize: 13,
+    cursor: "pointer", padding: 0, marginBottom: 10,
   },
-  stepHint: {
-    fontSize: 13,
-    color: "#94a3b8",
-    marginBottom: 14,
-    marginTop: 0,
-  },
-
-  // Network
-  networkGrid: {
+  bundleGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gap: 12,
+    gap: 10,
   },
-  networkCard: {
-    borderRadius: 14,
-    padding: "22px 12px",
-    textAlign: "center",
-    cursor: "pointer",
-    transition: "transform 0.1s",
-  },
-  networkName: {
-    fontWeight: 900,
-    fontSize: 16,
-    letterSpacing: "0.02em",
-  },
-
-  // Bundle
-  backBtn: {
-    background: "none",
-    border: "none",
-    color: "#38bdf8",
-    fontSize: 13,
-    cursor: "pointer",
-    padding: 0,
-    marginBottom: 10,
-  },
-  bundleList: { display: "flex", flexDirection: "column", gap: 10 },
   bundleCard: {
-    background: "#020617",
+    background: "rgba(2,6,23,0.65)",
     border: "1px solid rgba(255,255,255,0.07)",
     borderRadius: 12,
-    padding: "12px 14px",
+    padding: "14px 12px",
     cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
   },
-  bundleRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  bundleName: { fontWeight: 600, fontSize: 14, color: "#e5e7eb" },
-  bundlePrice: { fontWeight: 800, fontSize: 15, color: "#38bdf8" },
-  bundleArrow: { fontSize: 11, color: "#38bdf8", opacity: 0.6, marginTop: 4 },
+  bundleName: { fontWeight: 700, fontSize: 13, color: "#e5e7eb" },
+  bundlePrice: { fontWeight: 800, fontSize: 16, color: "#38bdf8" },
+  bundleArrow: { fontSize: 10, color: "#38bdf8", opacity: 0.6, marginTop: 2 },
 
-  // Checkout
   summary: {
-    background: "#020617",
+    background: "rgba(2,6,23,0.65)",
     borderRadius: 12,
     padding: "4px 14px",
-    marginBottom: 18,
+    marginBottom: 16,
     border: "1px solid rgba(255,255,255,0.06)",
   },
   summaryRow: {
-    display: "flex",
-    justifyContent: "space-between",
+    display: "flex", justifyContent: "space-between",
     padding: "10px 0",
     borderBottom: "1px solid rgba(255,255,255,0.06)",
   },
   summaryLabel: { fontSize: 13, color: "#64748b" },
   summaryVal: { fontSize: 14, fontWeight: 600, color: "#e5e7eb" },
-  label: { display: "block", fontSize: 13, color: "#94a3b8", marginBottom: 6 },
+
+  errorBox: {
+    background: "rgba(127,29,29,0.8)",
+    color: "#fff",
+    padding: "10px 14px",
+    borderRadius: 10,
+    fontSize: 13,
+    marginBottom: 12,
+    border: "1px solid rgba(255,255,255,0.08)",
+  },
   input: {
     width: "100%",
-    padding: "12px 14px",
+    padding: "13px 14px",
     borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.1)",
-    background: "#020617",
-    color: "white",
-    fontSize: 15,
-    marginBottom: 16,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(2,6,23,0.75)",
+    color: "#fff",
+    fontSize: 14,
+    marginBottom: 12,
     boxSizing: "border-box",
     outline: "none",
   },
-  checkRow: {
+  notice: {
+    background: "rgba(245,158,11,0.08)",
+    border: "1px solid rgba(245,158,11,0.25)",
+    padding: "12px",
+    borderRadius: 12,
+    marginBottom: 14,
+  },
+  checkWrap: {
     display: "flex",
-    alignItems: "flex-start",
     gap: 10,
-    marginBottom: 20,
+    alignItems: "flex-start",
     cursor: "pointer",
   },
   checkText: { fontSize: 13, color: "#94a3b8", lineHeight: 1.55 },
+
   payBtn: {
     width: "100%",
     padding: 14,
@@ -412,7 +465,6 @@ const s = {
     fontWeight: 900,
     fontSize: 15,
   },
-
   trackBtn: {
     marginTop: 14,
     width: "100%",
