@@ -130,8 +130,8 @@ NETWORK_MAP = {
 # =========================
 def call_bundles_ghana(endpoint: str, method: str = "GET", body: dict = None):
     headers = {
-        "X-API-Key": BUNDLES_GHANA_API_KEY,
-        "X-API-Secret": BUNDLES_GHANA_API_SECRET,
+        "X-API-KEY": BUNDLES_GHANA_API_KEY,
+        "X-API-SECRET": BUNDLES_GHANA_API_SECRET,
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
@@ -141,6 +141,11 @@ def call_bundles_ghana(endpoint: str, method: str = "GET", body: dict = None):
             res = requests.post(url, headers=headers, json=body, timeout=REQUEST_TIMEOUT)
         else:
             res = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+        print("BG STATUS:", res.status_code)
+        print("BG HEADERS:", dict(res.headers))
+        print("BG BODY:", res.text[:500])
+        if not res.text.strip():
+            return {"success": False, "error": "Empty response from Bundles Ghana"}
         return res.json()
     except Exception as e:
         print("BUNDLES GHANA REQUEST ERROR:", str(e))
