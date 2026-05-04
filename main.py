@@ -58,7 +58,7 @@ DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
 
 BUNDLES_GHANA_API_KEY = os.getenv("BUNDLES_GHANA_API_KEY")
 BUNDLES_GHANA_API_SECRET = os.getenv("BUNDLES_GHANA_API_SECRET")
-BUNDLES_GHANA_BASE = "https://bundlesghana.store/api/v1"
+BUNDLES_GHANA_BASE = "https://evosdata.xyz/.netlify/functions/bundlesProxy"
 
 # =========================
 # SAFETY CHECK (PRODUCTION SAFE)
@@ -128,28 +128,26 @@ NETWORK_MAP = {
 # =========================
 # BUNDLES GHANA HELPER
 # =========================
-def call_bundles_ghana(endpoint: str, method: str = "GET", body: dict = None):
-    headers = {
-        "X-API-KEY": BUNDLES_GHANA_API_KEY,
-        "X-API-SECRET": BUNDLES_GHANA_API_SECRET,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    url = f"{BUNDLES_GHANA_BASE}{endpoint}"
+def call_bundles_ghana(path, method="GET", payload=None):
     try:
-        if method == "POST":
-            res = requests.post(url, headers=headers, json=body, timeout=REQUEST_TIMEOUT)
-        else:
-            res = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
-        print("BG STATUS:", res.status_code)
-        print("BG HEADERS:", dict(res.headers))
-        print("BG BODY:", res.text[:500])
-        if not res.text.strip():
-            return {"success": False, "error": "Empty response from Bundles Ghana"}
+        res = requests.post(
+            BUNDLES_GHANA_BASE,
+            json={
+                "path": path,
+                "method": method,
+                "body": payload
+            },
+            timeout=REQUEST_TIMEOUT
+        )
+
+        print("BG PROXY STATUS:", res.status_code)
+        print("BG PROXY BODY:", res.text[:200])
+
         return res.json()
+
     except Exception as e:
-        print("BUNDLES GHANA REQUEST ERROR:", str(e))
-        return {"success": False, "error": str(e)}
+        print("BUNDLES GHANA PROXY ERROR:", str(e))
+        raise Exception(f"Bundles Ghana proxy failed: {str(e)}")
 
 # =========================
 # PASSWORD SECURITY
