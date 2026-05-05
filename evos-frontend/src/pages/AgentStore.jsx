@@ -278,7 +278,11 @@ export default function AgentStore({ setPage }) {
   if (loading) return <p style={{ padding: 20, color: "#e5e7eb" }}>Loading store...</p>;
   if (!store) return <p style={{ padding: 20, color: "#e5e7eb" }}>Store not found</p>;
 
-  const bundlesForNetwork = (store.prices || []).filter((p) => p.network === network);
+  // Match network — handle "Telecel (Vodafone)" → "Telecel"
+  const networkKey = network ? network.replace(" (Vodafone)", "") : null;
+  const bundlesForNetwork = (store.prices || []).filter(
+    (p) => p.network === networkKey || p.network === network
+  );
 
   return (
     <div style={s.wrap}>
@@ -297,7 +301,7 @@ export default function AgentStore({ setPage }) {
           <StepBundle
             bundles={bundlesForNetwork}
             network={network}
-            onSelect={(item) => { setSelected(item); setStep(3); }}
+            onSelect={(item) => { setSelected({ ...item, network: item.network || network }); setStep(3); }}
             onBack={() => setStep(1)}
           />
         )}
