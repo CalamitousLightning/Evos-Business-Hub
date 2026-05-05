@@ -49,8 +49,7 @@ export default function Shop() {
   // OUT OF STOCK
   // ======================
   const OUT_OF_STOCK = [
-    "TELECEL",
-    "AIRTELTIGO",
+    "TELECEL",    
   ];
 
   const isOutOfStock = (name) =>
