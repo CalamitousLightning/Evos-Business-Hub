@@ -54,7 +54,6 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 PAYSTACK_SECRET = os.getenv("PAYSTACK_SECRET_KEY")
 
 DATAMART_API_KEY = os.getenv("DATAMART_API_KEY")
-DATAMART_WEBHOOK_SECRET = os.getenv("DATAMART_WEBHOOK_SECRET")
 DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
 
 BUNDLES_GHANA_API_KEY = os.getenv("BUNDLES_GHANA_API_KEY")
@@ -69,9 +68,7 @@ required_envs = {
     "SUPABASE_KEY": SUPABASE_KEY,
     "PAYSTACK_SECRET_KEY": PAYSTACK_SECRET,
     "DATAMART_API_KEY": DATAMART_API_KEY,
-    "DATAMART_WEBHOOK_SECRET": DATAMART_WEBHOOK_SECRET,
-    "BUNDLES_GHANA_API_KEY": BUNDLES_GHANA_API_KEY,
-    "BUNDLES_GHANA_API_SECRET": BUNDLES_GHANA_API_SECRET,
+
 }
 
 missing = [k for k, v in required_envs.items() if not v]
@@ -130,30 +127,31 @@ NETWORK_MAP = {
 # =========================
 # BUNDLES GHANA HELPER
 # =========================
-def call_bundles_ghana(path, method="GET", payload=None):
-    if not path or not isinstance(path, str):
-        raise Exception(f"Invalid Bundles Ghana path: {path}")
+def call_bundles_ghana(endpoint: str, method: str = "GET", body: dict = None):
+    if not endpoint or not isinstance(endpoint, str):
+        raise Exception(f"Invalid Bundles Ghana endpoint: {endpoint}")
 
     try:
+        print("CALLING BG PATH:", endpoint, "METHOD:", method)
+
         res = requests.post(
             BUNDLES_GHANA_BASE,
             json={
-                "path": path,
+                "path": endpoint,
                 "method": method,
-                "body": payload
+                "body": body
             },
             timeout=REQUEST_TIMEOUT
         )
 
-        print("CALLING PATH:", path)  # 👈 ADD THIS
         print("BG PROXY STATUS:", res.status_code)
-        print("BG PROXY BODY:", res.text[:200])
+        print("BG PROXY BODY:", res.text[:300])
 
         return res.json()
 
     except Exception as e:
         print("BUNDLES GHANA PROXY ERROR:", str(e))
-        raise Exception(f"Bundles Ghana proxy failed: {str(e)}")
+        return {"success": False, "error": str(e)}
 
 # =========================
 # PASSWORD SECURITY
@@ -923,20 +921,17 @@ async def datamart_webhook(request: Request):
             else "processing"
         )
 
-# ✅ FIX: Execute update inside each branch — no variable reassignment
+        query = supabase.table("orders").update({
+            "status": final_status
+        })
+
         if order_id:
-            result = supabase.table("orders") \
-                .update({"status": final_status}) \
-                .eq("datamart_order_id", order_id) \
-                .execute()
-            print("DATAMART UPDATE BY ORDER ID:", result.data)
+            query = query.eq("datamart_order_id", order_id)
         else:
-            result = supabase.table("orders") \
-                .update({"status": final_status}) \
-                .eq("datamart_ref", order_ref) \
-                .execute()
-            print("DATAMART UPDATE BY REF:", result.data)
- 
+            query = query.eq("datamart_ref", order_ref)
+
+        query.execute()
+
         return {"received": True}
 
     except HTTPException as e:
