@@ -2,23 +2,43 @@ import { useEffect, useState } from "react";
 
 const API = "https://api.evosdata.xyz";
 
+const OUT_OF_STOCK = ["Telecel (Vodafone)", "AirtelTigo"];
+
+const NETWORKS = [
+  { name: "MTN", icon: "🟡", style: styles_network("mtn") },
+  { name: "Telecel (Vodafone)", icon: "🔴", style: styles_network("telecel") },
+  { name: "AirtelTigo", icon: "🔵", style: styles_network("airtel") },
+];
+
+function styles_network(n) {
+  if (n === "mtn") return {
+    background: "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))",
+    border: "1px solid rgba(255,193,7,0.3)",
+  };
+  if (n === "telecel") return {
+    background: "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))",
+    border: "1px solid rgba(239,68,68,0.3)",
+  };
+  return {
+    background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))",
+    border: "1px solid rgba(59,130,246,0.3)",
+  };
+}
+
 export default function AgentStore({ setPage }) {
+  const [loading, setLoading] = useState(true);
+  const [store, setStore] = useState(null);
   const [step, setStep] = useState(1);
+
   const [network, setNetwork] = useState("");
   const [bundle, setBundle] = useState("");
-  const [bundleItem, setBundleItem] = useState(null);
+  const [finalPrice, setFinalPrice] = useState(0);
   const [phone, setPhone] = useState("");
   const [confirmPhone, setConfirmPhone] = useState("");
   const [agree, setAgree] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [store, setStore] = useState(null);
-  const [prices, setPrices] = useState([]);
 
-  // =========================
-  // LOAD STORE
-  // =========================
   useEffect(() => {
     const agentId = window.location.pathname.split("/store/")[1];
     if (!agentId) { setLoading(false); return; }
@@ -27,10 +47,7 @@ export default function AgentStore({ setPage }) {
       try {
         const res = await fetch(`${API}/store/${agentId}`);
         const data = await res.json();
-        if (data.status === "success") {
-          setStore(data);
-          setPrices(data.prices || []);
-        }
+        setStore(data);
       } catch (e) {
         console.log(e);
       } finally {
@@ -40,27 +57,14 @@ export default function AgentStore({ setPage }) {
     load();
   }, []);
 
-  // =========================
-  // OUT OF STOCK
-  // =========================
-  const OUT_OF_STOCK = ["Telecel (Vodafone)", "AirtelTigo"];
   const isOutOfStock = (name) => OUT_OF_STOCK.includes(name);
 
-  // Bundles for selected network
-  // "Telecel (Vodafone)" → match "Telecel" in DB
+  // Map display name → actual network key in store.prices
   const networkKey = network.replace(" (Vodafone)", "");
-  const bundles = prices.filter(
-    (p) => p.network === networkKey || p.network === network
-  );
+  const bundles = (store?.prices || []).filter((p) => p.network === networkKey);
 
-  // =========================
-  // VALIDATE
-  // =========================
   const validPhone = (num) => /^0\d{9}$/.test(num);
 
-  // =========================
-  // PLACE ORDER
-  // =========================
   const handleBuy = async () => {
     setError("");
 
@@ -78,7 +82,6 @@ export default function AgentStore({ setPage }) {
     }
 
     setProcessing(true);
-
     try {
       const res = await fetch(`${API}/store/order`, {
         method: "POST",
@@ -90,34 +93,27 @@ export default function AgentStore({ setPage }) {
           bundle: bundle,
         }),
       });
-
       const data = await res.json();
 
       if (data.status === "created" && data.payment_url) {
         window.location.href = data.payment_url;
         return;
       }
-
       setError(data.message || "Order failed");
     } catch (e) {
-      setError("Network error. Try again.");
+      setError("Network error. Please try again.");
     } finally {
       setProcessing(false);
     }
   };
 
-  // =========================
-  // LOADING / ERROR STATES
-  // =========================
   if (loading) return <p style={{ padding: 20, color: "#e5e7eb" }}>Loading store...</p>;
   if (!store) return <p style={{ padding: 20, color: "#e5e7eb" }}>Store not found</p>;
 
-  // =========================
-  // UI
-  // =========================
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>{store.agent_name || store.store_name || "Agent Store"}</h2>
+
+      <h2 style={styles.title}>{store.store_name || store.agent_name || "Agent Store"}</h2>
       <p style={styles.subTitle}>Fast Data Purchase • Powered by EVOS HUB</p>
 
       {error && <div style={styles.error}>{error}</div>}
@@ -129,11 +125,7 @@ export default function AgentStore({ setPage }) {
           <div style={styles.box}>
             <h3 style={styles.step}>Select Network</h3>
 
-            {[
-              { name: "MTN", icon: "🟡", style: styles.optionMTN },
-              { name: "Telecel (Vodafone)", icon: "🔴", style: styles.optionTELECEL },
-              { name: "AirtelTigo", icon: "🔵", style: styles.optionAIRTEL },
-            ].map((n) => {
+            {NETWORKS.map((n) => {
               const disabled = isOutOfStock(n.name);
               return (
                 <div
@@ -167,7 +159,7 @@ export default function AgentStore({ setPage }) {
         {step === 2 && (
           <div style={styles.box}>
             <button style={styles.back} onClick={() => setStep(1)}>← Back</button>
-            <h3 style={styles.step}>Select Bundle</h3>
+            <h3 style={styles.step}>Select Bundle — <span style={{ color: "#38bdf8" }}>{network}</span></h3>
 
             {bundles.length === 0 && (
               <p style={{ color: "#64748b", fontSize: 13 }}>No bundles available.</p>
@@ -180,7 +172,7 @@ export default function AgentStore({ setPage }) {
                   style={styles.bundleCard}
                   onClick={() => {
                     setBundle(b.bundle);
-                    setBundleItem(b);
+                    setFinalPrice(b.final_price);
                     setStep(3);
                   }}
                 >
@@ -200,10 +192,10 @@ export default function AgentStore({ setPage }) {
             <h3 style={styles.step}>Complete Order</h3>
 
             <div style={styles.summary}>
-              <p style={{ margin: "0 0 4px", color: "#94a3b8", fontSize: 13 }}>{networkKey}</p>
-              <h3 style={{ margin: 0, color: "#e5e7eb" }}>{bundle}</h3>
-              <p style={{ margin: "4px 0 0", color: "#38bdf8", fontWeight: 800 }}>
-                GH₵ {bundleItem ? Number(bundleItem.final_price).toFixed(2) : ""}
+              <p style={{ margin: "0 0 4px", color: "#94a3b8", fontSize: 13 }}>{network}</p>
+              <h3 style={{ margin: "0 0 4px", color: "#e5e7eb" }}>{bundle}</h3>
+              <p style={{ margin: 0, color: "#38bdf8", fontWeight: 800, fontSize: 18 }}>
+                GH₵ {Number(finalPrice).toFixed(2)}
               </p>
             </div>
 
@@ -229,6 +221,7 @@ export default function AgentStore({ setPage }) {
                   type="checkbox"
                   checked={agree}
                   onChange={() => setAgree(!agree)}
+                  style={{ accentColor: "#38bdf8", flexShrink: 0, marginTop: 2 }}
                 />
                 <span style={styles.checkText}>
                   I confirm this number is correct.{" "}
@@ -243,18 +236,16 @@ export default function AgentStore({ setPage }) {
               disabled={processing}
               style={{ ...styles.buyBtn, opacity: processing ? 0.6 : 1 }}
             >
-              {processing ? "Processing..." : `Pay GH₵ ${bundleItem ? Number(bundleItem.final_price).toFixed(2) : ""} →`}
+              {processing ? "Processing..." : `Pay GH₵ ${Number(finalPrice).toFixed(2)} →`}
             </button>
           </div>
         )}
+
       </div>
     </div>
   );
 }
 
-// =========================
-// STYLES
-// =========================
 const styles = {
   container: {
     padding: "24px",
@@ -264,13 +255,13 @@ const styles = {
   },
   title: {
     marginBottom: "6px",
-    fontSize: "22px",
+    fontSize: "24px",
     fontWeight: "900",
   },
   subTitle: {
     color: "#94a3b8",
     marginBottom: "22px",
-    fontSize: "13px",
+    fontSize: "14px",
   },
   wrapper: {
     maxWidth: "440px",
@@ -290,7 +281,7 @@ const styles = {
     marginBottom: "16px",
     color: "#38bdf8",
     fontWeight: "700",
-    fontSize: "13px",
+    fontSize: "14px",
     textTransform: "uppercase",
     letterSpacing: "0.6px",
   },
@@ -303,28 +294,13 @@ const styles = {
     alignItems: "center",
     gap: "10px",
     fontWeight: "700",
-    fontSize: "15px",
     transition: "0.2s ease",
-  },
-  optionMTN: {
-    background: "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))",
-    border: "1px solid rgba(255,193,7,0.3)",
-  },
-  optionTELECEL: {
-    background: "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))",
-    border: "1px solid rgba(239,68,68,0.3)",
-  },
-  optionAIRTEL: {
-    background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))",
-    border: "1px solid rgba(59,130,246,0.3)",
   },
   stock: {
     marginLeft: "auto",
     color: "#ef4444",
-    fontSize: "11px",
+    fontSize: "12px",
     fontWeight: "800",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
   },
   bundleGrid: {
     display: "grid",
@@ -343,7 +319,7 @@ const styles = {
   },
   bundleName: { fontWeight: 700, fontSize: 13, color: "#e5e7eb" },
   bundlePrice: { fontWeight: 800, fontSize: 16, color: "#38bdf8" },
-  bundleArrow: { fontSize: 10, color: "#38bdf8", opacity: 0.6 },
+  bundleArrow: { fontSize: 10, color: "#38bdf8", opacity: 0.6, marginTop: 2 },
   summary: {
     background: "rgba(2, 6, 23, 0.65)",
     padding: "14px",
@@ -375,7 +351,7 @@ const styles = {
     display: "flex",
     gap: "10px",
     alignItems: "flex-start",
-    fontSize: "13px",
+    fontSize: "14px",
     lineHeight: "1.5",
     cursor: "pointer",
   },
@@ -401,17 +377,6 @@ const styles = {
     fontSize: "14px",
     padding: 0,
   },
-  error: {
-    background: "rgba(127, 29, 29, 0.8)",
-    color: "#ffffff",
-    padding: "12px",
-    borderRadius: "12px",
-    marginBottom: "14px",
-    border: "1px solid rgba(255,255,255,0.08)",
-    maxWidth: "440px",
-    marginInline: "auto",
-    textAlign: "left",
-  },
   trackBtn: {
     marginTop: "14px",
     width: "100%",
@@ -422,6 +387,15 @@ const styles = {
     border: "none",
     cursor: "pointer",
     fontSize: "14px",
-    textAlign: "center",
+  },
+  error: {
+    background: "rgba(127, 29, 29, 0.8)",
+    color: "#ffffff",
+    padding: "12px",
+    borderRadius: "12px",
+    marginBottom: "14px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    maxWidth: "440px",
+    marginInline: "auto",
   },
 };
