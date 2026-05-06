@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const API = "https://api.evosdata.xyz";
 
-const OUT_OF_STOCK = ["Telecel (Vodafone)", "AirtelTigo"];
+const OUT_OF_STOCK = [];
 
 const NETWORKS = [
   { name: "MTN", icon: "🟡", style: styles_network("mtn") },
