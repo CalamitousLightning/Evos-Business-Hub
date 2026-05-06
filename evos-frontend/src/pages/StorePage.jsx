@@ -2,19 +2,34 @@ import { useEffect, useState } from "react";
 
 const API = "https://api.evosdata.xyz";
 
-// Network display config — keys match exact names from base_prices table
-const NETWORK_CONFIG = {
-  MTN:         { icon: "🟡", style: { background: "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))", border: "1px solid rgba(255,193,7,0.3)" } },
-  Telecel:     { icon: "🔴", style: { background: "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))", border: "1px solid rgba(239,68,68,0.3)" } },
-  AirtelTigo:  { icon: "🔵", style: { background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))", border: "1px solid rgba(59,130,246,0.3)" } },
-};
+const OUT_OF_STOCK = [];  // flip to ["Telecel (Vodafone)", "AirtelTigo"] if needed
 
-// Display labels (what the user sees)
-const NETWORK_LABELS = {
-  MTN: "MTN",
-  Telecel: "Telecel (Vodafone)",
-  AirtelTigo: "AirtelTigo",
-};
+const NETWORKS = [
+  {
+    name: "MTN",
+    icon: "🟡",
+    style: {
+      background: "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))",
+      border: "1px solid rgba(255,193,7,0.3)",
+    },
+  },
+  {
+    name: "Telecel (Vodafone)",
+    icon: "🔴",
+    style: {
+      background: "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))",
+      border: "1px solid rgba(239,68,68,0.3)",
+    },
+  },
+  {
+    name: "AirtelTigo",
+    icon: "🔵",
+    style: {
+      background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))",
+      border: "1px solid rgba(59,130,246,0.3)",
+    },
+  },
+];
 
 export default function StorePage({ setPage }) {
   const agentId = window.location.pathname.split("/store/")[1];
@@ -57,13 +72,8 @@ export default function StorePage({ setPage }) {
   const isOutOfStock = (name) => OUT_OF_STOCK.includes(name);
 
   // Map display name → actual network key in store.prices
-  // Normalize selected network name to match base_prices table
-  const networkKey = network
-    .replace(" (Vodafone)", "")
-    .replace("Tigo", "Tigo");  // keep AirtelTigo as-is
-
-  // Exact match — network is already the exact key from store.prices
-  const bundles = (store?.prices || []).filter((p) => p.network === network);
+  const networkKey = network.replace(" (Vodafone)", "");
+  const bundles = (store?.prices || []).filter((p) => p.network === networkKey);
 
   const validPhone = (num) => /^0\d{9}$/.test(num);
 
@@ -127,24 +137,26 @@ export default function StorePage({ setPage }) {
           <div style={styles.box}>
             <h3 style={styles.step}>Select Network</h3>
 
-            {availableNetworks.map((netKey) => {
-              const config = NETWORK_CONFIG[netKey] || { icon: "📶", style: {} };
-              const label = NETWORK_LABELS[netKey] || netKey;
+            {NETWORKS.map((n) => {
+              const disabled = isOutOfStock(n.name);
               return (
                 <div
-                  key={netKey}
+                  key={n.name}
                   style={{
                     ...styles.option,
-                    ...config.style,
-                    cursor: "pointer",
+                    ...n.style,
+                    opacity: disabled ? 0.45 : 1,
+                    cursor: disabled ? "not-allowed" : "pointer",
                   }}
                   onClick={() => {
-                    setNetwork(netKey);
+                    if (disabled) return;
+                    setNetwork(n.name);
                     setStep(2);
                   }}
                 >
-                  <span>{config.icon}</span>
-                  {label}
+                  <span>{n.icon}</span>
+                  {n.name}
+                  {disabled && <span style={styles.stock}>Out of Stock</span>}
                 </div>
               );
             })}
@@ -160,7 +172,7 @@ export default function StorePage({ setPage }) {
           <div style={styles.box}>
             <button style={styles.back} onClick={() => setStep(1)}>← Back</button>
             <h3 style={styles.step}>
-              Select Bundle — <span style={{ color: "#38bdf8" }}>{NETWORK_LABELS[network] || network}</span>
+              Select Bundle — <span style={{ color: "#38bdf8" }}>{network}</span>
             </h3>
 
             {bundles.length === 0 && (
@@ -194,7 +206,7 @@ export default function StorePage({ setPage }) {
             <h3 style={styles.step}>Complete Order</h3>
 
             <div style={styles.summary}>
-              <p style={{ margin: "0 0 4px", color: "#94a3b8", fontSize: 13 }}>{NETWORK_LABELS[network] || network}</p>
+              <p style={{ margin: "0 0 4px", color: "#94a3b8", fontSize: 13 }}>{network}</p>
               <h3 style={{ margin: "0 0 4px", color: "#e5e7eb" }}>{bundle}</h3>
               <p style={{ margin: 0, color: "#38bdf8", fontWeight: 800, fontSize: 18 }}>
                 GH₵ {Number(finalPrice).toFixed(2)}
@@ -223,7 +235,7 @@ export default function StorePage({ setPage }) {
                   type="checkbox"
                   checked={agree}
                   onChange={() => setAgree(!agree)}
-                  style={{ marginRight: 10, accentColor: "#38bdf8", width: 16, height: 16, flexShrink: 0 }}
+                  style={{ accentColor: "#38bdf8", flexShrink: 0, marginTop: 2 }}
                 />
                 <span style={styles.checkText}>
                   I confirm this number is correct.{" "}
