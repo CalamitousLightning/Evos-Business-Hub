@@ -259,6 +259,7 @@ export default function App() {
         return (
           <StorePage
             setPage={navigate}
+            theme={theme}
           />
         );
 
