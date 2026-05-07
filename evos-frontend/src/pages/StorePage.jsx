@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 const API = "https://api.evosdata.xyz";
 
 const NETWORK_CONFIG = {
-  MTN:        { icon: "ðŸŸ¡", dark: "rgba(255,193,7,0.18)",   border: "rgba(255,193,7,0.5)"   },
-  Telecel:    { icon: "ðŸ”´", dark: "rgba(239,68,68,0.18)",   border: "rgba(239,68,68,0.5)"   },
-  AirtelTigo: { icon: "ðŸ”µ", dark: "rgba(99,102,241,0.18)",  border: "rgba(99,102,241,0.5)"  },
+  MTN:        { icon: "🟡", light: "#FFC107", dark: "rgba(255,193,7,0.15)", border: "rgba(255,193,7,0.4)" },
+  Telecel:    { icon: "🔴", light: "#ef4444", dark: "rgba(239,68,68,0.15)",  border: "rgba(239,68,68,0.4)"  },
+  AirtelTigo: { icon: "🔵", light: "#3b82f6", dark: "rgba(59,130,246,0.15)", border: "rgba(59,130,246,0.4)" },
 };
 
 const NETWORK_LABELS = {
