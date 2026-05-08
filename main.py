@@ -58,7 +58,7 @@ DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
 
 BUNDLES_GHANA_API_KEY = os.getenv("BUNDLES_GHANA_API_KEY")
 BUNDLES_GHANA_API_SECRET = os.getenv("BUNDLES_GHANA_API_SECRET")
-BUNDLES_GHANA_BASE = "https://bundlesghana.store/api/v1"
+BUNDLES_GHANA_BASE = "https://evosdata.xyz/.netlify/functions/bundlesProxy"
 
 # =========================
 # SAFETY CHECK (PRODUCTION SAFE)
@@ -68,8 +68,7 @@ required_envs = {
     "SUPABASE_KEY": SUPABASE_KEY,
     "PAYSTACK_SECRET_KEY": PAYSTACK_SECRET,
     "DATAMART_API_KEY": DATAMART_API_KEY,
-    "BUNDLES_GHANA_API_KEY": BUNDLES_GHANA_API_KEY,
-    "BUNDLES_GHANA_API_SECRET": BUNDLES_GHANA_API_SECRET,
+
 }
 
 missing = [k for k, v in required_envs.items() if not v]
@@ -129,44 +128,30 @@ NETWORK_MAP = {
 # BUNDLES GHANA HELPER
 # =========================
 def call_bundles_ghana(endpoint: str, method: str = "GET", body: dict = None):
-    headers = {
-        "X-API-KEY": BUNDLES_GHANA_API_KEY,
-        "X-API-SECRET": BUNDLES_GHANA_API_SECRET,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    url = f"{BUNDLES_GHANA_BASE}{endpoint}"
-    try:
-        if method == "POST":
-            res = requests.post(url, headers=headers, json=body, timeout=REQUEST_TIMEOUT)
-        else:
-            res = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
-        return res.json()
-    except Exception as e:
-        print("BUNDLES GHANA REQUEST ERROR:", str(e))
-        return {"success": False, "error": str(e)}
+    if not endpoint or not isinstance(endpoint, str):
+        raise Exception(f"Invalid Bundles Ghana endpoint: {endpoint}")
 
-# =========================
-# MOOLRE HELPER
-# =========================
-def call_moolre(endpoint: str, body: dict):
     try:
+        print("CALLING BG PATH:", endpoint, "METHOD:", method)
+
         res = requests.post(
-            f"{MOOLRE_BASE}/{endpoint}",
-            headers={
-                "X-API-USER": MOOLRE_USERNAME,
-                "X-API-KEY": MOOLRE_API_KEY,
-                "Content-Type": "application/json",
+            BUNDLES_GHANA_BASE,
+            json={
+                "path": endpoint,
+                "method": method,
+                "body": body
             },
-            json=body,
             timeout=REQUEST_TIMEOUT
         )
-        print(f"MOOLRE {endpoint} STATUS:", res.status_code)
-        print(f"MOOLRE {endpoint} BODY:", res.text[:300])
+
+        print("BG PROXY STATUS:", res.status_code)
+        print("BG PROXY BODY:", res.text[:300])
+
         return res.json()
+
     except Exception as e:
-        print("MOOLRE ERROR:", str(e))
-        return {"status": 0, "message": str(e)}
+        print("BUNDLES GHANA PROXY ERROR:", str(e))
+        return {"success": False, "error": str(e)}
 
 # =========================
 # PASSWORD SECURITY
@@ -1264,27 +1249,19 @@ async def agent_sales(agent_id: int):
 
 
 # =========================
-# AGENT WITHDRAW (AUTO via Moolre)
+# AGENT WITHDRAW
 # =========================
+
 
 @app.post("/agent/withdraw")
 async def request_withdrawal(payload: dict):
 
     agent_id = payload.get("agent_id")
     amount = payload.get("amount")
-    account_number = payload.get("account_number")  # mobile money number
-    bank_name = payload.get("bank_name")             # network: MTN, Telecel, AirtelTigo
-    account_name = payload.get("account_name")
 
     if not agent_id or not amount:
         return {"error": "Missing fields"}
 
-    if not account_number or not bank_name:
-        return {"error": "Mobile money number and network are required"}
-
-    # =========================
-    # CHECK WALLET
-    # =========================
     wallet = supabase.table("agent_wallets") \
         .select("balance") \
         .eq("agent_id", agent_id) \
@@ -1296,209 +1273,31 @@ async def request_withdrawal(payload: dict):
 
     balance = float(wallet.data[0]["balance"])
 
-    if float(amount) > balance:
+    if amount > balance:
         return {"error": "Insufficient balance"}
 
-    if float(amount) < 5:
-        return {"error": "Minimum withdrawal is GH₵5"}
+    if amount < 5:
+        return {"error": "Minimum withdrawal is 5"}
 
-    # =========================
-    # DEDUCT WALLET IMMEDIATELY
-    # =========================
-    new_balance = balance - float(amount)
+    # hold funds immediately
+    new_balance = balance - amount
 
     supabase.table("agent_wallets") \
         .update({"balance": new_balance}) \
         .eq("agent_id", agent_id) \
         .execute()
 
-    # =========================
-    # GET MOOLRE CHANNEL
-    # =========================
-    channel = MOOLRE_CHANNEL_MAP.get(bank_name, MOOLRE_CHANNEL_MAP.get(bank_name.upper()))
-
-    if not channel:
-        # Refund wallet — unknown network
-        supabase.table("agent_wallets") \
-            .update({"balance": balance}) \
-            .eq("agent_id", agent_id) \
-            .execute()
-        return {"error": f"Unsupported network: {bank_name}"}
-
-    # =========================
-    # UNIQUE EXTERNAL REF
-    # =========================
-    external_ref = f"EVOS-WD-{agent_id}-{uuid.uuid4().hex[:8].upper()}"
-
-    # =========================
-    # SAVE WITHDRAWAL RECORD (pending)
-    # =========================
-    wd = supabase.table("agent_withdrawals") \
+    supabase.table("agent_withdrawals") \
         .insert({
             "agent_id": agent_id,
-            "amount": float(amount),
-            "account_name": account_name,
-            "account_number": account_number,
-            "bank_name": bank_name,
-            "status": "processing",
-            "moolre_ref": external_ref,
+            "amount": amount,
+            "account_name": payload.get("account_name"),
+            "account_number": payload.get("account_number"),
+            "bank_name": payload.get("bank_name")
         }) \
         .execute()
 
-    if not wd.data:
-        # Refund wallet if DB insert failed
-        supabase.table("agent_wallets") \
-            .update({"balance": balance}) \
-            .eq("agent_id", agent_id) \
-            .execute()
-        return {"error": "Failed to create withdrawal record"}
-
-    withdrawal_id = wd.data[0]["id"]
-
-    # =========================
-    # INITIATE MOOLRE TRANSFER
-    # =========================
-    try:
-        moolre_res = call_moolre("transfer", {
-            "type": 1,
-            "channel": channel,
-            "currency": "GHS",
-            "amount": str(float(amount)),
-            "receiver": account_number,
-            "externalref": external_ref,
-            "reference": f"EVOS Agent Withdrawal #{withdrawal_id}",
-            "accountnumber": MOOLRE_ACCOUNT_NUMBER,
-        })
-
-        moolre_status = moolre_res.get("status")
-
-        if moolre_status == 1:
-            # Transfer initiated successfully
-            tx_data = moolre_res.get("data", {})
-            tx_status = tx_data if isinstance(tx_data, int) else tx_data.get("txstatus", 0)
-
-            final_status = "paid" if tx_status == 1 else "processing"
-
-            supabase.table("agent_withdrawals") \
-                .update({
-                    "status": final_status,
-                    "moolre_ref": external_ref,
-                }) \
-                .eq("id", withdrawal_id) \
-                .execute()
-
-            return {
-                "status": "success",
-                "message": "Transfer initiated successfully",
-                "withdrawal_id": withdrawal_id,
-                "moolre_ref": external_ref,
-                "transfer_status": final_status,
-            }
-
-        else:
-            # Moolre rejected — refund wallet
-            supabase.table("agent_wallets") \
-                .update({"balance": balance}) \
-                .eq("agent_id", agent_id) \
-                .execute()
-
-            supabase.table("agent_withdrawals") \
-                .update({"status": "failed"}) \
-                .eq("id", withdrawal_id) \
-                .execute()
-
-            error_msg = moolre_res.get("message", "Transfer failed")
-            if isinstance(error_msg, list):
-                error_msg = " ".join(error_msg)
-
-            return {"error": error_msg or "Moolre transfer failed"}
-
-    except Exception as e:
-        print("MOOLRE TRANSFER ERROR:", str(e))
-
-        # Refund wallet on exception
-        supabase.table("agent_wallets") \
-            .update({"balance": balance}) \
-            .eq("agent_id", agent_id) \
-            .execute()
-
-        supabase.table("agent_withdrawals") \
-            .update({"status": "failed"}) \
-            .eq("id", withdrawal_id) \
-            .execute()
-
-        return {"error": "Transfer service error. Funds have been refunded to your wallet."}
-
-
-# =========================
-# WITHDRAWAL STATUS CHECK
-# =========================
-@app.get("/agent/withdrawal/status/{withdrawal_id}")
-async def check_withdrawal_status(withdrawal_id: int):
-
-    try:
-        wd = supabase.table("agent_withdrawals") \
-            .select("*") \
-            .eq("id", withdrawal_id) \
-            .limit(1) \
-            .execute()
-
-        if not wd.data:
-            return {"error": "Withdrawal not found"}
-
-        row = wd.data[0]
-        moolre_ref = row.get("moolre_ref")
-
-        if not moolre_ref or row.get("status") in ["paid", "failed", "rejected"]:
-            return {"status": row.get("status"), "withdrawal": row}
-
-        # Check Moolre for latest status
-        status_res = call_moolre("status", {
-            "type": 1,
-            "idtype": 1,
-            "id": moolre_ref,
-            "accountnumber": MOOLRE_ACCOUNT_NUMBER,
-        })
-
-        if status_res.get("status") == 1:
-            tx_data = status_res.get("data", {})
-            tx_status = tx_data.get("txstatus", 0)
-
-            # 1=Successful, 0=Pending, 2=Failed, 3=Unknown
-            final_status = (
-                "paid" if tx_status == 1
-                else "failed" if tx_status == 2
-                else "processing"
-            )
-
-            if final_status != row.get("status"):
-                supabase.table("agent_withdrawals") \
-                    .update({"status": final_status}) \
-                    .eq("id", withdrawal_id) \
-                    .execute()
-
-                # If failed — refund wallet
-                if final_status == "failed":
-                    wallet = supabase.table("agent_wallets") \
-                        .select("balance") \
-                        .eq("agent_id", row["agent_id"]) \
-                        .limit(1) \
-                        .execute()
-
-                    if wallet.data:
-                        current = float(wallet.data[0]["balance"])
-                        supabase.table("agent_wallets") \
-                            .update({"balance": current + float(row["amount"])}) \
-                            .eq("agent_id", row["agent_id"]) \
-                            .execute()
-
-            return {"status": final_status, "withdrawal": row}
-
-        return {"status": row.get("status"), "withdrawal": row}
-
-    except Exception as e:
-        print("WITHDRAWAL STATUS ERROR:", str(e))
-        return {"error": "Failed to check status"}
+    return {"status": "request submitted"}
 
 
 # =========================
