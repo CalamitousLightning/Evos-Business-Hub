@@ -54,12 +54,11 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 PAYSTACK_SECRET = os.getenv("PAYSTACK_SECRET_KEY")
 
 DATAMART_API_KEY = os.getenv("DATAMART_API_KEY")
-DATAMART_WEBHOOK_SECRET = os.getenv("DATAMART_WEBHOOK_SECRET")
 DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
 
 BUNDLES_GHANA_API_KEY = os.getenv("BUNDLES_GHANA_API_KEY")
 BUNDLES_GHANA_API_SECRET = os.getenv("BUNDLES_GHANA_API_SECRET")
-BUNDLES_GHANA_BASE = "https://bundlesghana.store/api/v1"
+BUNDLES_GHANA_BASE = "https://evosdata.xyz/.netlify/functions/bundlesProxy"
 
 # =========================
 # SAFETY CHECK (PRODUCTION SAFE)
@@ -69,7 +68,6 @@ required_envs = {
     "SUPABASE_KEY": SUPABASE_KEY,
     "PAYSTACK_SECRET_KEY": PAYSTACK_SECRET,
     "DATAMART_API_KEY": DATAMART_API_KEY,
-    "DATAMART_WEBHOOK_SECRET": DATAMART_WEBHOOK_SECRET,
     "BUNDLES_GHANA_API_KEY": BUNDLES_GHANA_API_KEY,
     "BUNDLES_GHANA_API_SECRET": BUNDLES_GHANA_API_SECRET,
 }
@@ -131,21 +129,24 @@ NETWORK_MAP = {
 # BUNDLES GHANA HELPER
 # =========================
 def call_bundles_ghana(endpoint: str, method: str = "GET", body: dict = None):
-    headers = {
-        "X-API-KEY": BUNDLES_GHANA_API_KEY,
-        "X-API-SECRET": BUNDLES_GHANA_API_SECRET,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    url = f"{BUNDLES_GHANA_BASE}{endpoint}"
+    if not endpoint or not isinstance(endpoint, str):
+        raise Exception(f"Invalid Bundles Ghana endpoint: {endpoint}")
     try:
-        if method == "POST":
-            res = requests.post(url, headers=headers, json=body, timeout=REQUEST_TIMEOUT)
-        else:
-            res = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+        print("CALLING BG PATH:", endpoint, "METHOD:", method)
+        res = requests.post(
+            BUNDLES_GHANA_BASE,
+            json={
+                "path": endpoint,
+                "method": method,
+                "body": body
+            },
+            timeout=REQUEST_TIMEOUT
+        )
+        print("BG PROXY STATUS:", res.status_code)
+        print("BG PROXY BODY:", res.text[:300])
         return res.json()
     except Exception as e:
-        print("BUNDLES GHANA REQUEST ERROR:", str(e))
+        print("BUNDLES GHANA PROXY ERROR:", str(e))
         return {"success": False, "error": str(e)}
 
 # =========================
