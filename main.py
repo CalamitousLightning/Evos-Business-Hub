@@ -382,7 +382,33 @@ def get_user_orders(user_id: int = Query(...)):
     except Exception as e:
         print("GET ORDERS ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Failed to fetch orders")
-
+ 
+ 
+# =========================
+# ORDER TRACKING BY PHONE
+# =========================
+@app.get("/orders/track")
+def track_orders(phone: str = Query(...)):
+    try:
+        cleaned = phone.strip()
+        if not cleaned:
+            raise HTTPException(400, "Phone number required")
+ 
+        orders = supabase.table("orders") \
+            .select("network, bundle, price, phone_number, status, created_at, evosdata_ref, paystack_ref") \
+            .eq("phone_number", cleaned) \
+            .order("created_at", desc=True) \
+            .limit(10) \
+            .execute()
+ 
+        return {"orders": orders.data or []}
+ 
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("TRACK ERROR:", str(e))
+        raise HTTPException(500, "Failed to fetch orders")
+ 
 
 # =========================
 # CREATE ORDER (PRODUCTION SAFE)
