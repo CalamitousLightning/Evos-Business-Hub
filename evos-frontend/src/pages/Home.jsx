@@ -73,7 +73,7 @@ export default function Home({ setPage, theme }) {
                 ? "1px solid rgba(255,255,255,0.15)"
                 : "1px solid rgba(0,0,0,0.15)",
             }}
-            onClick={() => setPage("orders")}
+            onClick={() => setPage("eta-track")}
           >
             Track Orders
           </button>
