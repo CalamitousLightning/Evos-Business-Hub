@@ -13,6 +13,7 @@ import AgentWithdraw from "./pages/AgentWithdraw";
 import AdminWithdrawals from "./pages/AdminWithdrawals";
 import StorePage from "./pages/StorePage";
 import OrderTracking from "./pages/OrderTracking";
+import ETATrack from "./pages/ETATrack";
 
 export default function App() {
   const [page, setPage] = useState("home");
@@ -78,6 +79,8 @@ export default function App() {
         "admin-withdrawals",
       "/track":
         "track-order",
+      "/eta-track":
+        "eta-track",
     };
 
     setPage(
@@ -147,6 +150,10 @@ export default function App() {
       store: "/store",
       "track-order":
         "/track",
+      "eta-track": 
+        "/eta-track",
+      "order-tracking": 
+        "/eta-track",
     };
 
     const url =
@@ -275,7 +282,15 @@ export default function App() {
         return (
           <Success theme={theme} />
         );
-
+      
+      case "eta-track":
+      case "order-tracking":
+        return (
+          <ETATrack    
+            setPage={navigate}
+          />
+        );
+        
       default:
         return (
           <Home
