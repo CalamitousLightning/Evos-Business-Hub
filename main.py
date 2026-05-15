@@ -125,6 +125,14 @@ NETWORK_MAP = {
     "AIRTELTIGO": "AT_PREMIUM"
 }
 
+
+MOOLRE_CHANNEL_MAP = {
+    "MTN": "mtn-gh",
+    "VODAFONE": "vodafone-gh",
+    "AIRTELTIGO": "tigo-gh",
+    # add whatever networks Moolre supports
+}
+
 # =========================
 # BUNDLES GHANA HELPER
 # =========================
