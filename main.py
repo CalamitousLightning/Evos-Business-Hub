@@ -54,11 +54,17 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 PAYSTACK_SECRET = os.getenv("PAYSTACK_SECRET_KEY")
 
 DATAMART_API_KEY = os.getenv("DATAMART_API_KEY")
+DATAMART_WEBHOOK_SECRET = os.getenv("DATAMART_WEBHOOK_SECRET")
 DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
 
 BUNDLES_GHANA_API_KEY = os.getenv("BUNDLES_GHANA_API_KEY")
 BUNDLES_GHANA_API_SECRET = os.getenv("BUNDLES_GHANA_API_SECRET")
 BUNDLES_GHANA_BASE = "https://evosdata.xyz/.netlify/functions/bundlesProxy"
+
+MOOLRE_BASE = os.getenv("MOOLRE_BASE", "https://api.moolre.com")  # confirm exact base URL
+MOOLRE_USERNAME = os.getenv("MOOLRE_USERNAME")
+MOOLRE_API_KEY = os.getenv("MOOLRE_API_KEY")
+MOOLRE_ACCOUNT_NUMBER = os.getenv("MOOLRE_ACCOUNT_NUMBER")
 
 # =========================
 # SAFETY CHECK (PRODUCTION SAFE)
@@ -68,8 +74,12 @@ required_envs = {
     "SUPABASE_KEY": SUPABASE_KEY,
     "PAYSTACK_SECRET_KEY": PAYSTACK_SECRET,
     "DATAMART_API_KEY": DATAMART_API_KEY,
+    "DATAMART_WEBHOOK_SECRET": DATAMART_WEBHOOK_SECRET,
     "BUNDLES_GHANA_API_KEY": BUNDLES_GHANA_API_KEY,
     "BUNDLES_GHANA_API_SECRET": BUNDLES_GHANA_API_SECRET,
+    "MOOLRE_USERNAME": MOOLRE_USERNAME,       # add these
+    "MOOLRE_API_KEY": MOOLRE_API_KEY,
+    "MOOLRE_ACCOUNT_NUMBER": MOOLRE_ACCOUNT_NUMBER,
 }
 
 missing = [k for k, v in required_envs.items() if not v]
