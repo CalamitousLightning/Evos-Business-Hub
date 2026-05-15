@@ -128,7 +128,7 @@ NETWORK_MAP = {
 
 MOOLRE_CHANNEL_MAP = {
     "MTN": "mtn-gh",
-    "VODAFONE": "vodafone-gh",
+    "TELECEL": "telecel-gh",   # or "vodafone-gh" — verify with Moolre
     "AIRTELTIGO": "tigo-gh",
     # add whatever networks Moolre supports
 }
