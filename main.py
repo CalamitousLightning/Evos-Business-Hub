@@ -1306,9 +1306,6 @@ async def agent_sales(agent_id: int):
     }
 
 
-
-
-
 # =========================
 # AGENT WITHDRAW (AUTO via Moolre)
 # =========================
@@ -1318,8 +1315,8 @@ async def request_withdrawal(payload: dict):
 
     agent_id = payload.get("agent_id")
     amount = payload.get("amount")
-    mobile_number = payload.get("mobile_number")   # momo number
-    network = payload.get("network")               # MTN / Telecel / AirtelTigo
+    mobile_number = payload.get("mobile_number")
+    network = payload.get("network")
     account_name = payload.get("account_name", "")
 
     if not agent_id or not amount:
@@ -1404,7 +1401,7 @@ async def request_withdrawal(payload: dict):
     try:
         moolre_res = call_moolre("transfer", {
             "type": 1,
-            "channel": channel,        # will now be 1, 6, or 7 ✅
+            "channel": channel,
             "currency": "GHS",
             "amount": str(float(amount)),
             "receiver": mobile_number,
@@ -1413,14 +1410,25 @@ async def request_withdrawal(payload: dict):
             "accountnumber": MOOLRE_ACCOUNT_NUMBER,
         })
 
-        if moolre_res.get("status") == 1:
+        # ✅ FIX: Moolre returns status as string "1" not integer 1
+        if str(moolre_res.get("status")) == "1":
             tx_data = moolre_res.get("data", {})
-            tx_status = tx_data if isinstance(tx_data, int) else (tx_data.get("txstatus", 0) if isinstance(tx_data, dict) else 0)
+            tx_status = tx_data.get("txstatus", 0) if isinstance(tx_data, dict) else 0
             final_status = "paid" if tx_status == 1 else "processing"
 
             supabase.table("agent_withdrawals") \
                 .update({"status": final_status}) \
                 .eq("id", withdrawal_id) \
+                .execute()
+
+            # ✅ LOG TRANSACTION
+            supabase.table("agent_transactions") \
+                .insert({
+                    "agent_id": agent_id,
+                    "amount": -float(amount),
+                    "type": "withdrawal",
+                    "reference": external_ref
+                }) \
                 .execute()
 
             return {
@@ -1486,7 +1494,8 @@ async def check_withdrawal_status(withdrawal_id: int):
             "accountnumber": MOOLRE_ACCOUNT_NUMBER,
         })
 
-        if status_res.get("status") == 1:
+        # ✅ FIX: Moolre returns status as string "1" not integer 1
+        if str(status_res.get("status")) == "1":
             tx_status = status_res.get("data", {}).get("txstatus", 0)
             final_status = "paid" if tx_status == 1 else "failed" if tx_status == 2 else "processing"
 
@@ -1508,9 +1517,7 @@ async def check_withdrawal_status(withdrawal_id: int):
                             .eq("agent_id", row["agent_id"]) \
                             .execute()
 
-            return {"status": final_status, "withdrawal": row}
-
-        return {"status": row.get("status"), "withdrawal": row}
+        return {"status": final_status, "withdrawal": row}
 
     except Exception as e:
         print("WITHDRAWAL STATUS ERROR:", str(e))
@@ -1526,10 +1533,20 @@ async def moolre_webhook(request: Request):
         payload = await request.json()
         print("MOOLRE WEBHOOK:", payload)
 
-        external_ref = payload.get("externalref")
-        tx_status = payload.get("txstatus")  # 1=Success, 0=Pending, 2=Failed
+        # ✅ FIX: externalref and txstatus are nested inside "data" for transfer webhooks
+        data = payload.get("data", {})
+        external_ref = data.get("externalref") or payload.get("externalref")
+        tx_status = data.get("txstatus") if isinstance(data, dict) else payload.get("txstatus")
+
+        print("MOOLRE WEBHOOK EXTERNALREF:", external_ref)
+        print("MOOLRE WEBHOOK TXSTATUS:", tx_status)
 
         if not external_ref:
+            return {"received": True}
+
+        # Only process EVOS withdrawal refs — ignore collection webhooks
+        if not str(external_ref).startswith("EVOS-WD-"):
+            print("MOOLRE WEBHOOK: ignoring non-withdrawal ref", external_ref)
             return {"received": True}
 
         wd = supabase.table("agent_withdrawals") \
@@ -1544,6 +1561,7 @@ async def moolre_webhook(request: Request):
 
         row = wd.data[0]
 
+        # ✅ FIX: compare tx_status as integer
         final_status = (
             "paid" if tx_status == 1
             else "failed" if tx_status == 2
@@ -1555,7 +1573,18 @@ async def moolre_webhook(request: Request):
             .eq("moolre_ref", external_ref) \
             .execute()
 
-        # If failed — refund wallet
+        # ✅ LOG TRANSACTION on webhook confirmation
+        if final_status == "paid" and row.get("status") != "paid":
+            supabase.table("agent_transactions") \
+                .insert({
+                    "agent_id": row["agent_id"],
+                    "amount": -float(row["amount"]),
+                    "type": "withdrawal",
+                    "reference": external_ref
+                }) \
+                .execute()
+
+        # Refund wallet if failed
         if final_status == "failed" and row.get("status") != "failed":
             wlt = supabase.table("agent_wallets") \
                 .select("balance") \
@@ -1576,7 +1605,7 @@ async def moolre_webhook(request: Request):
     except Exception as e:
         print("MOOLRE WEBHOOK ERROR:", str(e))
         return {"received": False}
-
+        
 # =========================
 # ADMIN WITHDRAWALS
 # =========================
