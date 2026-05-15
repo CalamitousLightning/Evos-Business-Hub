@@ -61,7 +61,7 @@ BUNDLES_GHANA_API_KEY = os.getenv("BUNDLES_GHANA_API_KEY")
 BUNDLES_GHANA_API_SECRET = os.getenv("BUNDLES_GHANA_API_SECRET")
 BUNDLES_GHANA_BASE = "https://evosdata.xyz/.netlify/functions/bundlesProxy"
 
-MOOLRE_BASE = os.getenv("MOOLRE_BASE", "https://api.moolre.com")  # confirm exact base URL
+MOOLRE_BASE = os.getenv("MOOLRE_BASE", "https://api.moolre.com/open/transact")  # confirm exact base URL
 MOOLRE_USERNAME = os.getenv("MOOLRE_USERNAME")
 MOOLRE_API_KEY = os.getenv("MOOLRE_API_KEY")
 MOOLRE_ACCOUNT_NUMBER = os.getenv("MOOLRE_ACCOUNT_NUMBER")
@@ -137,10 +137,9 @@ NETWORK_MAP = {
 
 
 MOOLRE_CHANNEL_MAP = {
-    "MTN": "mtn-gh",
-    "TELECEL": "telecel-gh",   # or "vodafone-gh" — verify with Moolre
-    "AIRTELTIGO": "tigo-gh",
-    # add whatever networks Moolre supports
+    "MTN": 1,
+    "TELECEL": 6,
+    "AIRTELTIGO": 7,
 }
 
 # =========================
@@ -1405,7 +1404,7 @@ async def request_withdrawal(payload: dict):
     try:
         moolre_res = call_moolre("transfer", {
             "type": 1,
-            "channel": channel,
+            "channel": channel,        # will now be 1, 6, or 7 ✅
             "currency": "GHS",
             "amount": str(float(amount)),
             "receiver": mobile_number,
