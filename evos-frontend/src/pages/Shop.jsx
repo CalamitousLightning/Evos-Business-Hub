@@ -18,6 +18,7 @@ export default function Shop() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [agree, setAgree] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const user_id = user?.id || null;
@@ -423,6 +424,37 @@ export default function Shop() {
           </div>
         )}
       </div>
+
+      {/* ===================== FLOATING SUPPORT ===================== */}
+      <div style={styles.floatWrap}>
+        {chatOpen && (
+          <div style={styles.chatPopup}>
+            <div style={styles.chatHeader}>
+              <span style={{ fontWeight: 800, fontSize: 14, color: "#0f172a" }}>💬 EVOS Support</span>
+              <button style={styles.chatClose} onClick={() => setChatOpen(false)}>✕</button>
+            </div>
+            <p style={styles.chatMsg}>Hi! How can we help you? Choose an option 👇</p>
+            <div style={styles.chatOptions}>
+              <button style={styles.chatOption}
+                onClick={() => window.open("https://wa.me/233208718943", "_blank")}>
+                💬 WhatsApp Chat
+              </button>
+              <button style={styles.chatOption}
+                onClick={() => window.open("https://whatsapp.com/channel/0029VaTrnsZEgGfFXkIcjt1M", "_blank")}>
+                👥 Community
+              </button>
+              <button style={styles.chatOption}
+                onClick={() => window.location.href = "mailto:support@evosdata.xyz"}>
+                📧 Email Support
+              </button>
+            </div>
+          </div>
+        )}
+        <button style={styles.floatBtn} onClick={() => setChatOpen(!chatOpen)}>
+          {chatOpen ? "✕" : "💬"}
+        </button>
+      </div>
+
     </div>
   );
 }
@@ -767,5 +799,66 @@ const styles = {
     color: "#94a3b8",
     margin: 0,
     fontWeight: 600,
+  },
+
+  // FLOATING SUPPORT
+  floatWrap: {
+    position: "fixed",
+    bottom: 24,
+    right: 20,
+    zIndex: 9999,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 10,
+  },
+  chatPopup: {
+    background: "white",
+    border: "1.5px solid #e5e7eb",
+    borderRadius: 18,
+    padding: 18,
+    width: 270,
+    boxShadow: "0 8px 40px rgba(99,102,241,0.15)",
+  },
+  chatHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  chatClose: {
+    background: "none",
+    border: "none",
+    color: "#94a3b8",
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 800,
+  },
+  chatMsg: { fontSize: 13, color: "#64748b", lineHeight: 1.55, margin: "0 0 12px", fontWeight: 600 },
+  chatOptions: { display: "flex", flexDirection: "column", gap: 8 },
+  chatOption: {
+    padding: "10px 14px",
+    borderRadius: 12,
+    border: "1.5px solid #e5e7eb",
+    background: "#f8fafc",
+    color: "#0f172a",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+    textAlign: "left",
+  },
+  floatBtn: {
+    width: 54,
+    height: 54,
+    borderRadius: "50%",
+    background: "linear-gradient(135deg, #25D366, #128C7E)",
+    border: "none",
+    color: "white",
+    fontSize: 22,
+    cursor: "pointer",
+    boxShadow: "0 4px 20px rgba(37,211,102,0.45)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
 };
