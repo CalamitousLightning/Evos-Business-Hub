@@ -59,9 +59,9 @@ DATAMART_BASE = "https://api.datamartgh.shop/api/developer"
 
 BUNDLES_GHANA_API_KEY = os.getenv("BUNDLES_GHANA_API_KEY")
 BUNDLES_GHANA_API_SECRET = os.getenv("BUNDLES_GHANA_API_SECRET")
-BUNDLES_GHANA_BASE = "https://evosdata.xyz/.netlify/functions/bundlesProxy"
+BUNDLES_GHANA_BASE = "https://fripalconnectgh.com/api/v1"  # ✅ updated to Fripal
 
-MOOLRE_BASE = os.getenv("MOOLRE_BASE", "https://api.moolre.com/open/transact")  # confirm exact base URL
+MOOLRE_BASE = os.getenv("MOOLRE_BASE", "https://api.moolre.com/open/transact")
 MOOLRE_USERNAME = os.getenv("MOOLRE_USERNAME")
 MOOLRE_API_KEY = os.getenv("MOOLRE_API_KEY")
 MOOLRE_ACCOUNT_NUMBER = os.getenv("MOOLRE_ACCOUNT_NUMBER")
@@ -77,7 +77,7 @@ required_envs = {
     "DATAMART_WEBHOOK_SECRET": DATAMART_WEBHOOK_SECRET,
     "BUNDLES_GHANA_API_KEY": BUNDLES_GHANA_API_KEY,
     "BUNDLES_GHANA_API_SECRET": BUNDLES_GHANA_API_SECRET,
-    "MOOLRE_USERNAME": MOOLRE_USERNAME,       # add these
+    "MOOLRE_USERNAME": MOOLRE_USERNAME,
     "MOOLRE_API_KEY": MOOLRE_API_KEY,
     "MOOLRE_ACCOUNT_NUMBER": MOOLRE_ACCOUNT_NUMBER,
 }
@@ -95,7 +95,6 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # GLOBAL TIMEOUT CONFIG
 # =========================
 REQUEST_TIMEOUT = 10
-
 
 
 # =========================
@@ -124,7 +123,7 @@ class CreateOrderRequest(BaseModel):
     bundle: str
     phone: str
     email: Optional[EmailStr] = None
-    
+
 # =========================
 # HELPERS
 # =========================
@@ -135,7 +134,6 @@ NETWORK_MAP = {
     "AIRTELTIGO": "AT_PREMIUM"
 }
 
-
 MOOLRE_CHANNEL_MAP = {
     "MTN": 1,
     "TELECEL": 6,
@@ -143,27 +141,32 @@ MOOLRE_CHANNEL_MAP = {
 }
 
 # =========================
-# BUNDLES GHANA HELPER
+# FRIPAL (BUNDLES GHANA) HELPER
+# ✅ Now calls Fripal directly — no proxy needed
 # =========================
 def call_bundles_ghana(endpoint: str, method: str = "GET", body: dict = None):
     if not endpoint or not isinstance(endpoint, str):
-        raise Exception(f"Invalid Bundles Ghana endpoint: {endpoint}")
+        raise Exception(f"Invalid Fripal endpoint: {endpoint}")
     try:
-        print("CALLING BG PATH:", endpoint, "METHOD:", method)
-        res = requests.post(
-            BUNDLES_GHANA_BASE,
-            json={
-                "path": endpoint,
-                "method": method,
-                "body": body
-            },
-            timeout=REQUEST_TIMEOUT
-        )
-        print("BG PROXY STATUS:", res.status_code)
-        print("BG PROXY BODY:", res.text[:300])
+        url = f"{BUNDLES_GHANA_BASE}{endpoint}"
+        print("CALLING FRIPAL URL:", url, "METHOD:", method)
+
+        headers = {
+            "X-API-Key": BUNDLES_GHANA_API_KEY,
+            "X-API-Secret": BUNDLES_GHANA_API_SECRET,
+            "Content-Type": "application/json",
+        }
+
+        if method == "POST":
+            res = requests.post(url, headers=headers, json=body, timeout=REQUEST_TIMEOUT)
+        else:
+            res = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+
+        print("FRIPAL STATUS:", res.status_code)
+        print("FRIPAL BODY:", res.text[:300])
         return res.json()
     except Exception as e:
-        print("BUNDLES GHANA PROXY ERROR:", str(e))
+        print("FRIPAL ERROR:", str(e))
         return {"success": False, "error": str(e)}
 
 # =========================
@@ -187,7 +190,7 @@ def call_moolre(endpoint: str, body: dict):
     except Exception as e:
         print("MOOLRE ERROR:", str(e))
         return {"status": 0, "message": str(e)}
-
+        
 # =========================
 # PASSWORD SECURITY
 # =========================
