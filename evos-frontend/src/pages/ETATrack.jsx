@@ -65,6 +65,9 @@ export default function ETATrack({ setPage, backTo = "home" }) {
   const [searched, setSearched] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
+  // ✅ Read agent ID from sessionStorage (set by StorePage before navigating)
+  const storedAgentId = sessionStorage.getItem("storeAgentId");
+
   const search = async () => {
     setError("");
     setOrders([]);
@@ -94,30 +97,43 @@ export default function ETATrack({ setPage, backTo = "home" }) {
     }
   };
 
-  // ✅ Smart back — if came from store URL, go back to that store
+  // ✅ Smart back using sessionStorage agent ID
   const handleBack = () => {
-    const path = window.location.pathname;
-    const storeMatch = document.referrer.match(/\/store\/(\d+)/);
-    const agentId = storeMatch ? storeMatch[1] : null;
-
-    if (agentId) {
-      window.history.pushState({}, "", `/store/${agentId}`);
+    if (storedAgentId) {
+      window.history.pushState({}, "", `/store/${storedAgentId}`);
       setPage("store");
     } else {
       setPage(backTo);
     }
   };
 
-  const backLabel = {
-    home: "← Back to Home",
-    store: "← Back to Store",
-    dashboard: "← Back to Dashboard",
-  }[backTo] || "← Back";
+  const backLabel = storedAgentId
+    ? "← Back to Store"
+    : {
+        home: "← Back to Home",
+        store: "← Back to Store",
+        dashboard: "← Back to Dashboard",
+      }[backTo] || "← Back";
 
   return (
     <div style={styles.wrap}>
       <h2 style={styles.title}>Track Your Order</h2>
       <p style={styles.sub}>Enter the phone number used during purchase</p>
+
+      {/* ✅ BACK + NEED HELP — above the input */}
+      <div style={styles.topActions}>
+        {setPage && (
+          <button style={styles.backBtnTop} onClick={handleBack}>
+            {backLabel}
+          </button>
+        )}
+        <button
+          style={styles.helpBtnTop}
+          onClick={() => setChatOpen(!chatOpen)}
+        >
+          💬 Need Help?
+        </button>
+      </div>
 
       {/* SEARCH */}
       <div style={styles.searchBox}>
@@ -207,23 +223,13 @@ export default function ETATrack({ setPage, backTo = "home" }) {
         );
       })}
 
-      {/* BACK */}
-      {setPage && (
-        <button style={styles.backBtn} onClick={handleBack}>
-          {backLabel}
-        </button>
-      )}
-
       {/* ✅ FLOATING WHATSAPP SUPPORT BUTTON */}
       <div style={styles.floatWrap}>
         {chatOpen && (
           <div style={styles.chatPopup}>
             <div style={styles.chatHeader}>
               <span>💬 EVOS Support</span>
-              <button
-                style={styles.chatClose}
-                onClick={() => setChatOpen(false)}
-              >
+              <button style={styles.chatClose} onClick={() => setChatOpen(false)}>
                 ✕
               </button>
             </div>
@@ -268,8 +274,37 @@ const styles = {
     color: "#94a3b8",
     fontSize: 13,
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
+
+  // ✅ TOP ACTIONS ROW
+  topActions: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+    gap: 10,
+  },
+  backBtnTop: {
+    background: "none",
+    border: "none",
+    color: "#38bdf8",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+    padding: 0,
+  },
+  helpBtnTop: {
+    background: "rgba(37,211,102,0.1)",
+    border: "1px solid rgba(37,211,102,0.3)",
+    color: "#25D366",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+    padding: "6px 12px",
+    borderRadius: 8,
+  },
+
   searchBox: {
     display: "flex",
     gap: 10,
@@ -343,17 +378,6 @@ const styles = {
   detailVal: { fontSize: 13, fontWeight: 600, color: "#e5e7eb" },
   etaBox: { padding: "10px 14px", borderRadius: 10 },
   etaText: { fontSize: 12, margin: 0, lineHeight: 1.55, fontWeight: 500 },
-  backBtn: {
-    marginTop: 16,
-    width: "100%",
-    padding: 12,
-    borderRadius: 12,
-    background: "#1e293b",
-    color: "white",
-    border: "none",
-    cursor: "pointer",
-    fontSize: 14,
-  },
 
   // ✅ FLOATING SUPPORT
   floatWrap: {
