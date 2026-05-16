@@ -19,7 +19,6 @@ export default function Shop() {
   const [error, setError] = useState("");
   const [agree, setAgree] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const user_id = user?.id || null;
