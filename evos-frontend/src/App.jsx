@@ -20,7 +20,6 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [theme, setTheme] = useState("dark");
-  const [backTo, setBackTo] = useState("home"); // ✅ track origin page
 
   // =========================
   // INITIAL LOAD
@@ -128,10 +127,6 @@ export default function App() {
   // =========================
   const navigate = (target) => {
     setMenuOpen(false);
-    // ✅ Save current page before going to eta-track
-    if (target === "eta-track" || target === "order-tracking") {
-      setBackTo(page);
-    }
     setPage(target);
 
     const routes = {
@@ -270,12 +265,7 @@ export default function App() {
       case "store":
         return (
           <StorePage
-            setPage={(target) => {
-              if (target === "eta-track" || target === "order-tracking") {
-                setBackTo("store");
-              }
-              navigate(target);
-            }}
+            setPage={navigate}
             theme={theme}
           />
         );
@@ -298,7 +288,6 @@ export default function App() {
         return (
           <ETATrack    
             setPage={navigate}
-            backTo={backTo} // ✅ pass origin page
           />
         );
         
