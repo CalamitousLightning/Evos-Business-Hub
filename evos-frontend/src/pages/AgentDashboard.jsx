@@ -4,9 +4,8 @@ const API_BASE = "https://api.evosdata.xyz";
 
 export default function AgentDashboard({ user, setPage }) {
   const [loading, setLoading] = useState(true);
-  const [dark, setDark] = useState(true);
   const [error, setError] = useState("");
-
+  const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState({
     wallet_balance: 0,
     total_sales: 0,
@@ -16,363 +15,242 @@ export default function AgentDashboard({ user, setPage }) {
     transactions: [],
   });
 
-  // =========================
-  // AUTH GUARD
-  // =========================
   useEffect(() => {
-    if (!user) {
-      setPage("login");
-      return;
-    }
-
-    const isAgent =
-      user.role === "agent" &&
-      user.agent_status === "approved";
-
-    if (!isAgent) {
-      setPage("dashboard");
-    }
+    if (!user) { setPage("login"); return; }
+    const isAgent = user.role === "agent" && user.agent_status === "approved";
+    if (!isAgent) { setPage("dashboard"); }
   }, [user, setPage]);
 
-  // =========================
-  // LOAD DASHBOARD
-  // =========================
-useEffect(() => {
-  if (!user?.id) return;
+  useEffect(() => {
+    if (!user?.id) return;
+    const loadDashboard = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-  const loadDashboard = async () => {
-    try {
-      setLoading(true);
-      setError("");
+        const res = await fetch(`${API_BASE}/agent/dashboard/${user.id}`);
+        if (!res.ok) throw new Error("Dashboard failed");
+        const data = await res.json();
 
-      // =========================
-      // 1. LOAD STATS
-      // =========================
-      const res = await fetch(
-        `${API_BASE}/agent/dashboard/${user.id}`
-      );
+        const txRes = await fetch(`${API_BASE}/agent/transactions/${user.id}`);
+        const txData = await txRes.json();
 
-      if (!res.ok) throw new Error("Dashboard failed");
+        setStats({
+          wallet_balance: Number(data.wallet_balance || 0),
+          total_sales: Number(data.total_sales || 0),
+          total_profit: Number(data.total_profit || 0),
+          total_orders: Number(data.total_orders || 0),
+          store_link: data.store_link || `${window.location.origin}/store/${user.id}`,
+          transactions: txData.transactions || [],
+        });
+      } catch (err) {
+        console.log(err);
+        setError("Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadDashboard();
+  }, [user]);
 
-      const data = await res.json();
-
-      // =========================
-      // 2. LOAD TRANSACTIONS (FIX HERE)
-      // =========================
-      const txRes = await fetch(
-        `${API_BASE}/agent/transactions/${user.id}`
-      );
-
-      const txData = await txRes.json();
-
-      setStats({
-        wallet_balance: Number(data.wallet_balance || 0),
-        total_sales: Number(data.total_sales || 0),
-        total_profit: Number(data.total_profit || 0),
-        total_orders: Number(data.total_orders || 0),
-        store_link:
-          data.store_link ||
-          `${window.location.origin}/store/${user.id}`,
-        transactions: txData.transactions || [],
-      });
-
-    } catch (err) {
-      console.log(err);
-      setError("Failed to load dashboard");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  loadDashboard();
-}, [user]);
-
-  // =========================
-  // COPY LINK
-  // =========================
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(
-        stats.store_link
-      );
-      alert("Copied!");
+      await navigator.clipboard.writeText(stats.store_link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       alert("Copy failed");
     }
   };
 
-  // =========================
-  // LOGOUT
-  // =========================
   const logout = () => {
     localStorage.clear();
     setPage("login");
   };
 
-  const bg = dark ? "#020617" : "#f8fafc";
-  const cardBg = dark ? "#0f172a" : "#ffffff";
-  const text = dark ? "#e5e7eb" : "#111827";
-  const soft = dark ? "#94a3b8" : "#64748b";
-
   return (
-    <div
-      style={{
-        ...styles.container,
-        background: bg,
-        color: text,
-      }}
-    >
+    <div style={styles.container}>
+
       {/* HEADER */}
       <div style={styles.header}>
-        <div style={styles.brand}>
-          AGENT HUB
+        <div style={styles.headerLeft}>
+          <div style={styles.brand}>🚀 Agent Hub</div>
+          <div style={styles.agentBadge}>Agent · Active</div>
         </div>
-
-        <div style={styles.headBtns}>
-          <button
-            style={styles.topBtn}
-            onClick={() =>
-              setDark(!dark)
-            }
-          >
-            {dark ? "☀️" : "🌙"}
-          </button>
-
-          <button
-            style={styles.topBtn}
-            onClick={() =>
-              setPage("dashboard")
-            }
-          >
+        <div style={styles.headerRight}>
+          <button style={styles.iconBtn} onClick={() => setPage("dashboard")} title="Home">
             🏠
+          </button>
+          <button style={styles.logoutBtn} onClick={logout}>
+            Sign Out
           </button>
         </div>
       </div>
 
       <div style={styles.main}>
-        <h1 style={styles.title}>
-          Welcome Agent
-        </h1>
 
-        <p style={{ color: soft }}>
-          {user?.username}
-        </p>
+        {/* WELCOME */}
+        <div style={styles.welcomeRow}>
+          <div>
+            <h1 style={styles.title}>Welcome back 👋</h1>
+            <p style={styles.subtitle}>@{user?.username}</p>
+          </div>
+          <button
+            style={styles.refreshBtn}
+            onClick={() => window.location.reload()}
+          >
+            🔄 Refresh
+          </button>
+        </div>
 
         {/* ERROR */}
         {error && (
-          <div style={styles.error}>
-            {error}
-          </div>
+          <div style={styles.errorBox}>⚠️ {error}</div>
         )}
 
-        {/* LOADING */}
         {loading ? (
-          <p style={{ color: soft }}>
-            Loading...
-          </p>
+          <div style={styles.loadingWrap}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>⏳</div>
+            <p style={styles.loadingText}>Loading your dashboard...</p>
+          </div>
         ) : (
           <>
-            {/* STATS */}
-            <div style={styles.grid2}>
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-              >
-                <p style={styles.label}>
-                  Wallet
-                </p>
-                <h2>
-                  GH₵{" "}
-                  {stats.wallet_balance.toFixed(
-                    2
-                  )}
-                </h2>
+            {/* WALLET HERO CARD */}
+            <div style={styles.walletCard}>
+              <div style={styles.walletTop}>
+                <div>
+                  <p style={styles.walletLabel}>Available Balance</p>
+                  <h2 style={styles.walletAmount}>
+                    GH₵ {stats.wallet_balance.toFixed(2)}
+                  </h2>
+                </div>
+                <div style={styles.walletIcon}>💰</div>
               </div>
-
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-              >
-                <p style={styles.label}>
-                  Profit
-                </p>
-                <h2>
-                  GH₵{" "}
-                  {stats.total_profit.toFixed(
-                    2
-                  )}
-                </h2>
-              </div>
-
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-              >
-                <p style={styles.label}>
-                  Orders
-                </p>
-                <h2>
-                  {stats.total_orders}
-                </h2>
-              </div>
-
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-              >
-                <p style={styles.label}>
-                  Sales
-                </p>
-                <h2>
-                  {stats.total_sales}
-                </h2>
-              </div>
-            </div>
-
-            {/* STORE LINK */}
-            <div
-              style={{
-                ...styles.card,
-                background: cardBg,
-                marginTop: 14,
-              }}
-            >
-              <p style={styles.label}>
-                Store Link
-              </p>
-
-              <div style={styles.linkText}>
-                {stats.store_link}
-              </div>
-
               <button
-                style={styles.copyBtn}
-                onClick={copyLink}
+                style={styles.withdrawBtn}
+                onClick={() => setPage("agent-withdraw")}
               >
-                Copy
+                💳 Withdraw Funds
               </button>
             </div>
 
-            {/* ACTIONS */}
-            <div
-              style={{
-                ...styles.grid,
-                marginTop: 14,
-              }}
-            >
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-                onClick={() =>
-                  setPage(
-                    "agent-pricing"
-                  )
-                }
-              >
-                💰 Pricing
+            {/* STATS GRID */}
+            <div style={styles.statsGrid}>
+              {[
+                { icon: "📈", label: "Total Profit", val: `GH₵ ${stats.total_profit.toFixed(2)}`, color: "#22c55e", bg: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)" },
+                { icon: "📦", label: "Total Orders", val: stats.total_orders, color: "#38bdf8", bg: "rgba(56,189,248,0.1)", border: "rgba(56,189,248,0.25)" },
+                { icon: "🛒", label: "Total Sales", val: stats.total_sales, color: "#a78bfa", bg: "rgba(167,139,250,0.1)", border: "rgba(167,139,250,0.25)" },
+                { icon: "⭐", label: "Status", val: "Approved", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.25)" },
+              ].map((s, i) => (
+                <div key={i} style={{
+                  ...styles.statCard,
+                  background: s.bg,
+                  border: `1px solid ${s.border}`,
+                }}>
+                  <div style={styles.statIcon}>{s.icon}</div>
+                  <div style={{ ...styles.statVal, color: s.color }}>{s.val}</div>
+                  <div style={styles.statLabel}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* STORE LINK */}
+            <div style={styles.storeLinkCard}>
+              <div style={styles.storeLinkHeader}>
+                <span style={styles.storeLinkTitle}>🏪 Your Store Link</span>
+                <span style={styles.storeLinkBadge}>Live</span>
               </div>
-
-
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-                onClick={() =>
-                  setPage(
-                    "agent-withdraw"
-                  )
-                }
-              >
-                💳 Withdraw
+              <div style={styles.storeLinkText}>
+                {stats.store_link}
               </div>
+              <div style={styles.storeLinkBtns}>
+                <button style={styles.copyBtn} onClick={copyLink}>
+                  {copied ? "✅ Copied!" : "📋 Copy Link"}
+                </button>
+                <button
+                  style={styles.visitBtn}
+                  onClick={() => window.open(stats.store_link, "_blank")}
+                >
+                  🔗 Visit Store
+                </button>
+              </div>
+            </div>
 
-              <div
-                style={{
-                  ...styles.card,
-                  background: cardBg,
-                }}
-                onClick={logout}
-              >
-                🚪 Logout
+            {/* QUICK ACTIONS */}
+            <div style={styles.actionsSection}>
+              <h3 style={styles.sectionTitle}>Quick Actions</h3>
+              <div style={styles.actionsGrid}>
+                {[
+                  { icon: "💰", label: "Manage Pricing", desc: "Set your bundle markups", page: "agent-pricing", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.25)" },
+                  { icon: "💳", label: "Withdraw", desc: "Send to your MoMo", page: "agent-withdraw", color: "#22c55e", bg: "rgba(34,197,94,0.1)", border: "rgba(34,197,94,0.25)" },
+                  { icon: "🏠", label: "Dashboard", desc: "Main account page", page: "dashboard", color: "#38bdf8", bg: "rgba(56,189,248,0.1)", border: "rgba(56,189,248,0.25)" },
+                ].map((a, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      ...styles.actionCard,
+                      background: a.bg,
+                      border: `1px solid ${a.border}`,
+                    }}
+                    onClick={() => setPage(a.page)}
+                  >
+                    <div style={{ ...styles.actionIcon, color: a.color }}>{a.icon}</div>
+                    <div style={{ ...styles.actionLabel, color: a.color }}>{a.label}</div>
+                    <div style={styles.actionDesc}>{a.desc}</div>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* TRANSACTIONS */}
-            <h3 style={styles.sectionTitle}>
-              Recent Transactions
-            </h3>
+            <div style={styles.txSection}>
+              <div style={styles.txHeader}>
+                <h3 style={styles.sectionTitle}>Recent Transactions</h3>
+                <span style={styles.txCount}>{stats.transactions.length} total</span>
+              </div>
 
-            {stats.transactions.length ===
-            0 ? (
-              <p style={{ color: soft }}>
-                No transactions
-              </p>
-            ) : (
-              stats.transactions
-                .slice(0, 10)
-                .map((tx, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      ...styles.tx,
-                      background:
-                        cardBg,
-                    }}
-                  >
-                    <div>
-                      <strong>
-                        {tx.type ===
-                        "credit"
-                          ? "Credit"
-                          : "Debit"}
-                      </strong>
-
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: soft,
-                          marginTop: 4,
-                        }}
-                      >
-                        Ref:{" "}
-                        {tx.reference ||
-                          "N/A"}
+              {stats.transactions.length === 0 ? (
+                <div style={styles.emptyTx}>
+                  <div style={{ fontSize: 36, marginBottom: 8 }}>📭</div>
+                  <p style={styles.emptyTxText}>No transactions yet</p>
+                  <p style={styles.emptyTxSub}>Your earnings will appear here</p>
+                </div>
+              ) : (
+                stats.transactions.slice(0, 10).map((tx, i) => {
+                  const isCredit = tx.type === "credit";
+                  const isWithdrawal = tx.type === "withdrawal";
+                  return (
+                    <div key={i} style={styles.txCard}>
+                      <div style={{
+                        ...styles.txIconWrap,
+                        background: isCredit
+                          ? "rgba(34,197,94,0.15)"
+                          : "rgba(239,68,68,0.15)",
+                      }}>
+                        <span style={{ fontSize: 18 }}>
+                          {isCredit ? "📥" : isWithdrawal ? "💸" : "📤"}
+                        </span>
+                      </div>
+                      <div style={styles.txInfo}>
+                        <div style={styles.txType}>
+                          {isCredit ? "Commission Earned" : isWithdrawal ? "Withdrawal" : "Debit"}
+                        </div>
+                        <div style={styles.txRef}>
+                          {tx.reference || "N/A"}
+                        </div>
+                      </div>
+                      <div style={{
+                        ...styles.txAmount,
+                        color: isCredit ? "#22c55e" : "#ef4444",
+                      }}>
+                        {isCredit ? "+" : "-"}GH₵ {Math.abs(Number(tx.amount || 0)).toFixed(2)}
                       </div>
                     </div>
+                  );
+                })
+              )}
+            </div>
 
-                    <div
-                      style={{
-                        fontWeight: 800,
-                        color:
-                          tx.type ===
-                          "credit"
-                            ? "#22c55e"
-                            : "#ef4444",
-                      }}
-                    >
-                      {tx.type ===
-                      "credit"
-                        ? "+"
-                        : "-"}
-                      GH₵{" "}
-                      {Number(
-                        tx.amount || 0
-                      ).toFixed(2)}
-                    </div>
-                  </div>
-                ))
-            )}
           </>
         )}
       </div>
@@ -380,124 +258,167 @@ useEffect(() => {
   );
 }
 
-/* =========================
-STYLES
-========================= */
 const styles = {
   container: {
     minHeight: "100vh",
+    color: "#e5e7eb",
+    fontFamily: "ui-sans-serif, system-ui, Arial",
   },
 
+  // HEADER
   header: {
     display: "flex",
-    justifyContent:
-      "space-between",
-    padding: 16,
-    borderBottom:
-      "1px solid rgba(255,255,255,0.05)",
-  },
-
-  brand: {
-    color: "#38bdf8",
-    fontSize: 22,
-    fontWeight: 900,
-  },
-
-  headBtns: {
-    display: "flex",
-    gap: 10,
-  },
-
-  topBtn: {
-    width: 42,
-    height: 42,
-    border: "none",
-    borderRadius: 12,
-    background:
-      "rgba(56,189,248,0.12)",
-    color: "#38bdf8",
-    cursor: "pointer",
-  },
-
-  main: {
-    maxWidth: 900,
-    margin: "0 auto",
-    padding: 18,
-  },
-
-  title: {
-    fontSize: 30,
-    fontWeight: 900,
-    marginBottom: 4,
-  },
-
-  label: {
-    opacity: 0.7,
-    marginBottom: 8,
-    fontSize: 14,
-  },
-
-  error: {
-    color: "#ef4444",
-    marginBottom: 12,
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: 14,
-  },
-
-  grid2: {
-    display: "grid",
-    gridTemplateColumns:
-      "1fr 1fr",
-    gap: 14,
-    marginTop: 16,
-  },
-
-  card: {
-    padding: 18,
-    borderRadius: 18,
-    border:
-      "1px solid rgba(255,255,255,0.06)",
-    cursor: "pointer",
-  },
-
-  sectionTitle: {
-    marginTop: 20,
-    marginBottom: 12,
-    fontWeight: 800,
-  },
-
-  copyBtn: {
-    width: "100%",
-    marginTop: 12,
-    padding: 12,
-    border: "none",
-    borderRadius: 14,
-    background:
-      "linear-gradient(135deg,#38bdf8,#0ea5e9)",
-    color: "#00111f",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-
-  linkText: {
-    wordBreak: "break-word",
-    fontSize: 14,
-    marginTop: 8,
-  },
-
-  tx: {
-    padding: 14,
-    borderRadius: 14,
-    display: "flex",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
-    border:
-      "1px solid rgba(255,255,255,0.06)",
+    padding: "14px 18px",
+    borderBottom: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(15,23,42,0.8)",
+    backdropFilter: "blur(12px)",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
   },
+  headerLeft: { display: "flex", alignItems: "center", gap: 10 },
+  brand: { color: "#38bdf8", fontSize: 18, fontWeight: 900 },
+  agentBadge: {
+    fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 50,
+    background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)",
+    color: "#22c55e",
+  },
+  headerRight: { display: "flex", alignItems: "center", gap: 10 },
+  iconBtn: {
+    width: 38, height: 38, border: "none", borderRadius: 10,
+    background: "rgba(255,255,255,0.06)", cursor: "pointer", fontSize: 16,
+  },
+  logoutBtn: {
+    padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)",
+    background: "rgba(239,68,68,0.08)", color: "#ef4444",
+    fontWeight: 700, fontSize: 13, cursor: "pointer",
+  },
+
+  main: { maxWidth: 600, margin: "0 auto", padding: "24px 18px 60px" },
+
+  // WELCOME
+  welcomeRow: {
+    display: "flex", justifyContent: "space-between",
+    alignItems: "flex-start", marginBottom: 24,
+  },
+  title: { fontSize: 26, fontWeight: 900, color: "#f1f5f9", margin: "0 0 4px" },
+  subtitle: { fontSize: 14, color: "#64748b", margin: 0 },
+  refreshBtn: {
+    padding: "8px 14px", borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.04)", color: "#94a3b8",
+    fontSize: 13, fontWeight: 700, cursor: "pointer",
+  },
+
+  // ERROR / LOADING
+  errorBox: {
+    background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+    color: "#f87171", padding: "12px 16px", borderRadius: 12,
+    fontSize: 14, marginBottom: 16,
+  },
+  loadingWrap: { textAlign: "center", padding: "60px 0" },
+  loadingText: { fontSize: 15, color: "#64748b", fontWeight: 600 },
+
+  // WALLET CARD
+  walletCard: {
+    background: "linear-gradient(135deg, rgba(56,189,248,0.15), rgba(167,139,250,0.1))",
+    border: "1px solid rgba(56,189,248,0.25)",
+    borderRadius: 22, padding: "22px 20px", marginBottom: 16,
+  },
+  walletTop: {
+    display: "flex", justifyContent: "space-between",
+    alignItems: "flex-start", marginBottom: 18,
+  },
+  walletLabel: { fontSize: 13, color: "#94a3b8", margin: "0 0 6px", fontWeight: 600 },
+  walletAmount: { fontSize: 34, fontWeight: 900, color: "#f1f5f9", margin: 0 },
+  walletIcon: { fontSize: 40 },
+  withdrawBtn: {
+    width: "100%", padding: "13px", borderRadius: 14, border: "none",
+    background: "linear-gradient(135deg, #22c55e, #16a34a)",
+    color: "white", fontWeight: 900, fontSize: 15, cursor: "pointer",
+    boxShadow: "0 4px 20px rgba(34,197,94,0.3)",
+  },
+
+  // STATS
+  statsGrid: {
+    display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16,
+  },
+  statCard: {
+    padding: "16px 14px", borderRadius: 18, textAlign: "center",
+  },
+  statIcon: { fontSize: 24, marginBottom: 8 },
+  statVal: { fontWeight: 900, fontSize: 18, marginBottom: 4 },
+  statLabel: { fontSize: 12, color: "#64748b", fontWeight: 600 },
+
+  // STORE LINK
+  storeLinkCard: {
+    background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.07)",
+    borderRadius: 18, padding: "18px 16px", marginBottom: 16,
+    backdropFilter: "blur(20px)",
+  },
+  storeLinkHeader: {
+    display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
+  },
+  storeLinkTitle: { fontWeight: 800, fontSize: 14, color: "#f1f5f9" },
+  storeLinkBadge: {
+    fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 50,
+    background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)",
+    color: "#22c55e", textTransform: "uppercase",
+  },
+  storeLinkText: {
+    fontSize: 13, color: "#64748b", wordBreak: "break-all",
+    lineHeight: 1.5, marginBottom: 14,
+    background: "rgba(2,6,23,0.5)", padding: "10px 12px",
+    borderRadius: 10, border: "1px solid rgba(255,255,255,0.05)",
+  },
+  storeLinkBtns: { display: "flex", gap: 10 },
+  copyBtn: {
+    flex: 1, padding: "11px", borderRadius: 12, border: "none",
+    background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
+    color: "#000", fontWeight: 900, fontSize: 13, cursor: "pointer",
+  },
+  visitBtn: {
+    flex: 1, padding: "11px", borderRadius: 12,
+    border: "1px solid rgba(56,189,248,0.3)",
+    background: "rgba(56,189,248,0.08)", color: "#38bdf8",
+    fontWeight: 800, fontSize: 13, cursor: "pointer",
+  },
+
+  // ACTIONS
+  actionsSection: { marginBottom: 24 },
+  sectionTitle: { fontSize: 16, fontWeight: 900, color: "#f1f5f9", margin: "0 0 14px" },
+  actionsGrid: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 },
+  actionCard: {
+    padding: "16px 12px", borderRadius: 16, cursor: "pointer",
+    textAlign: "center", transition: "transform 0.15s",
+  },
+  actionIcon: { fontSize: 26, marginBottom: 8 },
+  actionLabel: { fontWeight: 800, fontSize: 13, marginBottom: 4 },
+  actionDesc: { fontSize: 11, color: "#64748b" },
+
+  // TRANSACTIONS
+  txSection: { marginBottom: 20 },
+  txHeader: {
+    display: "flex", justifyContent: "space-between",
+    alignItems: "center", marginBottom: 14,
+  },
+  txCount: { fontSize: 12, color: "#64748b", fontWeight: 700 },
+  emptyTx: { textAlign: "center", padding: "30px 0" },
+  emptyTxText: { fontSize: 15, color: "#475569", fontWeight: 700, margin: "0 0 4px" },
+  emptyTxSub: { fontSize: 13, color: "#334155", margin: 0 },
+  txCard: {
+    display: "flex", alignItems: "center", gap: 14,
+    padding: "14px 16px", borderRadius: 16, marginBottom: 10,
+    background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.06)",
+  },
+  txIconWrap: {
+    width: 42, height: 42, borderRadius: 12,
+    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
+  txInfo: { flex: 1 },
+  txType: { fontWeight: 700, fontSize: 14, color: "#e5e7eb", marginBottom: 3 },
+  txRef: { fontSize: 11, color: "#475569" },
+  txAmount: { fontWeight: 900, fontSize: 16, flexShrink: 0 },
 };
