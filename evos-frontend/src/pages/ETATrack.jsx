@@ -63,6 +63,7 @@ export default function ETATrack({ setPage, backTo = "home" }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [searched, setSearched] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const search = async () => {
     setError("");
@@ -90,6 +91,20 @@ export default function ETATrack({ setPage, backTo = "home" }) {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ Smart back — if came from store URL, go back to that store
+  const handleBack = () => {
+    const path = window.location.pathname;
+    const storeMatch = document.referrer.match(/\/store\/(\d+)/);
+    const agentId = storeMatch ? storeMatch[1] : null;
+
+    if (agentId) {
+      window.history.pushState({}, "", `/store/${agentId}`);
+      setPage("store");
+    } else {
+      setPage(backTo);
     }
   };
 
@@ -124,9 +139,7 @@ export default function ETATrack({ setPage, backTo = "home" }) {
       </div>
 
       {/* ERROR */}
-      {error && (
-        <div style={styles.errorBox}>{error}</div>
-      )}
+      {error && <div style={styles.errorBox}>{error}</div>}
 
       {/* RESULTS */}
       {orders.map((order, i) => {
@@ -194,25 +207,45 @@ export default function ETATrack({ setPage, backTo = "home" }) {
         );
       })}
 
-      {/* SUPPORT NOTE */}
-      {searched && orders.length > 0 && (
-        <p style={styles.supportNote}>
-          Need help? Contact support on{" "}
-          <span
-            style={{ color: "#38bdf8", cursor: "pointer" }}
-            onClick={() => window.open("https://wa.me/233208718943", "_blank")}
-          >
-            WhatsApp
-          </span>
-        </p>
-      )}
-
       {/* BACK */}
       {setPage && (
-        <button style={styles.backBtn} onClick={() => setPage(backTo)}>
+        <button style={styles.backBtn} onClick={handleBack}>
           {backLabel}
         </button>
       )}
+
+      {/* ✅ FLOATING WHATSAPP SUPPORT BUTTON */}
+      <div style={styles.floatWrap}>
+        {chatOpen && (
+          <div style={styles.chatPopup}>
+            <div style={styles.chatHeader}>
+              <span>💬 EVOS Support</span>
+              <button
+                style={styles.chatClose}
+                onClick={() => setChatOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <p style={styles.chatMsg}>
+              Hi! Need help with your order? Chat with us on WhatsApp and we'll sort it out quickly. 👇
+            </p>
+            <button
+              style={styles.chatBtn}
+              onClick={() => window.open("https://wa.me/233208718943", "_blank")}
+            >
+              Open WhatsApp Chat
+            </button>
+          </div>
+        )}
+
+        <button
+          style={styles.floatBtn}
+          onClick={() => setChatOpen(!chatOpen)}
+        >
+          {chatOpen ? "✕" : "💬"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -221,7 +254,7 @@ const styles = {
   wrap: {
     maxWidth: 480,
     margin: "0 auto",
-    padding: "24px 18px 40px",
+    padding: "24px 18px 80px",
     color: "#e5e7eb",
     fontFamily: "ui-sans-serif, system-ui, Arial",
   },
@@ -308,22 +341,8 @@ const styles = {
   },
   detailLabel: { fontSize: 12, color: "#64748b" },
   detailVal: { fontSize: 13, fontWeight: 600, color: "#e5e7eb" },
-  etaBox: {
-    padding: "10px 14px",
-    borderRadius: 10,
-  },
-  etaText: {
-    fontSize: 12,
-    margin: 0,
-    lineHeight: 1.55,
-    fontWeight: 500,
-  },
-  supportNote: {
-    textAlign: "center",
-    fontSize: 13,
-    color: "#64748b",
-    marginTop: 8,
-  },
+  etaBox: { padding: "10px 14px", borderRadius: 10 },
+  etaText: { fontSize: 12, margin: 0, lineHeight: 1.55, fontWeight: 500 },
   backBtn: {
     marginTop: 16,
     width: "100%",
@@ -334,5 +353,73 @@ const styles = {
     border: "none",
     cursor: "pointer",
     fontSize: 14,
+  },
+
+  // ✅ FLOATING SUPPORT
+  floatWrap: {
+    position: "fixed",
+    bottom: 24,
+    right: 20,
+    zIndex: 9999,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: 10,
+  },
+  chatPopup: {
+    background: "#0f172a",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: 16,
+    padding: "16px",
+    width: 260,
+    boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+  },
+  chatHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+    fontWeight: 700,
+    fontSize: 14,
+    color: "#e5e7eb",
+  },
+  chatClose: {
+    background: "none",
+    border: "none",
+    color: "#64748b",
+    cursor: "pointer",
+    fontSize: 14,
+    padding: "2px 6px",
+  },
+  chatMsg: {
+    fontSize: 13,
+    color: "#94a3b8",
+    lineHeight: 1.55,
+    margin: "0 0 14px",
+  },
+  chatBtn: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: 10,
+    border: "none",
+    background: "linear-gradient(135deg,#25D366,#128C7E)",
+    color: "white",
+    fontWeight: 800,
+    fontSize: 13,
+    cursor: "pointer",
+  },
+  floatBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: "50%",
+    background: "linear-gradient(135deg,#25D366,#128C7E)",
+    border: "none",
+    color: "white",
+    fontSize: 22,
+    cursor: "pointer",
+    boxShadow: "0 4px 20px rgba(37,211,102,0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
 };
