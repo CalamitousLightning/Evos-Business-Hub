@@ -8,29 +8,20 @@ import API from "../api";
 
 export default function Shop() {
   const [step, setStep] = useState(1);
-
   const [network, setNetwork] = useState("");
   const [bundle, setBundle] = useState("");
+  const [bundlePrice, setBundlePrice] = useState(0);
   const [phone, setPhone] = useState("");
   const [confirmPhone, setConfirmPhone] = useState("");
-  const [email, setEmail] = useState(
-    localStorage.getItem("email") || ""
-  );
-
+  const [email, setEmail] = useState(localStorage.getItem("email") || "");
   const [prices, setPrices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [agree, setAgree] = useState(false);
 
-  const user = JSON.parse(
-    localStorage.getItem("user") || "{}"
-  );
-
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
   const user_id = user?.id || null;
 
-  // ======================
-  // LOAD PRICES
-  // ======================
   useEffect(() => {
     const loadPrices = async () => {
       try {
@@ -41,380 +32,307 @@ export default function Shop() {
         setPrices([]);
       }
     };
-
     loadPrices();
   }, []);
 
-  // ======================
-  // OUT OF STOCK
-  // ======================
-  const OUT_OF_STOCK = [
-    
-  ];
+  const OUT_OF_STOCK = [];
+  const isOutOfStock = (name) => OUT_OF_STOCK.includes(name);
+  const bundles = prices.filter((p) => p.network === network);
+  const validPhone = (num) => /^0\d{9}$/.test(num);
 
-  const isOutOfStock = (name) =>
-    OUT_OF_STOCK.includes(name);
-
-  const bundles = prices.filter(
-    (p) => p.network === network
-  );
-
-  // ======================
-  // VALIDATE PHONE
-  // ======================
-  const validPhone = (num) =>
-    /^0\d{9}$/.test(num);
-
-  // ======================
-  // BUY ORDER
-  // ======================
   const handleBuy = async () => {
     try {
       setError("");
-
-      if (!network || !bundle) {
-        setError(
-          "Select network and bundle"
-        );
-        return;
-      }
-
-      if (!phone) {
-        setError(
-          "Enter phone number"
-        );
-        return;
-      }
-
-      if (!validPhone(phone)) {
-        setError(
-          "Phone must be 10 digits and start with 0"
-        );
-        return;
-      }
-
-      if (phone !== confirmPhone) {
-        setError(
-          "Phone numbers do not match"
-        );
-        return;
-      }
-
-      if (!agree) {
-        setError(
-          "You must confirm refund policy"
-        );
-        return;
-      }
+      if (!network || !bundle) { setError("Select network and bundle"); return; }
+      if (!phone) { setError("Enter phone number"); return; }
+      if (!validPhone(phone)) { setError("Phone must be 10 digits and start with 0"); return; }
+      if (phone !== confirmPhone) { setError("Phone numbers do not match"); return; }
+      if (!agree) { setError("You must confirm refund policy"); return; }
 
       setLoading(true);
-
-      const res = await API.post(
-        "/orders/create",
-        {
-          user_id,
-          network,
-          bundle,
-          phone,
-          email:
-            email ||
-            "guest@evoshub.com",
-        }
-      );
+      const res = await API.post("/orders/create", {
+        user_id, network, bundle, phone,
+        email: email || "guest@evoshub.com",
+      });
 
       const paymentUrl =
         res.data?.payment_url ||
-        res.data
-          ?.authorization_url ||
-        res.data?.data
-          ?.authorization_url;
+        res.data?.authorization_url ||
+        res.data?.data?.authorization_url;
 
       if (!paymentUrl) {
         setLoading(false);
-        setError(
-          "Payment link not received"
-        );
+        setError("Payment link not received");
         return;
       }
 
-      localStorage.setItem(
-        "email",
-        email
-      );
-
-      window.location.href =
-        paymentUrl;
+      localStorage.setItem("email", email);
+      window.location.href = paymentUrl;
     } catch (err) {
       setLoading(false);
-
       setError(
-        err.response?.data
-          ?.detail ||
-          err.response?.data
-            ?.message ||
-          "Order failed"
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        "Order failed"
       );
     }
   };
 
-  // ======================
-  // UI
-  // ======================
+  const networks = [
+    {
+      name: "MTN",
+      label: "MTN",
+      emoji: "🟡",
+      color: "#FFC107",
+      bg: "linear-gradient(135deg, rgba(255,193,7,0.18), rgba(255,193,7,0.06))",
+      border: "rgba(255,193,7,0.4)",
+      desc: "Ghana's largest network",
+    },
+    {
+      name: "TELECEL",
+      label: "Telecel",
+      emoji: "🔴",
+      color: "#ef4444",
+      bg: "linear-gradient(135deg, rgba(239,68,68,0.18), rgba(239,68,68,0.06))",
+      border: "rgba(239,68,68,0.4)",
+      desc: "Formerly Vodafone Ghana",
+    },
+    {
+      name: "AIRTELTIGO",
+      label: "AirtelTigo",
+      emoji: "🔵",
+      color: "#6366f1",
+      bg: "linear-gradient(135deg, rgba(99,102,241,0.18), rgba(99,102,241,0.06))",
+      border: "rgba(99,102,241,0.4)",
+      desc: "Nationwide coverage",
+    },
+  ];
+
+  const selectedNetwork = networks.find((n) => n.name === network);
+
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>
-        Buy Data
-      </h2>
 
-      <p style={styles.subTitle}>
-        Fast automated delivery
-      </p>
+      {/* HEADER */}
+      <div style={styles.header}>
+        <div style={styles.headerBadge}>🛒 Buy Data</div>
+        <h2 style={styles.title}>Choose Your Bundle</h2>
+        <p style={styles.subtitle}>Fast automated delivery across Ghana</p>
+      </div>
 
+      {/* PROGRESS BAR */}
+      <div style={styles.progressWrap}>
+        {["Network", "Bundle", "Checkout"].map((label, i) => {
+          const active = step === i + 1;
+          const done = step > i + 1;
+          return (
+            <div key={i} style={styles.progressItem}>
+              <div style={{
+                ...styles.progressDot,
+                background: done ? "#22c55e" : active ? "#38bdf8" : "rgba(255,255,255,0.1)",
+                border: active ? "2px solid #38bdf8" : done ? "2px solid #22c55e" : "2px solid rgba(255,255,255,0.1)",
+              }}>
+                {done ? "✓" : i + 1}
+              </div>
+              <span style={{
+                ...styles.progressLabel,
+                color: active ? "#38bdf8" : done ? "#22c55e" : "#475569",
+              }}>{label}</span>
+            </div>
+          );
+        })}
+        <div style={styles.progressLine} />
+      </div>
+
+      {/* ERROR */}
       {error && (
         <div style={styles.error}>
-          {error}
+          ⚠️ {error}
         </div>
       )}
 
       <div style={styles.wrapper}>
-        {/* STEP 1 */}
+
+        {/* ============ STEP 1 — NETWORK ============ */}
         {step === 1 && (
           <div style={styles.box}>
-            <h3 style={styles.step}>
-              Select Network
-            </h3>
+            <p style={styles.stepLabel}>Step 1 of 3 · Select Network</p>
 
-            {[
-              {
-                name: "MTN",
-                icon: "🟡",
-                style:
-                  styles.optionMTN,
-              },
-              {
-                name: "TELECEL",
-                icon: "🔴",
-                style:
-                  styles.optionTELECEL,
-              },
-              {
-                name:
-                  "AIRTELTIGO",
-                icon: "🔵",
-                style:
-                  styles.optionAIRTEL,
-              },
-            ].map((n) => {
-              const disabled =
-                isOutOfStock(
-                  n.name
+            <div style={styles.networkGrid}>
+              {networks.map((n) => {
+                const disabled = isOutOfStock(n.name);
+                return (
+                  <div
+                    key={n.name}
+                    style={{
+                      ...styles.networkCard,
+                      background: n.bg,
+                      border: `1px solid ${n.border}`,
+                      opacity: disabled ? 0.4 : 1,
+                      cursor: disabled ? "not-allowed" : "pointer",
+                    }}
+                    onClick={() => {
+                      if (disabled) return;
+                      setNetwork(n.name);
+                      setStep(2);
+                    }}
+                  >
+                    <div style={{ ...styles.networkEmoji, color: n.color }}>
+                      {n.emoji}
+                    </div>
+                    <div style={{ ...styles.networkName, color: n.color }}>
+                      {n.label}
+                    </div>
+                    <div style={styles.networkDesc}>{n.desc}</div>
+                    {disabled && (
+                      <div style={styles.stockBadge}>Out of Stock</div>
+                    )}
+                    <div style={{ ...styles.networkArrow, color: n.color }}>→</div>
+                  </div>
                 );
+              })}
+            </div>
 
-              return (
-                <div
-                  key={n.name}
-                  style={{
-                    ...styles.option,
-                    ...n.style,
-                    opacity:
-                      disabled
-                        ? 0.45
-                        : 1,
-                    cursor:
-                      disabled
-                        ? "not-allowed"
-                        : "pointer",
-                  }}
-                  onClick={() => {
-                    if (
-                      disabled
-                    )
-                      return;
-
-                    setNetwork(
-                      n.name
-                    );
-                    setStep(2);
-                  }}
-                >
-                  <span>
-                    {n.icon}
-                  </span>
-
-                  {n.name}
-
-                  {disabled && (
-                    <span
-                      style={
-                        styles.stock
-                      }
-                    >
-                      Out of Stock
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+            <div style={styles.infoRow}>
+              <span style={styles.infoText}>🔒 Secured by Paystack</span>
+              <span style={styles.infoText}>⚡ Instant delivery</span>
+            </div>
           </div>
         )}
 
-        {/* STEP 2 */}
+        {/* ============ STEP 2 — BUNDLE ============ */}
         {step === 2 && (
           <div style={styles.box}>
-            <button
-              style={styles.back}
-              onClick={() =>
-                setStep(1)
-              }
-            >
+            <button style={styles.backBtn} onClick={() => setStep(1)}>
               ← Back
             </button>
 
-            <h3 style={styles.step}>
-              Select Bundle
-            </h3>
+            <p style={styles.stepLabel}>Step 2 of 3 · Select Bundle</p>
 
-            {bundles.map(
-              (b, i) => (
+            <div style={{
+              ...styles.networkPill,
+              background: selectedNetwork?.bg,
+              border: `1px solid ${selectedNetwork?.border}`,
+              color: selectedNetwork?.color,
+            }}>
+              {selectedNetwork?.emoji} {selectedNetwork?.label}
+            </div>
+
+            {bundles.length === 0 && (
+              <p style={styles.emptyText}>No bundles available for this network.</p>
+            )}
+
+            {/* ✅ BUNDLE GRID */}
+            <div style={styles.bundleGrid}>
+              {bundles.map((b, i) => (
                 <div
                   key={i}
-                  style={
-                    styles.card
-                  }
+                  style={styles.bundleCard}
                   onClick={() => {
-                    setBundle(
-                      b.bundle
-                    );
+                    setBundle(b.bundle);
+                    setBundlePrice(b.price);
                     setStep(3);
                   }}
                 >
-                  <h4>
-                    {b.bundle}
-                  </h4>
-
-                  <p>
-                    GH₵{" "}
-                    {b.price}
-                  </p>
+                  <div style={styles.bundleSize}>{b.bundle}</div>
+                  <div style={styles.bundlePrice}>
+                    GH₵ {Number(b.price).toFixed(2)}
+                  </div>
+                  <div style={styles.bundleTap}>Tap to select →</div>
                 </div>
-              )
-            )}
+              ))}
+            </div>
           </div>
         )}
 
-        {/* STEP 3 */}
+        {/* ============ STEP 3 — CHECKOUT ============ */}
         {step === 3 && (
           <div style={styles.box}>
-            <button
-              style={styles.back}
-              onClick={() =>
-                setStep(2)
-              }
-            >
+            <button style={styles.backBtn} onClick={() => setStep(2)}>
               ← Back
             </button>
 
-            <h3 style={styles.step}>
-              Complete Order
-            </h3>
+            <p style={styles.stepLabel}>Step 3 of 3 · Complete Order</p>
 
-            <div
-              style={
-                styles.summary
-              }
-            >
-              <p>{network}</p>
-              <h3>{bundle}</h3>
-            </div>
-
-            <input
-              style={styles.input}
-              placeholder="Phone Number"
-              value={phone}
-              onChange={(e) =>
-                setPhone(
-                  e.target.value
-                )
-              }
-            />
-
-            <input
-              style={styles.input}
-              placeholder="Confirm Phone Number"
-              value={
-                confirmPhone
-              }
-              onChange={(e) =>
-                setConfirmPhone(
-                  e.target.value
-                )
-              }
-            />
-
-            <input
-              style={styles.input}
-              placeholder="Email (receipt)"
-              value={email}
-              onChange={(e) =>
-                setEmail(
-                  e.target.value
-                )
-              }
-            />
-
-            <div
-              style={
-                styles.notice
-              }
-            >
-              <label
-                style={
-                  styles.checkWrap
-                }
-              >
-                <input
-                  type="checkbox"
-                  checked={
-                    agree
-                  }
-                  onChange={() =>
-                    setAgree(
-                      !agree
-                    )
-                  }
-                />
-
-                <span>
-                  I confirm
-                  number is
-                  correct.
-                  Wrong
-                  numbers
-                  are not
-                  refundable.
+            {/* ORDER SUMMARY */}
+            <div style={styles.summaryCard}>
+              <div style={styles.summaryRow}>
+                <span style={styles.summaryLabel}>Network</span>
+                <span style={{
+                  ...styles.summaryVal,
+                  color: selectedNetwork?.color,
+                  fontWeight: 800,
+                }}>
+                  {selectedNetwork?.emoji} {selectedNetwork?.label}
                 </span>
-              </label>
+              </div>
+              <div style={styles.summaryRow}>
+                <span style={styles.summaryLabel}>Bundle</span>
+                <span style={styles.summaryVal}>{bundle}</span>
+              </div>
+              <div style={{ ...styles.summaryRow, borderBottom: "none" }}>
+                <span style={styles.summaryLabel}>Amount</span>
+                <span style={{ ...styles.summaryVal, color: "#38bdf8", fontSize: 20, fontWeight: 900 }}>
+                  GH₵ {Number(bundlePrice).toFixed(2)}
+                </span>
+              </div>
             </div>
 
+            {/* INPUTS */}
+            <label style={styles.inputLabel}>📱 Recipient Phone Number</label>
+            <input
+              style={styles.input}
+              type="tel"
+              placeholder="e.g. 0244000000"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+
+            <label style={styles.inputLabel}>🔁 Confirm Phone Number</label>
+            <input
+              style={styles.input}
+              type="tel"
+              placeholder="Re-enter phone number"
+              value={confirmPhone}
+              onChange={(e) => setConfirmPhone(e.target.value)}
+            />
+
+            <label style={styles.inputLabel}>📧 Email (for receipt)</label>
+            <input
+              style={styles.input}
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            {/* POLICY CHECKBOX */}
+            <label style={styles.checkWrap}>
+              <input
+                type="checkbox"
+                checked={agree}
+                onChange={() => setAgree(!agree)}
+                style={{ accentColor: "#38bdf8", width: 16, height: 16, flexShrink: 0, marginTop: 2 }}
+              />
+              <span style={styles.checkText}>
+                I confirm this number is correct.{" "}
+                <strong style={{ color: "#f87171" }}>Wrong numbers will NOT be refunded.</strong>{" "}
+                I take full responsibility.
+              </span>
+            </label>
+
+            {/* PAY BUTTON */}
             <button
-              onClick={
-                handleBuy
-              }
-              disabled={
-                loading
-              }
-              style={{
-                ...styles.buyBtn,
-                opacity:
-                  loading
-                    ? 0.6
-                    : 1,
-              }}
+              onClick={handleBuy}
+              disabled={loading}
+              style={{ ...styles.buyBtn, opacity: loading ? 0.6 : 1 }}
             >
               {loading
-                ? "Processing..."
-                : "Pay with Paystack"}
+                ? "⏳ Processing..."
+                : `💳 Pay GH₵ ${Number(bundlePrice).toFixed(2)} via Paystack`}
             </button>
+
+            <p style={styles.secureNote}>🔒 Secured & encrypted via Paystack</p>
           </div>
         )}
       </div>
@@ -422,178 +340,265 @@ export default function Shop() {
   );
 }
 
-
-/* ======================
-   SHOP UI (FIXED + CLEAN)
-====================== */
 const styles = {
   container: {
-    padding: "24px",
+    padding: "24px 18px 60px",
     color: "#e5e7eb",
-    textAlign: "center",
+    fontFamily: "ui-sans-serif, system-ui, Arial",
     minHeight: "100vh",
   },
 
+  // HEADER
+  header: { textAlign: "center", marginBottom: 28 },
+  headerBadge: {
+    display: "inline-block",
+    padding: "5px 16px",
+    borderRadius: 50,
+    background: "rgba(56,189,248,0.15)",
+    border: "1px solid rgba(56,189,248,0.3)",
+    color: "#38bdf8",
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 12,
+  },
   title: {
-    marginBottom: "6px",
-    fontSize: "26px",
-    fontWeight: "800",
+    fontSize: 26,
+    fontWeight: 900,
+    color: "#f1f5f9",
+    margin: "0 0 6px",
+  },
+  subtitle: { fontSize: 14, color: "#64748b", margin: 0 },
+
+  // PROGRESS
+  progressWrap: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 0,
+    marginBottom: 28,
+    position: "relative",
+    maxWidth: 340,
+    margin: "0 auto 28px",
+  },
+  progressItem: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+    position: "relative",
+    zIndex: 1,
+  },
+  progressDot: {
+    width: 32,
+    height: 32,
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 13,
+    fontWeight: 800,
+    color: "white",
+    transition: "all 0.3s",
+  },
+  progressLabel: { fontSize: 11, fontWeight: 700, transition: "color 0.3s" },
+  progressLine: {
+    position: "absolute",
+    top: 16,
+    left: "16%",
+    right: "16%",
+    height: 2,
+    background: "rgba(255,255,255,0.08)",
+    zIndex: 0,
   },
 
-  subTitle: {
-    color: "#94a3b8",
-    marginBottom: "22px",
-    fontSize: "14px",
+  // ERROR
+  error: {
+    background: "rgba(239,68,68,0.1)",
+    border: "1px solid rgba(239,68,68,0.3)",
+    color: "#f87171",
+    padding: "12px 16px",
+    borderRadius: 12,
+    marginBottom: 16,
+    fontSize: 14,
+    maxWidth: 480,
+    margin: "0 auto 16px",
+    textAlign: "center",
   },
 
-  wrapper: {
-    maxWidth: "440px",
-    margin: "0 auto",
-  },
+  wrapper: { maxWidth: 480, margin: "0 auto" },
 
   box: {
-    background: "rgba(15, 23, 42, 0.88)",
-    backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
-    padding: "22px",
-    borderRadius: "18px",
-    boxShadow: "0 25px 60px rgba(0,0,0,0.45)",
-    border: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(15,23,42,0.9)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    padding: "24px 20px",
+    borderRadius: 22,
+    border: "1px solid rgba(255,255,255,0.07)",
+    boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
   },
 
-  step: {
-    marginBottom: "16px",
+  stepLabel: {
+    fontSize: 12,
     color: "#38bdf8",
-    fontWeight: "700",
-    fontSize: "14px",
+    fontWeight: 700,
     textTransform: "uppercase",
-    letterSpacing: "0.6px",
+    letterSpacing: "0.8px",
+    marginBottom: 18,
+    margin: "0 0 18px",
   },
 
-  /* ======================
-     NETWORK OPTIONS
-  ====================== */
-  option: {
-    padding: "16px",
-    marginBottom: "12px",
-    borderRadius: "14px",
+  // NETWORK GRID
+  networkGrid: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    marginBottom: 20,
+  },
+  networkCard: {
+    padding: "16px 18px",
+    borderRadius: 16,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
-    gap: "10px",
-    fontWeight: "700",
-    transition: "0.2s ease",
-    border: "1px solid rgba(255,255,255,0.06)",
-    background: "rgba(255,255,255,0.03)",
+    gap: 14,
+    transition: "transform 0.15s",
+    position: "relative",
   },
-
-  optionMTN: {
-    background:
-      "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))",
-    border: "1px solid rgba(255,193,7,0.3)",
-  },
-
-  optionTELECEL: {
-    background:
-      "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))",
+  networkEmoji: { fontSize: 26, flexShrink: 0 },
+  networkName: { fontWeight: 800, fontSize: 16, flex: 1 },
+  networkDesc: { fontSize: 12, color: "#64748b" },
+  networkArrow: { fontSize: 18, fontWeight: 900 },
+  stockBadge: {
+    position: "absolute",
+    right: 14,
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "rgba(239,68,68,0.15)",
     border: "1px solid rgba(239,68,68,0.3)",
-  },
-
-  optionAIRTEL: {
-    background:
-      "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))",
-    border: "1px solid rgba(59,130,246,0.3)",
-  },
-
-  stock: {
-    marginLeft: "auto",
     color: "#ef4444",
-    fontSize: "12px",
-    fontWeight: "800",
+    fontSize: 11,
+    fontWeight: 800,
+    padding: "3px 10px",
+    borderRadius: 50,
   },
+  infoRow: {
+    display: "flex",
+    justifyContent: "center",
+    gap: 20,
+  },
+  infoText: { fontSize: 12, color: "#475569", fontWeight: 600 },
 
-  /* ======================
-     BUNDLE CARDS
-  ====================== */
-  card: {
-    padding: "16px",
-    borderRadius: "14px",
-    marginBottom: "10px",
+  // BUNDLE STEP
+  backBtn: {
+    background: "none",
+    border: "none",
+    color: "#38bdf8",
+    fontSize: 14,
+    fontWeight: 700,
     cursor: "pointer",
-    transition: "0.2s ease",
-    background: "rgba(255,255,255,0.03)",
+    padding: 0,
+    marginBottom: 14,
+    display: "block",
+  },
+  networkPill: {
+    display: "inline-block",
+    padding: "6px 16px",
+    borderRadius: 50,
+    fontSize: 13,
+    fontWeight: 800,
+    marginBottom: 18,
+  },
+  emptyText: { color: "#475569", fontSize: 14, textAlign: "center", padding: "20px 0" },
+
+  // ✅ BUNDLE GRID
+  bundleGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 12,
+    marginBottom: 8,
+  },
+  bundleCard: {
+    background: "rgba(2,6,23,0.7)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 16,
+    padding: "16px 14px",
+    cursor: "pointer",
+    textAlign: "center",
+    transition: "border-color 0.15s",
+  },
+  bundleSize: { fontWeight: 900, fontSize: 18, color: "#f1f5f9", marginBottom: 6 },
+  bundlePrice: { fontWeight: 800, fontSize: 16, color: "#38bdf8", marginBottom: 8 },
+  bundleTap: { fontSize: 11, color: "#38bdf8", opacity: 0.6 },
+
+  // CHECKOUT
+  summaryCard: {
+    background: "rgba(2,6,23,0.7)",
     border: "1px solid rgba(255,255,255,0.06)",
+    borderRadius: 16,
+    padding: "6px 16px",
+    marginBottom: 20,
   },
-
-  summary: {
-    background: "rgba(2, 6, 23, 0.65)",
-    padding: "14px",
-    borderRadius: "12px",
-    marginBottom: "15px",
-    border: "1px solid rgba(255,255,255,0.05)",
+  summaryRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "12px 0",
+    borderBottom: "1px solid rgba(255,255,255,0.05)",
   },
+  summaryLabel: { fontSize: 13, color: "#64748b" },
+  summaryVal: { fontSize: 15, fontWeight: 700, color: "#e5e7eb" },
 
+  inputLabel: {
+    display: "block",
+    fontSize: 12,
+    color: "#64748b",
+    fontWeight: 700,
+    marginBottom: 6,
+  },
   input: {
     width: "100%",
-    padding: "14px",
-    marginBottom: "12px",
-    borderRadius: "12px",
+    padding: "13px 14px",
+    marginBottom: 14,
+    borderRadius: 12,
     border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(2, 6, 23, 0.75)",
-    color: "#ffffff",
+    background: "rgba(2,6,23,0.75)",
+    color: "#fff",
     outline: "none",
-    fontSize: "14px",
+    fontSize: 14,
     boxSizing: "border-box",
-  },
-
-  notice: {
-    background: "rgba(245,158,11,0.08)",
-    border: "1px solid rgba(245,158,11,0.25)",
-    padding: "12px",
-    borderRadius: "12px",
-    marginBottom: "14px",
-    textAlign: "left",
   },
 
   checkWrap: {
     display: "flex",
-    gap: "10px",
+    gap: 10,
     alignItems: "flex-start",
-    fontSize: "14px",
-    lineHeight: "1.5",
+    background: "rgba(245,158,11,0.08)",
+    border: "1px solid rgba(245,158,11,0.25)",
+    padding: "12px 14px",
+    borderRadius: 12,
+    marginBottom: 16,
+    cursor: "pointer",
   },
+  checkText: { fontSize: 13, color: "#94a3b8", lineHeight: 1.55 },
 
   buyBtn: {
     width: "100%",
-    padding: "14px",
-    borderRadius: "14px",
-    background:
-      "linear-gradient(135deg, #10b981, #22c55e)",
+    padding: "15px",
+    borderRadius: 14,
     border: "none",
-    color: "#ffffff",
-    fontWeight: "800",
+    background: "linear-gradient(135deg, #22c55e, #16a34a)",
+    color: "white",
+    fontWeight: 900,
+    fontSize: 15,
     cursor: "pointer",
-    fontSize: "15px",
+    marginBottom: 12,
+    boxShadow: "0 4px 20px rgba(34,197,94,0.3)",
   },
-
-  back: {
-    marginBottom: "12px",
-    background: "transparent",
-    border: "none",
-    color: "#38bdf8",
-    cursor: "pointer",
-    fontWeight: "700",
-    fontSize: "14px",
-  },
-
-  error: {
-    background: "rgba(127, 29, 29, 0.8)",
-    color: "#ffffff",
-    padding: "12px",
-    borderRadius: "12px",
-    marginBottom: "14px",
-    border: "1px solid rgba(255,255,255,0.08)",
-    maxWidth: "440px",
-    marginInline: "auto",
+  secureNote: {
+    textAlign: "center",
+    fontSize: 12,
+    color: "#475569",
+    margin: 0,
   },
 };
