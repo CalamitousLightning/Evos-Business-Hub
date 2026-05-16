@@ -18,6 +18,8 @@ export default function Shop() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [agree, setAgree] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const user_id = user?.id || null;
@@ -422,9 +424,9 @@ export default function Shop() {
             <p style={styles.secureNote}>🔒 Payments secured & encrypted by Paystack</p>
           </div>
         )}
+      </div>
 
-	
-        {/* ===================== FLOATING SUPPORT ===================== */}
+      {/* ===================== FLOATING SUPPORT ===================== */}
       <div style={styles.floatWrap}>
         {chatOpen && (
           <div style={styles.chatPopup}>
@@ -799,7 +801,8 @@ const styles = {
     margin: 0,
     fontWeight: 600,
   },
-// FLOATING SUPPORT
+
+  // FLOATING SUPPORT
   floatWrap: {
     position: "fixed",
     bottom: 24,
