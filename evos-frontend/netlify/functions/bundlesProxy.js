@@ -22,7 +22,7 @@ export async function handler(event) {
       };
     }
 
-    const url = `https://bundlesghana.store/api/v1${path}`;
+    const url = `https://fripalconnectgh.com/api/v1${path}`;
 
     const res = await fetch(url, {
       method,
