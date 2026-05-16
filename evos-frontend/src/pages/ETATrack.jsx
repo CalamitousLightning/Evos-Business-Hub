@@ -57,7 +57,7 @@ function formatDate(dateStr) {
   });
 }
 
-export default function ETATrack({ setPage }) {
+export default function ETATrack({ setPage, backTo = "home" }) {
   const [phone, setPhone] = useState("");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -92,6 +92,12 @@ export default function ETATrack({ setPage }) {
       setLoading(false);
     }
   };
+
+  const backLabel = {
+    home: "← Back to Home",
+    store: "← Back to Store",
+    dashboard: "← Back to Dashboard",
+  }[backTo] || "← Back";
 
   return (
     <div style={styles.wrap}>
@@ -203,8 +209,8 @@ export default function ETATrack({ setPage }) {
 
       {/* BACK */}
       {setPage && (
-        <button style={styles.backBtn} onClick={() => setPage("home")}>
-          Back to Store
+        <button style={styles.backBtn} onClick={() => setPage(backTo)}>
+          {backLabel}
         </button>
       )}
     </div>
