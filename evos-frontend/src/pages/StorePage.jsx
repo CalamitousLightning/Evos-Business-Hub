@@ -176,7 +176,10 @@ export default function StorePage({ setPage }) {
             })}
           </div>
 
-          <button style={styles.track} onClick={() => setPage("eta-track")}>
+          <button style={styles.track} onClick={() => {
+          sessionStorage.setItem("storeAgentId", agentId);  // ✅ save agent ID
+          setPage("eta-track");
+        }}>
             Track Order
           </button>
         </>
