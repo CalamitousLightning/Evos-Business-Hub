@@ -270,7 +270,12 @@ export default function App() {
       case "store":
         return (
           <StorePage
-            setPage={navigate}
+            setPage={(target) => {
+              if (target === "eta-track" || target === "order-tracking") {
+                setBackTo("store");
+              }
+              navigate(target);
+            }}
             theme={theme}
           />
         );
