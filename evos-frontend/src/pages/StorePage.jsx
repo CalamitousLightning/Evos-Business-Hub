@@ -175,11 +175,8 @@ export default function StorePage({ setPage }) {
               );
             })}
           </div>
-          
-          <button style={styles.track} onClick={() => {
-          setPage("__backTo__store");
-          setTimeout(() => setPage("eta-track"), 0);
-        }}>
+
+          <button style={styles.track} onClick={() => setPage("eta-track")}>
             Track Order
           </button>
         </>
