@@ -34,6 +34,8 @@ export default function AgentPricing({ user, setPage }) {
   const [rows, setRows] = useState([]);
   const [savingIndex, setSavingIndex] = useState(null);
   const [savedIndex, setSavedIndex] = useState(null);
+  const [savingAll, setSavingAll] = useState(false);
+  const [savedAll, setSavedAll] = useState(false);
   const [step, setStep] = useState(1); // 1 = pick network, 2 = set prices
   const [selectedNetwork, setSelectedNetwork] = useState("");
 
@@ -102,6 +104,32 @@ export default function AgentPricing({ user, setPage }) {
       alert("Network error");
     } finally {
       setSavingIndex(null);
+    }
+  };
+
+  // Save ALL bundles for current network at once
+  const saveAll = async () => {
+    try {
+      setSavingAll(true);
+      const res = await fetch(`${API}/agent/pricing/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent_id: user.id,
+          prices: rows,
+        }),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        setSavedAll(true);
+        setTimeout(() => setSavedAll(false), 2500);
+      } else {
+        alert(data.message || "Failed to save pricing");
+      }
+    } catch (err) {
+      alert("Network error");
+    } finally {
+      setSavingAll(false);
     }
   };
 
@@ -325,6 +353,22 @@ export default function AgentPricing({ user, setPage }) {
                 );
               })}
             </div>
+
+            {/* SAVE ALL BUTTON */}
+            <button
+              onClick={saveAll}
+              disabled={savingAll}
+              style={{
+                ...styles.saveAllBtn,
+                opacity: savingAll ? 0.65 : 1,
+                background: savedAll
+                  ? "linear-gradient(135deg, #22c55e, #16a34a)"
+                  : "linear-gradient(135deg, #38bdf8, #0ea5e9)",
+              }}
+            >
+              {savingAll ? "⏳ Saving All..." : savedAll ? "✓ All Prices Saved!" : "💾 Save All Prices"}
+            </button>
+
           </div>
         )}
       </div>
@@ -460,6 +504,12 @@ const styles = {
   },
   finalPrice: { fontSize: 12, fontWeight: 700, marginBottom: 12 },
 
+  saveAllBtn: {
+    width: "100%", padding: "15px", borderRadius: 16, border: "none",
+    color: "white", fontWeight: 900, fontSize: 15, cursor: "pointer",
+    boxShadow: "0 6px 24px rgba(56,189,248,0.3)",
+    marginTop: 16, letterSpacing: "0.2px", transition: "all 0.3s",
+  },
   saveSingleBtn: {
     width: "100%", padding: "10px", borderRadius: 12, border: "none",
     color: "white", fontWeight: 900, fontSize: 13, cursor: "pointer",
