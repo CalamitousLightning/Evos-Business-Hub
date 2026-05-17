@@ -4,34 +4,22 @@ const API = "https://api.evosdata.xyz";
 
 const NETWORK_CONFIG = {
   MTN: {
-    label: "MTN",
-    emoji: "🟡",
-    color: "#FFC107",
+    label: "MTN", emoji: "🟡", color: "#FFC107",
     bg: "linear-gradient(135deg, rgba(255,193,7,0.18), rgba(255,193,7,0.06))",
-    border: "rgba(255,193,7,0.4)",
-    shadow: "0 4px 20px rgba(245,158,11,0.2)",
-    tag: "Most Popular",
-    tagColor: "#f59e0b",
+    border: "rgba(255,193,7,0.4)", shadow: "0 4px 20px rgba(245,158,11,0.2)",
+    tag: "Most Popular", tagColor: "#f59e0b",
   },
   Telecel: {
-    label: "Telecel (Vodafone)",
-    emoji: "🔴",
-    color: "#ef4444",
+    label: "Telecel (Vodafone)", emoji: "🔴", color: "#ef4444",
     bg: "linear-gradient(135deg, rgba(239,68,68,0.18), rgba(239,68,68,0.06))",
-    border: "rgba(239,68,68,0.4)",
-    shadow: "0 4px 20px rgba(239,68,68,0.2)",
-    tag: "Reliable",
-    tagColor: "#ef4444",
+    border: "rgba(239,68,68,0.4)", shadow: "0 4px 20px rgba(239,68,68,0.2)",
+    tag: "Reliable", tagColor: "#ef4444",
   },
   AirtelTigo: {
-    label: "AirtelTigo",
-    emoji: "🔵",
-    color: "#6366f1",
+    label: "AirtelTigo", emoji: "🔵", color: "#6366f1",
     bg: "linear-gradient(135deg, rgba(99,102,241,0.18), rgba(99,102,241,0.06))",
-    border: "rgba(99,102,241,0.4)",
-    shadow: "0 4px 20px rgba(99,102,241,0.2)",
-    tag: "Affordable",
-    tagColor: "#6366f1",
+    border: "rgba(99,102,241,0.4)", shadow: "0 4px 20px rgba(99,102,241,0.2)",
+    tag: "Affordable", tagColor: "#6366f1",
   },
 };
 
@@ -196,7 +184,12 @@ export default function StorePage({ setPage }) {
   );
 
   const availableNetworks = [...new Set((store.prices || []).map((p) => p.network))];
-  const bundles = (store.prices || []).filter((p) => p.network === network);
+
+  // ✅ Sort bundles lowest final_price first
+  const bundles = (store.prices || [])
+    .filter((p) => p.network === network)
+    .sort((a, b) => Number(a.final_price) - Number(b.final_price));
+
   const cfg = NETWORK_CONFIG[network] || {};
   const networkLabel = cfg.label || network;
 
@@ -325,19 +318,14 @@ export default function StorePage({ setPage }) {
                 return (
                   <div
                     key={i}
-                    style={{
-                      ...styles.bundleCard,
-                      border: `1px solid ${accent.border}`,
-                    }}
+                    style={{ ...styles.bundleCard, border: `1px solid ${accent.border}` }}
                     onClick={() => setSelected(item)}
                   >
                     <div style={styles.bundleSize}>{item.bundle}</div>
                     <div style={{ ...styles.bundlePrice, color: accent.price }}>
                       GH₵ {Number(item.final_price).toFixed(2)}
                     </div>
-                    <div style={{ ...styles.bundleCta, color: accent.price }}>
-                      Select →
-                    </div>
+                    <div style={{ ...styles.bundleCta, color: accent.price }}>Select →</div>
                   </div>
                 );
               })}
@@ -394,204 +382,61 @@ export default function StorePage({ setPage }) {
 }
 
 const styles = {
-  container: {
-    padding: "28px 18px 80px",
-    minHeight: "100vh",
-    fontFamily: "ui-sans-serif, system-ui, Arial",
-    color: "#e5e7eb",
-  },
-
-  centerWrap: {
-    display: "flex", flexDirection: "column", alignItems: "center",
-    justifyContent: "center", minHeight: "60vh", textAlign: "center", padding: 24,
-    color: "#e5e7eb",
-  },
-
-  // HEADER
+  container: { padding: "28px 18px 80px", minHeight: "100vh", fontFamily: "ui-sans-serif, system-ui, Arial", color: "#e5e7eb" },
+  centerWrap: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", textAlign: "center", padding: 24, color: "#e5e7eb" },
   header: { textAlign: "center", marginBottom: 24 },
-  headerBadge: {
-    display: "inline-block", padding: "5px 18px", borderRadius: 50,
-    background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.3)",
-    color: "#38bdf8", fontSize: 12, fontWeight: 800, marginBottom: 10, letterSpacing: "0.5px",
-  },
-  title: {
-    fontSize: "clamp(22px, 5vw, 30px)", fontWeight: 900,
-    color: "#f1f5f9", margin: "0 0 6px",
-  },
+  headerBadge: { display: "inline-block", padding: "5px 18px", borderRadius: 50, background: "rgba(56,189,248,0.15)", border: "1px solid rgba(56,189,248,0.3)", color: "#38bdf8", fontSize: 12, fontWeight: 800, marginBottom: 10, letterSpacing: "0.5px" },
+  title: { fontSize: "clamp(22px, 5vw, 30px)", fontWeight: 900, color: "#f1f5f9", margin: "0 0 6px" },
   sub: { fontSize: 13, color: "#64748b", margin: 0, fontWeight: 600 },
-
-  // PROGRESS
-  progressWrap: {
-    display: "flex", justifyContent: "center", alignItems: "center",
-    position: "relative", maxWidth: 340, margin: "0 auto 24px",
-  },
-  progressItem: {
-    display: "flex", flexDirection: "column", alignItems: "center",
-    gap: 6, flex: 1, position: "relative", zIndex: 1,
-  },
-  progressDot: {
-    width: 34, height: 34, borderRadius: "50%",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: 13, fontWeight: 800, transition: "all 0.35s",
-  },
+  progressWrap: { display: "flex", justifyContent: "center", alignItems: "center", position: "relative", maxWidth: 340, margin: "0 auto 24px" },
+  progressItem: { display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1, position: "relative", zIndex: 1 },
+  progressDot: { width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, transition: "all 0.35s" },
   progressLabel: { fontSize: 11, fontWeight: 700, transition: "color 0.3s" },
-  progressLine: {
-    position: "absolute", top: 17, left: "16%", right: "16%",
-    height: 2, background: "rgba(255,255,255,0.08)", zIndex: 0,
-  },
-
+  progressLine: { position: "absolute", top: 17, left: "16%", right: "16%", height: 2, background: "rgba(255,255,255,0.08)", zIndex: 0 },
   wrapper: { maxWidth: 480, margin: "0 auto" },
-
-  box: {
-    background: "rgba(15,23,42,0.9)",
-    backdropFilter: "blur(20px)",
-    WebkitBackdropFilter: "blur(20px)",
-    padding: "24px 20px",
-    borderRadius: 22,
-    border: "1px solid rgba(255,255,255,0.07)",
-    boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
-  },
-
-  stepLabel: {
-    fontSize: 12, color: "#38bdf8", fontWeight: 700,
-    textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 18px",
-  },
-
-  // NETWORK
+  box: { background: "rgba(15,23,42,0.9)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", padding: "24px 20px", borderRadius: 22, border: "1px solid rgba(255,255,255,0.07)", boxShadow: "0 25px 60px rgba(0,0,0,0.4)" },
+  stepLabel: { fontSize: 12, color: "#38bdf8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px", margin: "0 0 18px" },
   networkGrid: { display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 },
-  networkCard: {
-    padding: "16px 18px", borderRadius: 16, cursor: "pointer",
-    display: "flex", alignItems: "center", gap: 14,
-    transition: "transform 0.15s", position: "relative",
-  },
-  networkTag: {
-    position: "absolute", top: 10, right: 42,
-    fontSize: 10, fontWeight: 800, padding: "2px 8px",
-    borderRadius: 50, letterSpacing: "0.5px", textTransform: "uppercase",
-  },
+  networkCard: { padding: "16px 18px", borderRadius: 16, cursor: "pointer", display: "flex", alignItems: "center", gap: 14, transition: "transform 0.15s", position: "relative" },
+  networkTag: { position: "absolute", top: 10, right: 42, fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 50, letterSpacing: "0.5px", textTransform: "uppercase" },
   networkEmoji: { fontSize: 28, flexShrink: 0 },
   networkName: { fontWeight: 800, fontSize: 16, flex: 1 },
   networkArrow: { fontSize: 20, fontWeight: 900, flexShrink: 0 },
-
   infoRow: { display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 16 },
-  infoChip: {
-    fontSize: 11, color: "#475569", fontWeight: 700,
-    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-    padding: "4px 10px", borderRadius: 50,
-  },
-
-  trackBtn: {
-    width: "100%", padding: "12px", borderRadius: 14,
-    background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.25)",
-    color: "#38bdf8", fontWeight: 800, fontSize: 14, cursor: "pointer",
-  },
-
-  // BUNDLE STEP
-  backBtn: {
-    background: "rgba(255,255,255,0.06)", border: "none", color: "#38bdf8",
-    fontSize: 13, fontWeight: 800, cursor: "pointer",
-    padding: "6px 14px", borderRadius: 50, marginBottom: 16, display: "inline-block",
-  },
-  networkPill: {
-    display: "inline-flex", alignItems: "center", gap: 6,
-    padding: "7px 18px", borderRadius: 50, fontSize: 13, fontWeight: 900, marginBottom: 20,
-  },
-
+  infoChip: { fontSize: 11, color: "#475569", fontWeight: 700, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", padding: "4px 10px", borderRadius: 50 },
+  trackBtn: { width: "100%", padding: "12px", borderRadius: 14, background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8", fontWeight: 800, fontSize: 14, cursor: "pointer" },
+  backBtn: { background: "rgba(255,255,255,0.06)", border: "none", color: "#38bdf8", fontSize: 13, fontWeight: 800, cursor: "pointer", padding: "6px 14px", borderRadius: 50, marginBottom: 16, display: "inline-block" },
+  networkPill: { display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 18px", borderRadius: 50, fontSize: 13, fontWeight: 900, marginBottom: 20 },
   bundleGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
-  bundleCard: {
-    background: "rgba(2,6,23,0.7)",
-    borderRadius: 16, padding: "18px 14px 14px", cursor: "pointer",
-    textAlign: "center", transition: "transform 0.15s",
-    display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-  },
+  bundleCard: { background: "rgba(2,6,23,0.7)", borderRadius: 16, padding: "18px 14px 14px", cursor: "pointer", textAlign: "center", transition: "transform 0.15s", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 },
   bundleSize: { fontWeight: 900, fontSize: 20, color: "#f1f5f9" },
   bundlePrice: { fontWeight: 900, fontSize: 17 },
   bundleCta: { fontSize: 11, fontWeight: 800, opacity: 0.7 },
-
-  // FLOATING SUPPORT
-  floatWrap: {
-    position: "fixed", bottom: 24, right: 20, zIndex: 9999,
-    display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10,
-  },
-  chatPopup: {
-    background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 18, padding: 18, width: 270,
-    boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
-  },
-  chatHeader: {
-    display: "flex", justifyContent: "space-between",
-    alignItems: "center", marginBottom: 10,
-  },
-  chatClose: {
-    background: "none", border: "none", color: "#64748b",
-    cursor: "pointer", fontSize: 14, fontWeight: 800,
-  },
+  floatWrap: { position: "fixed", bottom: 24, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 },
+  chatPopup: { background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, padding: 18, width: 270, boxShadow: "0 8px 40px rgba(0,0,0,0.5)" },
+  chatHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  chatClose: { background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 14, fontWeight: 800 },
   chatMsg: { fontSize: 13, color: "#94a3b8", lineHeight: 1.55, margin: "0 0 12px" },
   chatOptions: { display: "flex", flexDirection: "column", gap: 8 },
-  chatOption: {
-    padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.04)", color: "#e5e7eb",
-    fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "left",
-  },
-  floatBtn: {
-    width: 54, height: 54, borderRadius: "50%",
-    background: "linear-gradient(135deg, #25D366, #128C7E)",
-    border: "none", color: "white", fontSize: 22, cursor: "pointer",
-    boxShadow: "0 4px 20px rgba(37,211,102,0.45)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-  },
+  chatOption: { padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)", color: "#e5e7eb", fontSize: 13, fontWeight: 700, cursor: "pointer", textAlign: "left" },
+  floatBtn: { width: 54, height: 54, borderRadius: "50%", background: "linear-gradient(135deg, #25D366, #128C7E)", border: "none", color: "white", fontSize: 22, cursor: "pointer", boxShadow: "0 4px 20px rgba(37,211,102,0.45)", display: "flex", alignItems: "center", justifyContent: "center" },
 };
 
 const modal = {
-  overlay: {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
-    display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 1000,
-  },
-  box: {
-    width: "100%", maxWidth: 480, background: "#0f172a",
-    borderRadius: "24px 24px 0 0", padding: "22px 20px 36px",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 -8px 40px rgba(0,0,0,0.5)",
-    fontFamily: "ui-sans-serif, system-ui, Arial",
-  },
-  header: {
-    display: "flex", justifyContent: "space-between",
-    alignItems: "center", marginBottom: 18,
-  },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 1000 },
+  box: { width: "100%", maxWidth: 480, background: "#0f172a", borderRadius: "24px 24px 0 0", padding: "22px 20px 36px", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 -8px 40px rgba(0,0,0,0.5)", fontFamily: "ui-sans-serif, system-ui, Arial" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 },
   headerLabel: { fontWeight: 900, fontSize: 16, color: "#f1f5f9" },
-  closeBtn: {
-    background: "rgba(255,255,255,0.08)", border: "none", color: "#94a3b8",
-    fontSize: 13, cursor: "pointer", padding: "6px 10px", borderRadius: 50, fontWeight: 800,
-  },
+  closeBtn: { background: "rgba(255,255,255,0.08)", border: "none", color: "#94a3b8", fontSize: 13, cursor: "pointer", padding: "6px 10px", borderRadius: 50, fontWeight: 800 },
   summary: { borderRadius: 16, padding: "10px 16px", marginBottom: 18 },
-  summaryHeader: {
-    display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
-    paddingBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.06)",
-  },
-  summaryRow: {
-    display: "flex", justifyContent: "space-between", alignItems: "center",
-    padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)",
-  },
+  summaryHeader: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: "1px solid rgba(255,255,255,0.06)" },
+  summaryRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" },
   summaryLabel: { fontSize: 12, color: "#64748b", fontWeight: 600 },
   summaryValue: { fontSize: 14, fontWeight: 700, color: "#e5e7eb" },
   label: { display: "block", fontSize: 12, color: "#64748b", fontWeight: 800, marginBottom: 6 },
-  input: {
-    width: "100%", padding: "13px 14px", borderRadius: 14,
-    border: "1px solid rgba(255,255,255,0.08)", background: "rgba(2,6,23,0.75)",
-    color: "#fff", fontSize: 14, fontWeight: 600,
-    marginBottom: 14, boxSizing: "border-box", outline: "none",
-  },
-  checkRow: {
-    display: "flex", alignItems: "flex-start",
-    background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)",
-    padding: "12px 14px", borderRadius: 14, marginBottom: 18, cursor: "pointer",
-  },
+  input: { width: "100%", padding: "13px 14px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(2,6,23,0.75)", color: "#fff", fontSize: 14, fontWeight: 600, marginBottom: 14, boxSizing: "border-box", outline: "none" },
+  checkRow: { display: "flex", alignItems: "flex-start", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", padding: "12px 14px", borderRadius: 14, marginBottom: 18, cursor: "pointer" },
   checkText: { fontSize: 12, color: "#94a3b8", lineHeight: 1.55, fontWeight: 600 },
-  buyBtn: {
-    width: "100%", padding: 15, borderRadius: 16, border: "none",
-    background: "linear-gradient(135deg, #22c55e, #16a34a)",
-    color: "white", fontWeight: 900, fontSize: 15, cursor: "pointer",
-    boxShadow: "0 6px 24px rgba(34,197,94,0.3)", marginBottom: 10,
-  },
+  buyBtn: { width: "100%", padding: 15, borderRadius: 16, border: "none", background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "white", fontWeight: 900, fontSize: 15, cursor: "pointer", boxShadow: "0 6px 24px rgba(34,197,94,0.3)", marginBottom: 10 },
   secureNote: { textAlign: "center", fontSize: 12, color: "#475569", margin: 0, fontWeight: 600 },
 };
