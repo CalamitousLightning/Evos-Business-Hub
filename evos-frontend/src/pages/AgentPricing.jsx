@@ -136,7 +136,8 @@ export default function AgentPricing({ user, setPage }) {
   const availableNetworks = [...new Set(rows.map((r) => r.network))];
   const networkBundles = rows
     .map((r, originalIndex) => ({ ...r, originalIndex }))
-    .filter((r) => r.network === selectedNetwork);
+    .filter((r) => r.network === selectedNetwork)
+    .sort((a, b) => Number(a.base_price) - Number(b.base_price));
 
   const cfg = NETWORK_CONFIG[selectedNetwork] || {};
 
