@@ -94,7 +94,7 @@ export default function AgentPricing({ user, setPage }) {
       if (data.status === "success") {
         setSavedIndex(index);
         setTimeout(() => setSavedIndex(null), 2000);
-        loadPricing();
+        // Don't reload — would reset all unsaved markups
       } else {
         alert(data.message || "Failed to save");
       }
